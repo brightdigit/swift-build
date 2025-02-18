@@ -1,0 +1,42 @@
+name: 'Build and Test'
+description: 'Builds and tests a Swift package on the current platform'
+
+inputs:
+  type:
+    description: 'Build type for Apple platforms (ios, watchos, visionos, tvos)'
+    required: false
+  xcode:
+    description: 'Xcode version path for Apple platforms'
+    required: false
+  deviceName:
+    description: 'Simulator device name for Apple platforms'
+    required: false
+  osVersion:
+    description: 'Simulator OS version for Apple platforms'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect OS
+      shell: bash
+      id: detect-os
+      run: |
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+          echo "os=macos" >> $GITHUB_OUTPUT
+        else
+          echo "os=ubuntu" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run macOS Build
+      if: steps.detect-os.outputs.os == 'macos'
+      uses: ./actions/macos-build
+      with:
+        type: ${{ inputs.type }}
+        xcode: ${{ inputs.xcode }}
+        deviceName: ${{ inputs.deviceName }}
+        osVersion: ${{ inputs.osVersion }}
+
+    - name: Run Ubuntu Build
+      if: steps.detect-os.outputs.os == 'ubuntu'
+      uses: ./actions/ubuntu-build
