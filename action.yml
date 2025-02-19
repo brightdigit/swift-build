@@ -2,6 +2,10 @@ name: 'Build and Test'
 description: 'Builds and tests a Swift package on the current platform'
 
 inputs:
+  working-directory:
+    description: 'Directory containing the Swift package'
+    required: false
+    default: '.'
   type:
     description: 'Build type for Apple platforms (ios, watchos, visionos, tvos)'
     required: false
@@ -21,6 +25,7 @@ runs:
     - name: Detect OS
       shell: bash
       id: detect-os
+      working-directory: ${{ inputs.working-directory }}
       run: |
         if [[ "$RUNNER_OS" == "macOS" ]]; then
           echo "os=macos" >> $GITHUB_OUTPUT
@@ -32,16 +37,19 @@ runs:
     - name: Set Xcode Name
       if: steps.detect-os.outputs.os == 'macos' && inputs.xcode
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: echo "XCODE_NAME=$(basename -- ${{ inputs.xcode }} | sed 's/\.[^.]*$//' | cut -d'_' -f2)" >> $GITHUB_ENV
     
     - name: Setup Xcode
       if: steps.detect-os.outputs.os == 'macos' && inputs.xcode
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: sudo xcode-select -s ${{ inputs.xcode }}/Contents/Developer
   
     - name: Set SDK and Platform
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         case ${{ inputs.type }} in
           ios)
@@ -65,15 +73,15 @@ runs:
     - uses: irgaly/xcode-cache@v1
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       with:
-        key: xcode-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles('Package.resolved') }}-${{ github.sha }}
+        key: xcode-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles('${{ inputs.working-directory }}/Package.resolved') }}-${{ github.sha }}
         restore-keys: |
-          xcode-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles('Package.resolved') }}-                        
-          xcode-${{ runner.os }}-${{ env.XCODE_NAME }}-          
+          xcode-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles('${{ inputs.working-directory }}/Package.resolved') }}- 
 
     # Ubuntu specific steps
     - name: Get Swift and OS versions
       if: steps.detect-os.outputs.os == 'ubuntu'
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         SWIFT_VERSION=$(swift --version | head -n 1 | cut -d ' ' -f 3)
         OS_VERSION=$(. /etc/os-release && echo $VERSION_CODENAME)
@@ -85,7 +93,7 @@ runs:
       if: steps.detect-os.outputs.os == 'macos' && !inputs.type
       uses: actions/cache@v4
       with:
-        path: .build
+        path: ${{ inputs.working-directory }}/.build
         key: spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles('Package.resolved') }}
         restore-keys: |
           spm-${{ runner.os }}-${{ env.XCODE_NAME }}-
@@ -94,13 +102,14 @@ runs:
       if: steps.detect-os.outputs.os == 'ubuntu'
       uses: actions/cache@v4
       with:
-        path: .build
+        path: ${{ inputs.working-directory }}/.build
         key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ hashFiles('Package.resolved') }}
 
     # Build and test steps
     - name: Build and Test
       if: steps.detect-os.outputs.os == 'macos' && !inputs.type || steps.detect-os.outputs.os == 'ubuntu'
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         swift build
         swift test --enable-code-coverage
@@ -108,6 +117,7 @@ runs:
     - name: Build and Test (macOS Device)
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: >
         xcodebuild test
         -scheme SimulatorServices
