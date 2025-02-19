@@ -35,7 +35,7 @@ runs:
       run: echo "XCODE_NAME=$(basename -- ${{ inputs.xcode }} | sed 's/\.[^.]*$//' | cut -d'_' -f2)" >> $GITHUB_ENV
     
     - name: Setup Xcode
-      if: steps.detect-os.outputs.os == 'macos'
+      if: steps.detect-os.outputs.os == 'macos' && inputs.xcode
       shell: bash
       run: sudo xcode-select -s ${{ inputs.xcode }}/Contents/Developer
   
