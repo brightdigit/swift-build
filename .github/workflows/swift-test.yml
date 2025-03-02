@@ -105,7 +105,7 @@ jobs:
           - swift: 5.9
             ubuntu: noble
     container:
-      image: ${{ matrix.swift }}
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./
