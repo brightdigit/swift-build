@@ -1,0 +1,69 @@
+name: Swift Package Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-single-target-macos:
+    name: Test Single Target Package (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+
+  test-multi-target-macos:
+    name: Test Multi-Target Package (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage
+
+  test-single-target-ubuntu:
+    name: Test Single Target Package (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        swift:
+          - swift:5.9-jammy
+          - swift:5.8-jammy
+          - swift:5.9-focal
+          - swift:5.8-focal
+    container:
+      image: ${{ matrix.swift }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+
+  test-multi-target-ubuntu:
+    name: Test Multi-Target Package (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        swift:
+          - swift:5.9-jammy
+          - swift:5.8-jammy
+          - swift:5.9-focal
+          - swift:5.8-focal
+    container:
+      image: ${{ matrix.swift }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage 
