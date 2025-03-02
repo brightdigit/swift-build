@@ -1,11 +1,7 @@
 name: Swift Package Tests
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+  push
 
 jobs:
   test-single-target-macos:
