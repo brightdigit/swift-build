@@ -51,12 +51,18 @@ jobs:
       fail-fast: false
       matrix:
         swift:
-          - swift:5.9-jammy
-          - swift:5.8-jammy
-          - swift:5.9-focal
-          - swift:5.8-focal
+          - 5.9
+          - 5.10
+          - 6.0
+        ubuntu:
+          - jammy
+          - focal
+          - noble
+        exclude:
+          - versions: 5.9
+            ubuntu: noble
     container:
-      image: ${{ matrix.swift }}
+      image: ${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./
