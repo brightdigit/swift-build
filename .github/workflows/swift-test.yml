@@ -1,0 +1,139 @@
+name: Swift Package Tests
+
+on:
+  push
+
+jobs:
+  test-single-target-macos:
+    name: Test Single Target Package (macOS)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          # SPM Build Matrix
+          - runs-on: macos-14
+            xcode: "/Applications/Xcode_15.1.app"
+          - runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+          
+          # iOS Build Matrix
+          - type: ios
+            runs-on: macos-14
+            xcode: "/Applications/Xcode_15.1.app"
+            deviceName: "iPhone 15"
+            osVersion: "17.0"
+          - type: ios
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+            deviceName: "iPhone 16 Pro"
+            osVersion: "18.2"
+  
+          - type: watchos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+            deviceName: "Apple Watch Ultra 2 (49mm)"
+            osVersion: "11.2"
+
+          - type: visionos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+            deviceName: "Apple Vision Pro"
+            osVersion: "2.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+
+  test-multi-target-macos:
+    name: Test Multi-Target Package (macOS)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          # SPM Build Matrix
+          - runs-on: macos-14
+            xcode: "/Applications/Xcode_15.1.app"
+          - runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+          
+          # iOS Build Matrix
+          - type: ios
+            runs-on: macos-14
+            xcode: "/Applications/Xcode_15.1.app"
+            deviceName: "iPhone 15"
+            osVersion: "17.0"
+          - type: ios
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+            deviceName: "iPhone 16 Pro"
+            osVersion: "18.2"
+  
+          - type: watchos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+            deviceName: "Apple Watch Ultra 2 (49mm)"
+            osVersion: "11.2"
+
+          - type: visionos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
+            deviceName: "Apple Vision Pro"
+            osVersion: "2.2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage
+
+  test-single-target-ubuntu:
+    name: Test Single Target Package (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+          - "5.10"
+          - "6.0"
+        ubuntu:
+          - jammy
+          - focal
+          - noble
+        exclude:
+          - swift: 5.9
+            ubuntu: noble
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+
+  test-multi-target-ubuntu:
+    name: Test Multi-Target Package (Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+          - "5.10"
+          - "6.0"
+        ubuntu:
+          - jammy
+          - focal
+          - noble
+        exclude:
+          - swift: 5.9
+            ubuntu: noble
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage 
