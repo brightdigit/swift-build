@@ -59,7 +59,7 @@ jobs:
           - focal
           - noble
         exclude:
-          - versions: 5.9
+          - swift: 5.9
             ubuntu: noble
     container:
       image: ${{ matrix.swift }}-${{ matrix.ubuntu }}
