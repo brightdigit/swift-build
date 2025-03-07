@@ -109,7 +109,10 @@ runs:
       if: steps.detect-os.outputs.os == 'ubuntu'
       uses: actions/cache@v4
       with:
-        path: ${{ inputs.working-directory }}/.build
+        path: |
+          ${{ inputs.working-directory }}/.build
+          ${{ inputs.working-directory }}/.swiftpm
+          ${{ inputs.working-directory }}/.cache
         key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ hashFiles('Package.resolved') }}
 
     # Build and test steps
