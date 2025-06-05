@@ -20,6 +20,7 @@ jobs:
           - type: macos
             runs-on: macos-14
             xcode: "/Applications/Xcode_15.1.app"
+
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.2.app"
@@ -30,6 +31,7 @@ jobs:
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
             osVersion: "17.0"
+
           - type: ios
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.2.app"
@@ -52,7 +54,11 @@ jobs:
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
+          scheme: SingleTargetPackage          
+          type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -80,6 +86,7 @@ jobs:
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
             osVersion: "17.0"
+            
           - type: ios
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.2.app"
@@ -103,6 +110,10 @@ jobs:
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage
+          type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
