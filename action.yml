@@ -125,6 +125,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
+        echo "Type: ${{ inputs.type }}"
+        echo "OS: ${{ steps.detect-os.outputs.os }}"
         swift build  --build-tests --cache-path .cache  --force-resolved-versions
         swift test --enable-code-coverage --cache-path .cache  --force-resolved-versions
 
