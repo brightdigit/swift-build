@@ -132,19 +132,10 @@ runs:
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: |
-        if [ "${{ inputs.type }}" = "macos" ]; then
-          xcodebuild test \
-            -scheme ${{ inputs.scheme }} \
-            -sdk ${{ env.SDK }} \
-            -destination 'platform=macOS' \
-            -enableCodeCoverage YES \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}
-        else
-          xcodebuild test \
-            -scheme ${{ inputs.scheme }} \
-            -sdk ${{ env.SDK }} \
-            -destination 'platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}' \
-            -enableCodeCoverage YES \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}
-        fi
+      run: >
+        xcodebuild test
+        -scheme ${{ inputs.scheme }}
+        -sdk ${{ env.SDK }}
+        -destination 'platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}'
+        -enableCodeCoverage YES
+        -derivedDataPath ${{ env.DERIVED_DATA_PATH }}
