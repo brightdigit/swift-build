@@ -123,9 +123,9 @@ runs:
       run: |
         echo "OS: ${{ steps.detect-os.outputs.os }}"
         echo "Type: ${{ inputs.type }}"
-        echo "Xcode: ${{ inputs.xcode }}"
-        echo "Device Name: ${{ inputs.deviceName }}"
-        echo "OS Version: ${{ inputs.osVersion }}"
+        # echo "Xcode: ${{ inputs.xcode }}"
+        # echo "Device Name: ${{ inputs.deviceName }}"
+        # echo "OS Version: ${{ inputs.osVersion }}"
 
     # # Build and test steps
     # - name: Build and Test
