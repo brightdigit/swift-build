@@ -11,40 +11,48 @@ jobs:
       matrix:
         include:
           # SPM Build Matrix
-          - runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
           - runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
-          
+            xcode: "/Applications/Xcode_16.4.app"
+
+          # macOS Build Matrix
+          - type: macos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            
           # iOS Build Matrix
           - type: ios
             runs-on: macos-14
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
-            osVersion: "17.0"
+            osVersion: "17.5"
+
           - type: ios
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
-            osVersion: "18.2"
+            osVersion: "18.5"
   
           - type: watchos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.2"
+            osVersion: "11.5"
 
           - type: visionos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
-            osVersion: "2.2"
+            osVersion: "2.5"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
+          scheme: SingleTargetPackage          
+          type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -53,48 +61,42 @@ jobs:
       matrix:
         include:
           # SPM Build Matrix
-          - runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
           - runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
 
           # macOS Build Matrix
-          - type: macOS
-            runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
-          - type: macOS
+          - type: macos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
           
           # iOS Build Matrix
           - type: ios
-            runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
-            deviceName: "iPhone 15"
-            osVersion: "17.0"
-          - type: ios
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
-            osVersion: "18.2"
+            osVersion: "18.5"
   
           - type: watchos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.2"
+            osVersion: "11.5"
 
           - type: visionos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
-            osVersion: "2.2"
+            osVersion: "2.5"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage
+          scheme: MultiTargetPackage-Package
+          type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -105,6 +107,7 @@ jobs:
           - "5.9"
           - "5.10"
           - "6.0"
+          - "6.1"
         ubuntu:
           - jammy
           - focal
@@ -130,6 +133,7 @@ jobs:
           - "5.9"
           - "5.10"
           - "6.0"
+          - "6.1"
         ubuntu:
           - jammy
           - focal
