@@ -86,7 +86,7 @@ jobs:
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
             osVersion: "17.0"
-            
+
           - type: ios
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.2.app"
@@ -109,7 +109,7 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage
+          scheme: MultiTargetPackage-Package
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
