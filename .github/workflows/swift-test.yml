@@ -57,6 +57,14 @@ jobs:
             xcode: "/Applications/Xcode_15.1.app"
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.2.app"
+
+          # macOS Build Matrix
+          - type: macOS
+            runs-on: macos-14
+            xcode: "/Applications/Xcode_15.1.app"
+          - type: macOS
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.2.app"
           
           # iOS Build Matrix
           - type: ios

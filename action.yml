@@ -72,6 +72,10 @@ runs:
             echo "PLATFORM=tvOS Simulator" >> $GITHUB_ENV
             echo "SDK=appletvsimulator" >> $GITHUB_ENV
             ;;
+          macos)
+            echo "PLATFORM=macOS" >> $GITHUB_ENV
+            echo "SDK=macosx" >> $GITHUB_ENV
+            ;;
         esac
 
     - uses: irgaly/xcode-cache@v1
