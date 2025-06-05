@@ -11,44 +11,38 @@ jobs:
       matrix:
         include:
           # SPM Build Matrix
-          - runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
           - runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
 
           # macOS Build Matrix
           - type: macos
-            runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
-
-          - type: macos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             
           # iOS Build Matrix
           - type: ios
             runs-on: macos-14
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
-            osVersion: "17.0"
+            osVersion: "17.5"
 
           - type: ios
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
-            osVersion: "18.2"
+            osVersion: "18.5"
   
           - type: watchos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.2"
+            osVersion: "11.5"
 
           - type: visionos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
-            osVersion: "2.2"
+            osVersion: "2.5"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -67,43 +61,32 @@ jobs:
       matrix:
         include:
           # SPM Build Matrix
-          - runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
           - runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
 
           # macOS Build Matrix
           - type: macos
-            runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
-          - type: macos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
           
           # iOS Build Matrix
           - type: ios
-            runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
-            deviceName: "iPhone 15"
-            osVersion: "17.0"
-
-          - type: ios
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
-            osVersion: "18.2"
+            osVersion: "18.5"
   
           - type: watchos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.2"
+            osVersion: "11.5"
 
           - type: visionos
             runs-on: macos-15
-            xcode: "/Applications/Xcode_16.2.app"
+            xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
-            osVersion: "2.2"
+            osVersion: "2.5"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
