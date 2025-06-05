@@ -107,6 +107,7 @@ jobs:
           - "5.9"
           - "5.10"
           - "6.0"
+          - "6.1"
         ubuntu:
           - jammy
           - focal
@@ -132,6 +133,7 @@ jobs:
           - "5.9"
           - "5.10"
           - "6.0"
+          - "6.1"
         ubuntu:
           - jammy
           - focal
