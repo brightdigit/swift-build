@@ -229,3 +229,58 @@ jobs:
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage 
+  test-single-target-windows:
+    name: Test Single Target Package (Windows)
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+  #         - swift-version: swift-6.2-branch
+  #           swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+  # 
+  #         - swift-version: swift-6.1-release
+  #           swift-build: 6.1-RELEASE
+  # 
+  #         - swift-version: swift-6.0-release
+  #           swift-build: 6.0-RELEASE
+            
+          - swift-version: swift-5.10-release
+            swift-build: 5.10-RELEASE
+            
+          - swift-version: swift-5.9-release
+            swift-build: 5.9-RELEASE
+    steps:
+      # https://download.swift.org/swift-6.2-branch/windows10/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a-windows10.exe
+  
+      # https://download.swift.org/swift-6.2-branch/windows10/swift-swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a/swift-swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a-windows10.exe
+      - uses: actions/checkout@v4
+      # - name: Configure dev environment
+      #   uses: compnerd/gha-setup-vsdevenv@main
+      #   with:
+      #     toolset_version: 14.29
+      #     winsdk: 10.0.22621.0
+      - name: Install Windows Swift toolchain
+        uses: compnerd/gha-setup-swift@main
+        with:
+          swift-version: ${{ matrix.swift-version }}
+          swift-build: ${{ matrix.swift-build }}
+          # swift test test/SingleTargetPackage ${WITH_TSAN} ${TEST_FILTER} ${EXTRA_FLAGS} -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
+      - run: |
+          swift test --package-path=test/SingleTargetPackage --verbose
+      # -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
+        
+  
+  
+  
+  # test-multi-target-windows:
+  #   name: Test Multi-Target Package (Windows)
+  #   runs-on: windows-latest
+  #   container:
+  #     image: swift:6.1.2-windowsservercore-ltsc2022
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ./
+  #       with:
+  #         working-directory: test/MultiTargetPackage
+  #         scheme: MultiTargetPackage 
