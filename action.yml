@@ -33,7 +33,9 @@ runs:
         if [[ "$RUNNER_OS" == "macOS" ]]; then
           echo "os=macos" >> $GITHUB_OUTPUT
           echo "DERIVED_DATA_PATH=$RUNNER_TEMP/DerivedData" >> $GITHUB_ENV
-        else
+        else if [ "$RUNNER_OS" == "Windows" ]]; then
+          echo "os=windows"
+        else if [ "$RUNNER_OS" == "Linux" ]]; then
           echo "os=ubuntu" >> $GITHUB_OUTPUT
         fi
 
@@ -90,7 +92,7 @@ runs:
 
     # Ubuntu specific steps
     - name: Get Swift and OS versions
-      if: steps.detect-os.outputs.os == 'ubuntu'
+      if: steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
@@ -110,7 +112,7 @@ runs:
           spm-${{ runner.os }}-${{ env.XCODE_NAME }}-
 
     - name: Cache swift package modules (Ubuntu)
-      if: steps.detect-os.outputs.os == 'ubuntu'
+      if: steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
       uses: actions/cache@v4
       with:
         path: |
@@ -121,7 +123,7 @@ runs:
 
     # Build and test steps
     - name: Build and Test
-      if: steps.detect-os.outputs.os == 'macos' && !inputs.type || steps.detect-os.outputs.os == 'ubuntu'
+      if: steps.detect-os.outputs.os == 'macos' && !inputs.type || steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
