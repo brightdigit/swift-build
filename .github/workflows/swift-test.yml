@@ -151,7 +151,7 @@ jobs:
           scheme: MultiTargetPackage 
 
   test-single-target-windows:
-    name: Test Single Target Package (Ubuntu)
+    name: Test Single Target Package (Windows)
     runs-on: ubuntu-latest
     container:
       image: 6.1.2-windowsservercore-ltsc2022
@@ -163,10 +163,10 @@ jobs:
           scheme: MultiTargetPackage 
 
   test-multi-target-windows:
-    name: Test Multi-Target Package (Ubuntu)
+    name: Test Multi-Target Package (Windows)
     runs-on: ubuntu-latest
     container:
-      image: 6.1.2-windowsservercore-ltsc2022
+      image: swift:6.1.2-windowsservercore-ltsc2022
     steps:
       - uses: actions/checkout@v4
       - uses: ./
