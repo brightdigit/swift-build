@@ -34,7 +34,7 @@ runs:
           echo "os=macos" >> $GITHUB_OUTPUT
           echo "DERIVED_DATA_PATH=$RUNNER_TEMP/DerivedData" >> $GITHUB_ENV
         else if [[ "$RUNNER_OS" == "Windows" ]]; then
-          echo "os=windows"
+          echo "os=windows" >> $GITHUB_OUTPUT
         else if [[] "$RUNNER_OS" == "Linux" ]]; then
           echo "os=ubuntu" >> $GITHUB_OUTPUT
         fi
