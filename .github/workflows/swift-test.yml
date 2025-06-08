@@ -154,7 +154,7 @@ jobs:
     name: Test Single Target Package (Windows)
     runs-on: ubuntu-latest
     container:
-      image: 6.1.2-windowsservercore-ltsc2022
+      image: swift:6.1.2-windowsservercore-ltsc2022
     steps:
       - uses: actions/checkout@v4
       - uses: ./
