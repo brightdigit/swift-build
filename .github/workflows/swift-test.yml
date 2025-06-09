@@ -156,8 +156,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          winget install --id Microsoft.VisualStudio.2022.Community --exact --force --custom "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64"  --disable-interactivity
-          winget install --id Swift.Toolchain -e  --disable-interactivity
+          winget install --id Microsoft.VisualStudio.2022.Community --exact --force --custom "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64" --accept-source-agreements --accept-package-agreements
+          winget install --id Swift.Toolchain -e --accept-source-agreements --accept-package-agreements
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
