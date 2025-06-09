@@ -153,23 +153,24 @@ jobs:
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: windows-latest
-    container:
-      image: swift:6.1.2-windowsservercore-ltsc2022
     steps:
       - uses: actions/checkout@v4
+      - run: |
+          winget install --id Microsoft.VisualStudio.2022.Community --exact --force --custom "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64"
+          winget install --id Swift.Toolchain -e
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage 
 
-  test-multi-target-windows:
-    name: Test Multi-Target Package (Windows)
-    runs-on: windows-latest
-    container:
-      image: swift:6.1.2-windowsservercore-ltsc2022
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-        with:
-          working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage 
+  # test-multi-target-windows:
+  #   name: Test Multi-Target Package (Windows)
+  #   runs-on: windows-latest
+  #   container:
+  #     image: swift:6.1.2-windowsservercore-ltsc2022
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ./
+  #       with:
+  #         working-directory: test/MultiTargetPackage
+  #         scheme: MultiTargetPackage 
