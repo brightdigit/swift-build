@@ -152,7 +152,7 @@ jobs:
 
   test-single-target-windows:
     name: Test Single Target Package (Windows)
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
       - run: |
