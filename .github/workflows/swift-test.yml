@@ -167,7 +167,7 @@ jobs:
           tag: 6.1-RELEASE
           # swift test test/SingleTargetPackage ${WITH_TSAN} ${TEST_FILTER} ${EXTRA_FLAGS} -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
       - run: |
-          swift test test/SingleTargetPackage -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
+          swift test --package-path=test/SingleTargetPackage -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
          
 
 
