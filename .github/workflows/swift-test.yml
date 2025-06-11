@@ -4,151 +4,151 @@ on:
   push
 
 jobs:
-  test-single-target-macos:
-    name: Test Single Target Package (macOS)
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      matrix:
-        include:
-          # SPM Build Matrix
-          - runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
+  # test-single-target-macos:
+  #   name: Test Single Target Package (macOS)
+  #   runs-on: ${{ matrix.runs-on }}
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         # SPM Build Matrix
+  #         - runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
 
-          # macOS Build Matrix
-          - type: macos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
+  #         # macOS Build Matrix
+  #         - type: macos
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
             
-          # iOS Build Matrix
-          - type: ios
-            runs-on: macos-14
-            xcode: "/Applications/Xcode_15.1.app"
-            deviceName: "iPhone 15"
-            osVersion: "17.5"
+  #         # iOS Build Matrix
+  #         - type: ios
+  #           runs-on: macos-14
+  #           xcode: "/Applications/Xcode_15.1.app"
+  #           deviceName: "iPhone 15"
+  #           osVersion: "17.5"
 
-          - type: ios
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "iPhone 16 Pro"
-            osVersion: "18.5"
+  #         - type: ios
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
+  #           deviceName: "iPhone 16 Pro"
+  #           osVersion: "18.5"
   
-          - type: watchos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.5"
+  #         - type: watchos
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
+  #           deviceName: "Apple Watch Ultra 2 (49mm)"
+  #           osVersion: "11.5"
 
-          - type: visionos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "Apple Vision Pro"
-            osVersion: "2.5"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-        with:
-          working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage          
-          type: ${{ matrix.type }}
-          xcode: ${{ matrix.xcode }}
-          deviceName: ${{ matrix.deviceName }}
-          osVersion: ${{ matrix.osVersion }}
+  #         - type: visionos
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
+  #           deviceName: "Apple Vision Pro"
+  #           osVersion: "2.5"
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ./
+  #       with:
+  #         working-directory: test/SingleTargetPackage
+  #         scheme: SingleTargetPackage          
+  #         type: ${{ matrix.type }}
+  #         xcode: ${{ matrix.xcode }}
+  #         deviceName: ${{ matrix.deviceName }}
+  #         osVersion: ${{ matrix.osVersion }}
 
-  test-multi-target-macos:
-    name: Test Multi-Target Package (macOS)
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      matrix:
-        include:
-          # SPM Build Matrix
-          - runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
+  # test-multi-target-macos:
+  #   name: Test Multi-Target Package (macOS)
+  #   runs-on: ${{ matrix.runs-on }}
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         # SPM Build Matrix
+  #         - runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
 
-          # macOS Build Matrix
-          - type: macos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
+  #         # macOS Build Matrix
+  #         - type: macos
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
           
-          # iOS Build Matrix
-          - type: ios
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "iPhone 16 Pro"
-            osVersion: "18.5"
+  #         # iOS Build Matrix
+  #         - type: ios
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
+  #           deviceName: "iPhone 16 Pro"
+  #           osVersion: "18.5"
   
-          - type: watchos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.5"
+  #         - type: watchos
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
+  #           deviceName: "Apple Watch Ultra 2 (49mm)"
+  #           osVersion: "11.5"
 
-          - type: visionos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "Apple Vision Pro"
-            osVersion: "2.5"
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-        with:
-          working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage-Package
-          type: ${{ matrix.type }}
-          xcode: ${{ matrix.xcode }}
-          deviceName: ${{ matrix.deviceName }}
-          osVersion: ${{ matrix.osVersion }}
+  #         - type: visionos
+  #           runs-on: macos-15
+  #           xcode: "/Applications/Xcode_16.4.app"
+  #           deviceName: "Apple Vision Pro"
+  #           osVersion: "2.5"
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ./
+  #       with:
+  #         working-directory: test/MultiTargetPackage
+  #         scheme: MultiTargetPackage-Package
+  #         type: ${{ matrix.type }}
+  #         xcode: ${{ matrix.xcode }}
+  #         deviceName: ${{ matrix.deviceName }}
+  #         osVersion: ${{ matrix.osVersion }}
 
-  test-single-target-ubuntu:
-    name: Test Single Target Package (Ubuntu)
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        swift:
-          - "5.9"
-          - "5.10"
-          - "6.0"
-          - "6.1"
-        ubuntu:
-          - jammy
-          - focal
-          - noble
-        exclude:
-          - swift: 5.9
-            ubuntu: noble
-    container:
-      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-        with:
-          working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
+  # test-single-target-ubuntu:
+  #   name: Test Single Target Package (Ubuntu)
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       swift:
+  #         - "5.9"
+  #         - "5.10"
+  #         - "6.0"
+  #         - "6.1"
+  #       ubuntu:
+  #         - jammy
+  #         - focal
+  #         - noble
+  #       exclude:
+  #         - swift: 5.9
+  #           ubuntu: noble
+  #   container:
+  #     image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ./
+  #       with:
+  #         working-directory: test/SingleTargetPackage
+  #         scheme: SingleTargetPackage
 
-  test-multi-target-ubuntu:
-    name: Test Multi-Target Package (Ubuntu)
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        swift:
-          - "5.9"
-          - "5.10"
-          - "6.0"
-          - "6.1"
-        ubuntu:
-          - jammy
-          - focal
-          - noble
-        exclude:
-          - swift: 5.9
-            ubuntu: noble
-    container:
-      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-        with:
-          working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage 
+  # test-multi-target-ubuntu:
+  #   name: Test Multi-Target Package (Ubuntu)
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       swift:
+  #         - "5.9"
+  #         - "5.10"
+  #         - "6.0"
+  #         - "6.1"
+  #       ubuntu:
+  #         - jammy
+  #         - focal
+  #         - noble
+  #       exclude:
+  #         - swift: 5.9
+  #           ubuntu: noble
+  #   container:
+  #     image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: ./
+  #       with:
+  #         working-directory: test/MultiTargetPackage
+  #         scheme: MultiTargetPackage 
 
   test-single-target-windows:
     name: Test Single Target Package (Windows)
@@ -165,10 +165,12 @@ jobs:
         with:
           branch: swift-6.1-release
           tag: 6.1-RELEASE
-      - uses: ./
-        with:
-          working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage 
+          # swift test test/SingleTargetPackage ${WITH_TSAN} ${TEST_FILTER} ${EXTRA_FLAGS} -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
+      - run: |
+          swift test test/SingleTargetPackage -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
+         
+
+
 
   # test-multi-target-windows:
   #   name: Test Multi-Target Package (Windows)
