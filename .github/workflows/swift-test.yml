@@ -61,7 +61,7 @@ jobs:
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_26_beta.app"
-            deviceName: "Apple Vision Pro"
+            deviceName: "Apple Vision Pro 4K"
             osVersion: "26.0"
             download-platform: "true"
     steps:
