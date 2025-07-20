@@ -164,15 +164,27 @@ jobs:
           - "5.10"
           - "6.0"
           - "6.1"
+          - "6.2"
         ubuntu:
           - jammy
           - focal
           - noble
+        nightly:
+          - false
+          - true
         exclude:
           - swift: 5.9
             ubuntu: noble
+          - swift: 5.9
+            nightly: true
+          - swift: 5.10
+            nightly: true
+          - swift: 6.0
+            nightly: true
+          - swift: 6.2
+            nightly: false
     container:
-      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+      image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -190,15 +202,27 @@ jobs:
           - "5.10"
           - "6.0"
           - "6.1"
+          - "6.2"
         ubuntu:
           - jammy
           - focal
           - noble
+        nightly:
+          - false
+          - true
         exclude:
           - swift: 5.9
             ubuntu: noble
+          - swift: 5.9
+            nightly: true
+          - swift: 5.10
+            nightly: true
+          - swift: 6.0
+            nightly: true
+          - swift: 6.2
+            nightly: false
     container:
-      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+      image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./
