@@ -58,10 +58,16 @@ jobs:
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
 
-          - type: visionos
+          - type: tvos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            deviceName: "Apple TV 4K (3rd generation)"
+            osVersion: "18.5"
+
+          - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_26_beta.app"
-            deviceName: "Apple Vision Pro 4K"
+            deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "26.0"
             download-platform: "true"
     steps:
@@ -124,11 +130,17 @@ jobs:
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
 
-          - type: visionos
+          - type: tvos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            deviceName: "Apple TV 4K (3rd generation)"
+            osVersion: "18.5"
+
+          - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_26_beta.app"
-            deviceName: "Apple Vision Pro"
-            osVersion: "2.5"
+            deviceName: "Apple TV 4K (3rd generation)"
+            osVersion: "26.0"
             download-platform: "true"
     steps:
       - uses: actions/checkout@v4
