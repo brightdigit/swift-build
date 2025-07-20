@@ -31,6 +31,13 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
+
+          - type: ios
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_26_beta.app"
+            deviceName: "iPhone 16 Pro"
+            osVersion: "26.0"
+            download-platform: "true"
   
           - type: watchos
             runs-on: macos-15
@@ -38,11 +45,25 @@ jobs:
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
 
+          - type: watchos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_26_beta.app"
+            deviceName: "Apple Watch Ultra 2 (49mm)"
+            osVersion: "26.0"
+            download-platform: "true"
+
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
+
+          - type: visionos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_26_beta.app"
+            deviceName: "Apple Vision Pro"
+            osVersion: "26.0"
+            download-platform: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -53,6 +74,7 @@ jobs:
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
           osVersion: ${{ matrix.osVersion }}
+          download-platform: ${{ matrix.download-platform || 'false' }}
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -75,6 +97,13 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
+
+          - type: ios
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_26_beta.app"
+            deviceName: "iPhone 16 Pro"
+            osVersion: "18.5"
+            download-platform: "true"
   
           - type: watchos
             runs-on: macos-15
@@ -82,11 +111,25 @@ jobs:
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
 
+          - type: watchos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_26_beta.app"
+            deviceName: "Apple Watch Ultra 2 (49mm)"
+            osVersion: "11.5"
+            download-platform: "true"
+
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
+
+          - type: visionos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_26_beta.app"
+            deviceName: "Apple Vision Pro"
+            osVersion: "2.5"
+            download-platform: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -97,6 +140,7 @@ jobs:
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
           osVersion: ${{ matrix.osVersion }}
+          download-platform: ${{ matrix.download-platform || 'false' }}
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
