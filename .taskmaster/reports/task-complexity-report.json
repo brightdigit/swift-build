@@ -1,0 +1,53 @@
+{
+	"meta": {
+		"generatedAt": "2025-08-31T16:14:30.044Z",
+		"tasksAnalyzed": 5,
+		"totalTasks": 5,
+		"analysisCount": 5,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Create Comprehensive README Documentation",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Break down the README creation into logical sections: hero/branding, quick start examples, platform matrix documentation, input parameter reference, advanced configuration examples, performance benchmarks integration, troubleshooting integration, and competitive comparison table. Each section should be comprehensive yet focused, with practical examples drawn from the existing CI workflow configurations.",
+			"reasoning": "This is a substantial documentation task requiring deep understanding of the action's capabilities, extensive examples creation, and SEO optimization. The current README is minimal ('# swift-build'), so this involves creating comprehensive content from scratch. The complexity is high due to the need to document multiple platform configurations, create working examples, and provide detailed comparisons with alternatives."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Add Comprehensive Inline Documentation to Action",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Structure the inline documentation task by action.yml sections: input parameters documentation, OS detection and environment setup comments, Xcode configuration and SDK mapping explanations, intelligent caching strategy documentation (different approaches for macOS vs Ubuntu), build/test execution logic comments, and platform-specific optimization notes. Focus on explaining both implementation details and user-facing benefits.",
+			"reasoning": "This task involves adding detailed comments to the existing 175-line action.yml file. The complexity is moderate because it requires understanding the existing logic (OS detection, platform mapping, caching strategies) and explaining it clearly. The file has complex conditional logic for different platforms and caching approaches that need clear documentation."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Create Usage Examples and Best Practices Guide",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Organize examples by use case complexity: basic SPM usage examples, multi-platform matrix configurations (leveraging existing CI examples), Apple platform simulator testing (iOS/watchOS/tvOS/visionOS), advanced configurations with custom Xcode versions, performance optimization examples, migration guides from other solutions, and copy-paste workflow templates. Base examples on the comprehensive CI workflow patterns already implemented.",
+			"reasoning": "This task requires creating practical, tested examples covering the action's full feature set. The existing CI workflow provides excellent foundation with comprehensive platform coverage, but translating this into user-friendly documentation requires significant effort. Complexity is moderately high due to the need for multiple example categories and ensuring all examples work correctly."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Develop Performance Benchmarks and Comparison Documentation",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Structure performance documentation into measurable sections: benchmark test setup and methodology, build time measurements across different project sizes, cache performance analysis (hit rates, time savings), resource usage profiling, platform-specific performance comparisons, optimization recommendations with quantitative backing, competitive analysis vs swift-actions/setup-swift and manual approaches, cost analysis for GitHub Actions minutes, and performance troubleshooting guide.",
+			"reasoning": "This is the most complex task requiring actual performance testing, data collection, and analysis. It involves running benchmarks against the existing test packages, measuring cache performance, and conducting competitive analysis. The complexity is high because it requires both technical measurement and comprehensive documentation of results with visualizations."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Create Troubleshooting Guide and Error Handling Documentation",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Organize troubleshooting by error categories: configuration validation errors (deviceName/osVersion combinations, scheme resolution), platform-specific issues for each Apple platform, caching problems (corruption, key conflicts, storage), build/test failures (Swift compilation, Xcode issues), environment problems (runner differences, version conflicts), parameter validation and common mistakes, and community support resources. Structure as searchable FAQ with clear problem-solution pairs.",
+			"reasoning": "This task requires understanding common failure modes across the complex platform matrix and creating comprehensive diagnostic procedures. The complexity is moderately high because it needs to cover multiple error scenarios across different platforms (Ubuntu variants, macOS, iOS/watchOS/tvOS/visionOS) and provide actionable solutions. It builds on other documentation tasks but requires additional error simulation and testing."
+		}
+	]
+}

@@ -1,0 +1,296 @@
+# Swift Build Action - Product Requirements Document
+
+## Project Overview
+
+**Product Name**: Swift Build and Test GitHub Action  
+**Version**: v1.2.1+  
+**Status**: Enhancement and Documentation Phase  
+**Repository**: swift-build GitHub Action  
+
+## Executive Summary
+
+This GitHub Action provides comprehensive build and test capabilities for Swift packages across multiple platforms and environments. It supports both Swift Package Manager (SPM) builds on Ubuntu and macOS, as well as Xcode-based builds for Apple platform simulators (iOS, macOS, watchOS, tvOS, visionOS).
+
+## Current State Analysis
+
+### Existing Features
+
+1. **Multi-Platform Support**
+   - Ubuntu: Swift 5.9-6.2 across focal/jammy/noble distributions
+   - macOS: Xcode 15.1+ with platform-specific testing
+   - Support for nightly Swift builds
+
+2. **Build Types**
+   - Swift Package Manager builds (cross-platform)
+   - Xcode builds with simulator testing (Apple platforms only)
+
+3. **Apple Platform Coverage**
+   - iOS: iPhone simulators across multiple iOS versions
+   - macOS: Native macOS testing
+   - watchOS: Apple Watch simulators
+   - tvOS: Apple TV simulators
+   - visionOS: Apple Vision Pro simulators
+
+4. **Advanced Features**
+   - Intelligent caching (separate strategies for macOS vs Ubuntu)
+   - Platform auto-download capability for missing Xcode platforms
+   - Comprehensive test coverage reporting
+   - Derived data path optimization
+   - Multi-target package support
+   - Advanced caching strategies for optimal build performance
+
+5. **Test Infrastructure**
+   - SingleTargetPackage: Simple validation package
+   - MultiTargetPackage: Complex multi-target dependency validation
+
+## Product Goals for This Release
+
+### Primary Objectives
+
+1. **Documentation Excellence**
+   - Create comprehensive README with clear usage examples
+   - Document all configuration options with practical examples
+   - Provide troubleshooting guides for common issues
+   - Highlight advantages over competing solutions
+
+2. **Developer Experience Enhancement**
+   - Improve inline documentation in action.yml
+   - Add helpful comments explaining complex logic
+   - Create performance benchmarks and comparisons
+   - Provide migration guides from other solutions
+
+3. **Market Position**
+   - Clearly differentiate from swift-actions/setup-swift and manual solutions
+   - Highlight unique features like intelligent caching and multi-platform support
+   - Demonstrate production-readiness and reliability
+
+## Feature Requirements
+
+### Core Documentation Features
+
+#### 1. Comprehensive README
+- **Description**: Complete documentation covering all use cases
+- **Requirements**:
+  - Quick start examples for common scenarios
+  - Complete parameter reference with examples
+  - Performance benchmarks and comparisons
+  - Platform support matrix
+  - Troubleshooting section with common issues and solutions
+  - Clear value proposition vs alternatives
+
+#### 2. Inline Code Documentation
+- **Description**: Well-commented action.yml with clear explanations
+- **Requirements**:
+  - Comment each major step explaining purpose
+  - Document complex conditionals and logic
+  - Explain environment variable usage
+  - Add examples for parameter combinations
+
+#### 3. Usage Examples
+- **Description**: Real-world examples for different scenarios
+- **Requirements**:
+  - Basic SPM package testing
+  - Multi-platform matrix configurations
+  - Apple platform simulator testing
+  - Custom Xcode version usage
+  - Multi-target package examples
+
+#### 4. Performance Documentation
+- **Description**: Benchmarks and optimization guidance
+- **Requirements**:
+  - Cache performance metrics
+  - Build time comparisons
+  - Optimization recommendations
+  - Resource usage guidelines
+
+### Enhancement Features
+
+#### 5. Error Handling Improvements
+- **Description**: Better error messages and diagnostics
+- **Requirements**:
+  - Clear error messages for common misconfigurations
+  - Validation of parameter combinations
+  - Helpful suggestions for fixing issues
+  - Debug mode instructions
+
+#### 6. Configuration Validation
+- **Description**: Input parameter validation and warnings
+- **Requirements**:
+  - Validate deviceName and osVersion combinations
+  - Check Xcode path existence
+  - Warn about deprecated configurations
+  - Suggest optimal settings
+
+## Technical Specifications
+
+### Documentation Structure
+
+#### README Sections
+1. **Hero Section**: Value proposition, badges, key benefits
+2. **Quick Start**: Minimal configuration examples
+3. **Platform Support**: Compatibility matrix
+4. **Configuration Reference**: Complete parameter documentation
+5. **Advanced Examples**: Complex use cases
+6. **Performance**: Benchmarks and optimization
+7. **Troubleshooting**: Common issues and solutions
+8. **Comparison**: Advantages over alternatives
+9. **Contributing**: Development guidelines
+
+#### Code Comments
+- Step-by-step explanations in action.yml
+- Complex logic documentation
+- Parameter usage examples
+- Performance optimization notes
+
+### Example Configurations
+
+#### Basic Usage
+```yaml
+- uses: org/swift-build@v1
+  with:
+    scheme: MyPackage
+```
+
+#### Multi-Platform Matrix
+```yaml
+strategy:
+  matrix:
+    include:
+      - os: ubuntu-latest
+        swift: "6.0"
+      - os: macos-latest
+        type: ios
+        deviceName: "iPhone 15"
+        osVersion: "17.5"
+```
+
+#### Advanced Configuration
+```yaml
+- uses: org/swift-build@v1
+  with:
+    working-directory: packages/core
+    scheme: CorePackage
+    type: visionos
+    xcode: "/Applications/Xcode_16_beta.app"
+    deviceName: "Apple Vision Pro"
+    osVersion: "2.0"
+    download-platform: true
+```
+
+**Note**: For Swift Packages in Xcode, the scheme may automatically include a "-Package" suffix when there's only one product with the same name as the package itself (e.g., "MyLibrary" package might have a "MyLibrary-Package" scheme).
+
+## Implementation Priorities
+
+### Phase 1: Core Documentation (Current Release)
+1. **README Overhaul**
+   - Complete rewrite with comprehensive examples
+   - Clear value proposition and comparison table
+   - Platform support matrix documentation
+   - Performance benchmarks and metrics
+
+2. **Code Documentation**
+   - Add inline comments to action.yml
+   - Document complex conditional logic
+   - Explain caching strategies
+   - Add parameter validation examples
+
+3. **Troubleshooting Guide**
+   - Common error scenarios and solutions
+   - Debug mode instructions
+   - Platform-specific gotchas
+   - Migration guides from other actions
+
+### Phase 2: Enhanced User Experience
+1. **Interactive Examples**
+   - Copy-paste ready configurations
+   - Template workflows for common scenarios
+   - Configuration wizard documentation
+
+2. **Performance Optimization**
+   - Cache optimization guidelines
+   - Build time reduction strategies
+   - Resource usage recommendations
+
+3. **Community Resources**
+   - Contributing guidelines
+   - Issue templates
+   - Discussion forum setup
+
+## Success Metrics
+
+### Documentation Quality
+- **Clarity**: Users can successfully configure the action in <5 minutes
+- **Completeness**: All parameters and scenarios documented with examples
+- **Discoverability**: SEO-optimized for Swift CI/CD searches
+- **Maintenance**: Documentation stays current with code changes
+
+### User Adoption
+- **GitHub Stars**: Target 100+ stars indicating community value
+- **Usage Growth**: Monitor action usage through GitHub's marketplace
+- **Community Engagement**: Active issues, discussions, and contributions
+- **Positive Feedback**: User testimonials and success stories
+
+### Technical Excellence
+- **Zero Configuration**: 80% of users need only the scheme parameter
+- **Error Rate**: <1% of builds fail due to action misconfiguration  
+- **Performance**: Documented and verified cache hit rates >85%
+- **Compatibility**: Tested across full platform and Swift version matrix
+
+## Competitive Advantages
+
+### vs swift-actions/setup-swift
+- **Complete Pipeline**: We handle build, test, and caching - not just Swift installation
+- **Platform Coverage**: Native support for all Apple platforms with simulators
+- **Zero Config**: Works out-of-the-box for most Swift packages
+- **Production Ready**: Battle-tested across diverse real-world projects
+
+### vs Manual xcodebuild/swift commands
+- **Intelligent Caching**: Separate optimized caching strategies for SPM vs Xcode builds
+- **Test Coverage**: Built-in test coverage reporting and analysis
+- **Error Handling**: Graceful failures with helpful error messages
+- **Platform Detection**: Automatic OS and build tool selection
+- **Maintenance**: No need to maintain complex CI scripts
+
+### vs GitHub's Basic Templates
+- **Advanced Features**: Platform auto-download, derived data optimization, intelligent caching
+- **Comprehensive Testing**: Full matrix support across Swift versions and platforms with test coverage
+- **Professional Grade**: Enterprise-ready with performance monitoring and caching optimization
+- **Community Support**: Active maintenance and feature development
+
+## Risk Assessment
+
+### Documentation Risks
+- **Complexity**: Too much information may overwhelm new users
+- **Maintenance**: Documentation drift from actual functionality
+- **Accuracy**: Examples that don't work in practice
+- **Accessibility**: Documentation not discoverable by target users
+
+### Mitigation Strategies
+- Progressive disclosure: Quick start → Advanced examples
+- Automated testing of documentation examples
+- Regular review cycles for accuracy
+- SEO optimization for discoverability
+- Community feedback integration
+
+## Release Criteria
+
+### Must-Have Features
+- Complete README with all sections
+- Inline code comments in action.yml
+- Working examples for all major use cases
+- Troubleshooting guide with solutions
+- Performance benchmarks documented
+
+### Nice-to-Have Features
+- Interactive configuration examples
+- Migration guides from other solutions
+- Community contribution templates
+- Advanced optimization recommendations
+
+### Quality Gates
+- All examples tested in CI
+- Documentation reviewed by external Swift developers
+- Performance claims verified with benchmarks
+- Accessibility review completed
+
+This PRD focuses specifically on creating exceptional documentation and positioning for the Swift Build Action to become the go-to solution for Swift CI/CD workflows.

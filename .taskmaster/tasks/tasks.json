@@ -1,0 +1,492 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Create Comprehensive README Documentation",
+        "description": "Develop a complete README.md with hero section, quick start guide, platform support matrix, configuration reference, and advanced examples",
+        "details": "Replace the existing minimal README with comprehensive documentation including: (1) Hero section with badges, value proposition, and key benefits highlighting advantages over swift-actions/setup-swift; (2) Quick start section with minimal configuration examples for common use cases; (3) Platform support matrix showing Ubuntu (Swift 5.9-6.2, focal/jammy/noble) and macOS (Xcode 15.1+, iOS/watchOS/tvOS/visionOS simulators); (4) Complete configuration reference documenting all inputs from action.yml with practical examples; (5) Advanced examples section showing multi-platform matrix configurations, custom Xcode versions, and complex simulator setups; (6) Performance benchmarks section with cache hit rates, build time comparisons, and optimization recommendations; (7) Troubleshooting section with common error scenarios and solutions; (8) Comparison table vs alternatives highlighting intelligent caching, zero-config setup, and complete pipeline coverage. Use GitHub-flavored Markdown with proper formatting, code blocks, and tables for maximum readability and SEO optimization.",
+        "testStrategy": "Validate all code examples in documentation work correctly by testing them in CI workflows. Review documentation for clarity with external Swift developers. Ensure all action.yml parameters are documented with working examples. Test troubleshooting solutions against real error scenarios.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Hero Section with Badges and Value Proposition",
+            "description": "Design and implement the README hero section with GitHub badges, compelling value proposition, and key benefits highlighting advantages over swift-actions/setup-swift",
+            "dependencies": [],
+            "details": "Create an attractive hero section featuring: project title with descriptive tagline, essential GitHub badges (build status, version, downloads, license), compelling value proposition paragraph explaining the action's unique benefits, bullet-pointed key features highlighting intelligent caching, zero-config setup, and complete platform coverage. Include a brief comparison callout showing advantages over alternatives like swift-actions/setup-swift.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Quick Start Guide with Minimal Configuration Examples",
+            "description": "Create a comprehensive quick start section with copy-paste ready examples for the most common Swift package testing scenarios",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Build a practical quick start guide featuring: basic usage example with minimal configuration (just scheme parameter), common SPM testing workflow, simple iOS simulator testing example, and Ubuntu cross-platform testing example. Each example should be complete, copy-pasteable, and include brief explanations of what each configuration accomplishes.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Platform Support Matrix Documentation",
+            "description": "Document the complete platform support matrix showing Ubuntu Swift versions, macOS Xcode versions, and Apple platform simulator support",
+            "dependencies": [
+              "1.2"
+            ],
+            "details": "Create detailed platform support tables covering: Ubuntu support matrix (Swift 5.9-6.2 across focal/jammy/noble distributions), macOS support with Xcode 15.1+ versions, Apple platform simulator support (iOS, watchOS, tvOS, visionOS) with device and OS version compatibility, and platform-specific limitations or requirements. Use clear tables with version ranges and compatibility notes.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Build Complete Configuration Reference",
+            "description": "Create comprehensive documentation of all action.yml input parameters with practical examples and valid value ranges",
+            "dependencies": [
+              "1.3"
+            ],
+            "details": "Document every input parameter from action.yml including: required vs optional parameters, valid value ranges and formats, practical usage examples for each parameter, parameter combinations and interactions, default behaviors when parameters are omitted, and common configuration patterns. Organize parameters by use case (basic SPM, Apple platforms, caching, etc.).",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Develop Advanced Examples Section",
+            "description": "Create sophisticated configuration examples showing multi-platform matrices, custom Xcode setups, and complex simulator configurations",
+            "dependencies": [
+              "1.4"
+            ],
+            "details": "Build advanced examples covering: multi-platform build matrices combining Ubuntu and macOS, custom Xcode version configurations, complex Apple platform simulator setups with multiple device/OS combinations, optimization patterns for large projects, and integration examples with other GitHub Actions. Include complete workflow files as examples.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Integrate Performance Benchmarks Documentation",
+            "description": "Add performance metrics, cache hit rates, and build time optimization recommendations to the README",
+            "dependencies": [
+              "1.5"
+            ],
+            "details": "Incorporate performance documentation including: cache hit rate statistics and time savings data, build time benchmarks for different project sizes, performance comparison charts vs alternatives, optimization recommendations for cache keys and build strategies, and resource usage guidelines. Present data in clear tables and charts.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Add Troubleshooting Section",
+            "description": "Create comprehensive troubleshooting guide with common error scenarios, diagnostic steps, and solution guides",
+            "dependencies": [
+              "1.6"
+            ],
+            "details": "Build troubleshooting documentation covering: common configuration errors and fixes, platform-specific issues (simulator not found, Xcode path problems), caching problems and resolutions, build failure analysis guides, debug mode instructions, and step-by-step diagnostic procedures. Organize by error type with clear headings and searchable content.",
+            "status": "done",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Create Competitive Comparison Table",
+            "description": "Develop detailed comparison table against alternatives highlighting intelligent caching, zero-config setup, and complete pipeline coverage",
+            "dependencies": [
+              "1.7"
+            ],
+            "details": "Create comprehensive comparison table featuring: this action vs swift-actions/setup-swift vs manual solutions, feature-by-feature comparison matrix, performance benchmarks comparison, ease of use and configuration complexity comparison, platform support coverage comparison, and maintenance/support comparison. Include objective metrics and clear advantages while remaining fair and factual.",
+            "status": "done",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Add Comprehensive Inline Documentation to Action",
+        "description": "Enhance action.yml with detailed comments explaining each step, complex conditionals, and parameter usage patterns",
+        "details": "Add comprehensive inline comments to action.yml focusing on: (1) Header comments explaining the action's purpose and key features; (2) Input parameter documentation with usage examples and valid values; (3) Step-by-step comments for the OS detection logic and environment variable setup; (4) Detailed explanations of the Xcode setup process, SDK/platform mapping, and platform download functionality; (5) Documentation of the intelligent caching strategies, explaining the difference between macOS (using irgaly/xcode-cache with derived data) and Ubuntu (using actions/cache with .build/.swiftpm directories); (6) Comments explaining the build and test logic differences between SPM builds and Xcode simulator builds; (7) Parameter validation examples and common configuration patterns; (8) Performance optimization notes explaining cache key strategies and derived data path usage. Ensure comments are concise but informative, helping users understand both the 'what' and 'why' of each step.",
+        "testStrategy": "Review commented action.yml for clarity and accuracy. Ensure all comments accurately reflect the actual functionality. Test that comments don't break action execution. Validate complex logic explanations with actual behavior testing.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add Header and Action Purpose Documentation",
+            "description": "Add comprehensive header comments explaining the action's purpose, key features, and advantages over alternatives",
+            "dependencies": [],
+            "details": "Add a detailed header comment block at the top of action.yml explaining: the action's purpose as a Swift build/test solution, key features like multi-platform support and intelligent caching, advantages over swift-actions/setup-swift, and supported platforms (Ubuntu Swift 5.9-6.2, macOS Xcode 15.1+). Include brief overview of the action's workflow and main capabilities.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Document Input Parameters with Usage Examples",
+            "description": "Add detailed comments for all input parameters with examples and valid value ranges",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "Document each input parameter in action.yml with inline comments including: parameter purpose, valid values and formats, usage examples, default behavior when omitted, and relationships between parameters. Cover scheme (required), working-directory, type (platform selection), xcode path, deviceName/osVersion combinations, and download-platform flag with practical examples.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Document OS Detection and Environment Setup Logic",
+            "description": "Add step-by-step comments explaining OS detection logic and environment variable configuration",
+            "dependencies": [
+              "2.2"
+            ],
+            "details": "Add detailed comments to the OS detection and environment setup steps explaining: how runner.os is used to differentiate Ubuntu vs macOS workflows, environment variable setup for different platforms, working directory handling, and the conditional logic that determines whether to use SPM or Xcode build paths. Include explanations of why different approaches are needed for different operating systems.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Document Xcode Setup and Platform Mapping Logic",
+            "description": "Add comprehensive comments explaining Xcode configuration, SDK mapping, and platform download functionality",
+            "dependencies": [
+              "2.3"
+            ],
+            "details": "Document the Xcode setup process including: how xcode path parameter maps to developer directory selection, SDK and platform mapping logic for iOS/watchOS/tvOS/visionOS/macOS, simulator destination string construction, platform download functionality when platforms are missing, and the conditional logic that determines when Xcode vs SPM builds are used. Explain the relationship between type parameter and actual build configuration.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Document Intelligent Caching Strategies",
+            "description": "Add detailed explanations of the different caching approaches for macOS vs Ubuntu builds",
+            "dependencies": [
+              "2.4"
+            ],
+            "details": "Document the intelligent caching strategies with comments explaining: why different caching approaches are used for macOS (irgaly/xcode-cache with derived data) vs Ubuntu (actions/cache with .build/.swiftpm directories), cache key generation strategies and what invalidates caches, derived data path usage and benefits, performance implications of different caching approaches, and how cache restoration impacts build times. Include explanations of when caches are effective and limitations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Document Build and Test Execution Logic",
+            "description": "Add comments explaining build/test logic differences and platform-specific optimizations",
+            "dependencies": [
+              "2.5"
+            ],
+            "details": "Document the build and test execution logic including: differences between SPM builds (swift build/test commands) and Xcode simulator builds (xcodebuild test), parameter passing and flag usage for different build types, code coverage enabling across different platforms, cache path utilization and force-resolved-versions usage, and performance optimization notes. Explain why certain flags and approaches are used for different platform combinations and how they improve reliability.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Create Usage Examples and Best Practices Guide",
+        "description": "Develop comprehensive usage examples covering basic SPM, multi-platform matrix, Apple simulator testing, and optimization patterns",
+        "details": "Create a detailed examples section within the README covering: (1) Basic usage - minimal configuration for simple Swift packages using just the scheme parameter; (2) Multi-platform matrix examples showing Ubuntu (Swift 5.9-6.2 across focal/jammy/noble distributions) and macOS configurations; (3) Apple platform simulator testing with complete examples for iOS (iPhone simulators), watchOS (Apple Watch), tvOS (Apple TV), visionOS (Apple Vision Pro), and macOS native testing; (4) Advanced configurations including custom Xcode versions, working directories, and platform auto-download; (5) Performance optimization examples showing optimal cache configurations and build time reduction strategies; (6) Migration guides from manual xcodebuild/swift commands and other GitHub Actions; (7) Real-world workflow templates that can be copy-pasted; (8) Best practices for scheme naming, particularly the automatic '-Package' suffix handling for single-product packages; (9) Common parameter combinations and their use cases; (10) Troubleshooting examples with before/after configurations. Each example should be tested and include expected outcomes.",
+        "testStrategy": "Test all provided examples in real GitHub Actions workflows. Validate that copy-paste examples work without modification. Test migration scenarios from other solutions. Ensure examples cover the full parameter matrix and common use cases found in the existing CI workflow.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Basic SPM Usage Examples",
+            "description": "Develop minimal configuration examples for simple Swift packages using just the scheme parameter",
+            "dependencies": [],
+            "details": "Create clear, copy-paste examples showing the simplest possible configurations for Swift Package Manager builds. Include examples for single-target packages, basic testing, and minimal YAML configurations that new users can immediately use.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Document Multi-Platform Matrix Configurations",
+            "description": "Create comprehensive examples showing Ubuntu and macOS matrix configurations with version coverage",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Develop matrix configuration examples covering Ubuntu (Swift 5.9-6.2 across focal/jammy/noble distributions) and macOS setups. Base examples on existing CI workflow patterns while making them user-friendly and explaining the platform selection rationale.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Apple Platform Simulator Testing Examples",
+            "description": "Develop complete examples for iOS, watchOS, tvOS, visionOS, and macOS native testing with simulators",
+            "dependencies": [
+              "3.2"
+            ],
+            "details": "Create detailed examples for each Apple platform including iPhone simulators, Apple Watch, Apple TV, Apple Vision Pro, and macOS native testing. Include device name and OS version configurations, explaining the relationship between Xcode versions and available simulators.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Document Advanced Configuration Options",
+            "description": "Create examples for custom Xcode versions, working directories, and platform auto-download features",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "Develop advanced configuration examples showing custom Xcode version paths, non-root working directories, platform auto-download functionality, and complex parameter combinations. Include explanations of when and why to use each advanced feature.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create Performance Optimization Examples",
+            "description": "Develop examples showing optimal cache configurations and build time reduction strategies",
+            "dependencies": [
+              "3.4"
+            ],
+            "details": "Create performance-focused examples demonstrating cache key strategies, derived data optimization, and build time reduction techniques. Include before/after comparisons and explain the performance impact of different configuration choices.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Develop Migration Guides and Workflow Templates",
+            "description": "Create migration examples from manual xcodebuild/swift commands and other GitHub Actions with copy-paste templates",
+            "dependencies": [
+              "3.5"
+            ],
+            "details": "Develop comprehensive migration guides showing how to transition from manual xcodebuild commands, swift-actions/setup-swift, and basic GitHub templates. Include real-world workflow templates that users can copy-paste and customize for their projects.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Create Best Practices and Troubleshooting Examples",
+            "description": "Document scheme naming best practices, common parameter combinations, and troubleshooting configurations",
+            "dependencies": [
+              "3.6"
+            ],
+            "details": "Create examples covering scheme naming conventions, automatic '-Package' suffix handling, common parameter combinations and their use cases, and troubleshooting examples with before/after configurations. Include explanations of when each approach is most appropriate.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Develop Performance Benchmarks and Comparison Documentation",
+        "description": "Create performance documentation with benchmarks, cache metrics, and detailed comparisons against alternative solutions",
+        "details": "Develop comprehensive performance documentation including: (1) Benchmark results showing build times for different project sizes and configurations; (2) Cache performance metrics demonstrating >85% cache hit rates and time savings; (3) Detailed comparison table vs swift-actions/setup-swift, manual xcodebuild scripts, and basic GitHub templates; (4) Resource usage analysis showing memory and CPU utilization patterns; (5) Performance optimization guide covering cache key strategies, derived data path optimization, and build parallelization; (6) Scaling recommendations for enterprise projects with large dependency graphs; (7) Platform-specific performance characteristics (macOS vs Ubuntu build times, Xcode vs SPM performance differences); (8) Real-world case studies showing performance improvements in production workflows; (9) Cost analysis for GitHub Actions minutes usage optimization; (10) Performance troubleshooting guide for slow builds. Include graphs, tables, and quantitative data where possible. Benchmark against the existing test packages (SingleTargetPackage and MultiTargetPackage) to provide concrete, reproducible results.",
+        "testStrategy": "Run performance benchmarks across different project sizes and configurations. Validate cache hit rate claims through extended CI runs. Test optimization recommendations on real projects. Verify comparison claims against actual alternative solutions. Measure and document build time improvements.",
+        "priority": "medium",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up benchmark testing infrastructure and methodology",
+            "description": "Create standardized benchmark testing framework with consistent methodology for measuring build times, cache performance, and resource usage across different project configurations",
+            "dependencies": [],
+            "details": "Establish benchmark testing infrastructure including: test environment setup scripts, standardized measurement procedures, data collection automation, and reproducible testing conditions. Define methodology for measuring build times, cache hit rates, resource usage metrics, and comparison benchmarks. Set up testing against SingleTargetPackage and MultiTargetPackage with various configurations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Conduct build time benchmarks across project sizes and configurations",
+            "description": "Execute comprehensive build time measurements for different project sizes, Swift versions, and platform configurations to establish baseline performance metrics",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Run systematic build time benchmarks including: SingleTargetPackage vs MultiTargetPackage performance, Swift 5.9-6.2 version comparisons, Ubuntu (focal/jammy/noble) vs macOS build times, SPM vs Xcode build performance, clean vs incremental builds, and various dependency graph sizes. Collect quantitative data with statistical significance.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Analyze cache performance metrics and hit rates",
+            "description": "Measure and document cache performance including hit rates, time savings, and storage efficiency to validate >85% cache hit rate claims",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Conduct detailed cache performance analysis including: cache hit rate measurements across different scenarios, time savings quantification from cache usage, cache storage efficiency analysis, cache key strategy effectiveness, derived data path optimization impact, and cache invalidation patterns. Document findings with concrete metrics.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Profile resource usage patterns and system requirements",
+            "description": "Analyze memory and CPU utilization patterns during builds to document resource requirements and optimization opportunities",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Profile resource usage including: memory consumption patterns during different build phases, CPU utilization analysis for parallel vs sequential builds, disk I/O patterns and storage requirements, platform-specific resource usage differences (macOS vs Ubuntu), and identification of resource bottlenecks and optimization opportunities.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Conduct competitive analysis against alternative solutions",
+            "description": "Perform detailed comparison benchmarks against swift-actions/setup-swift, manual xcodebuild scripts, and basic GitHub templates",
+            "dependencies": [
+              "4.2",
+              "4.3"
+            ],
+            "details": "Execute comparative analysis including: side-by-side performance benchmarks against swift-actions/setup-swift, comparison with manual xcodebuild script approaches, evaluation against basic GitHub workflow templates, feature comparison matrix, setup complexity analysis, and migration effort assessment. Document advantages and trade-offs.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Analyze GitHub Actions cost optimization and usage patterns",
+            "description": "Calculate and document GitHub Actions minutes usage optimization potential and cost analysis for different workflow configurations",
+            "dependencies": [
+              "4.2",
+              "4.3"
+            ],
+            "details": "Conduct cost analysis including: GitHub Actions minutes usage measurement across different configurations, cost comparison between cached vs non-cached builds, parallel vs sequential execution cost analysis, platform-specific minute consumption (macOS vs Ubuntu rates), optimization recommendations for enterprise usage, and ROI calculations for build time improvements.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Develop performance optimization recommendations and scaling guide",
+            "description": "Create actionable optimization guide with cache strategies, build parallelization, and enterprise scaling recommendations",
+            "dependencies": [
+              "4.2",
+              "4.3",
+              "4.4"
+            ],
+            "details": "Develop optimization guide including: cache key strategy best practices, derived data path optimization techniques, build parallelization recommendations, dependency graph optimization for large projects, platform-specific optimization tips, enterprise scaling patterns, and quantitative performance improvement targets with implementation steps.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Create performance troubleshooting and diagnostic guide",
+            "description": "Document performance troubleshooting procedures for slow builds, cache issues, and resource constraints",
+            "dependencies": [
+              "4.4",
+              "4.6"
+            ],
+            "details": "Create troubleshooting guide including: diagnostic procedures for slow build identification, cache performance debugging steps, resource constraint analysis methods, platform-specific performance issues, common performance bottlenecks and solutions, monitoring and alerting recommendations, and step-by-step performance optimization workflows.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "Compile and format performance documentation with visualizations",
+            "description": "Create comprehensive performance documentation with graphs, tables, and quantitative data presentation",
+            "dependencies": [
+              "4.2",
+              "4.3",
+              "4.4",
+              "4.5",
+              "4.6",
+              "4.7",
+              "4.8"
+            ],
+            "details": "Compile final performance documentation including: performance benchmark result graphs and charts, cache performance visualization tables, resource usage pattern diagrams, competitive analysis comparison matrices, cost optimization charts, real-world case study presentations, and interactive performance calculator tools. Format for README integration and standalone reference.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Create Troubleshooting Guide and Error Handling Documentation",
+        "description": "Develop comprehensive troubleshooting documentation with common error scenarios, diagnostic steps, and solution guides",
+        "details": "Create a detailed troubleshooting section covering: (1) Common configuration errors and their solutions (invalid deviceName/osVersion combinations, missing Xcode paths, scheme not found issues); (2) Platform-specific troubleshooting for each supported Apple platform including simulator availability and version compatibility; (3) Caching issues diagnosis and resolution (cache corruption, key conflicts, storage limits); (4) Build failure analysis with common Swift compilation errors and action-specific issues; (5) Debug mode instructions for verbose logging and diagnostic information; (6) Environment-specific issues (GitHub runner differences, Xcode version mismatches, Swift version conflicts); (7) Parameter validation guide showing valid combinations and common mistakes; (8) Migration troubleshooting for users coming from other solutions; (9) Performance troubleshooting for slow builds and cache misses; (10) Community support resources and issue reporting guidelines. Include step-by-step diagnostic procedures, example error messages with solutions, and links to relevant GitHub Issues. Structure as a searchable FAQ format with clear problem-solution pairs.",
+        "testStrategy": "Test troubleshooting solutions against real error scenarios. Validate diagnostic procedures work as described. Create intentional misconfigurations to verify error handling and solution accuracy. Test debug mode instructions provide useful information. Ensure solutions work across different GitHub runner environments.",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Configuration Error Troubleshooting Section",
+            "description": "Document common configuration errors including invalid deviceName/osVersion combinations, missing Xcode paths, and scheme resolution issues",
+            "dependencies": [],
+            "details": "Create comprehensive troubleshooting guide for configuration validation errors. Cover invalid deviceName/osVersion combinations with examples of supported values, missing or incorrect Xcode path specifications, scheme not found issues with resolution steps, and parameter validation failures. Include specific error messages users encounter and step-by-step solutions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Platform-Specific Troubleshooting Guide",
+            "description": "Create troubleshooting sections for each Apple platform covering simulator availability and version compatibility",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Document platform-specific issues for iOS, watchOS, tvOS, visionOS, and macOS. Include simulator availability checks, version compatibility matrices, platform-specific error messages, and resolution steps. Cover common issues like simulator not found, unsupported OS versions, and device capability mismatches.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Caching Issues Diagnostic Guide",
+            "description": "Document caching problems including corruption, key conflicts, and storage limit issues with resolution steps",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Create comprehensive guide for diagnosing and resolving caching issues. Cover cache corruption detection and cleanup procedures, cache key conflicts between different configurations, storage limit problems on runners, and cache invalidation strategies. Include diagnostic commands and step-by-step resolution procedures.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Develop Build and Test Failure Analysis Guide",
+            "description": "Create troubleshooting guide for Swift compilation errors and action-specific build failures",
+            "dependencies": [
+              "5.2",
+              "5.3"
+            ],
+            "details": "Document common Swift compilation errors, Xcode build failures, test execution issues, and action-specific problems. Include error message interpretation, dependency resolution failures, code coverage issues, and platform-specific build problems. Provide step-by-step diagnostic procedures and solutions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create Environment and Version Conflict Guide",
+            "description": "Document GitHub runner differences, Xcode version mismatches, and Swift version conflicts with solutions",
+            "dependencies": [
+              "5.2"
+            ],
+            "details": "Create troubleshooting guide for environment-specific issues. Cover differences between GitHub-hosted and self-hosted runners, Xcode version compatibility problems, Swift version conflicts, macOS version requirements, and runner capacity issues. Include environment validation steps and compatibility matrices.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Develop Debug Mode and Diagnostic Instructions",
+            "description": "Create guide for enabling verbose logging and collecting diagnostic information for issue reporting",
+            "dependencies": [
+              "5.4",
+              "5.5"
+            ],
+            "details": "Document debug mode activation, verbose logging options, diagnostic information collection procedures, and troubleshooting workflow. Include instructions for capturing relevant logs, environment information, and configuration details needed for effective issue reporting and support.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Structure as Searchable FAQ with Community Support Resources",
+            "description": "Organize all troubleshooting content as searchable FAQ format and add community support resources",
+            "dependencies": [
+              "5.1",
+              "5.2",
+              "5.3",
+              "5.4",
+              "5.5",
+              "5.6"
+            ],
+            "details": "Structure all troubleshooting content as searchable FAQ with clear problem-solution pairs. Add table of contents, search-friendly headers, cross-references between related issues, and community support resources including GitHub Issues templates, discussion forums, and contribution guidelines. Ensure consistent formatting and easy navigation.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-31T16:12:40.581Z",
+      "updated": "2025-08-31T18:23:38.807Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
