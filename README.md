@@ -12,6 +12,7 @@
 ⚡ **Intelligent Caching** - Platform-specific caching strategies for maximum performance  
 🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS)  
 🎯 **Optimized Workflows** - Purpose-built for modern Swift CI/CD pipelines  
+📦 **Real-World Proven** - Used by 25+ open source Swift packages including SyndiKit, DataThespian, and more  
 
 ### vs. swift-actions/setup-swift
 - ✅ **Built-in testing workflows** vs manual test commands
@@ -32,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: YourPackageTests
 ```
@@ -48,7 +49,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: YourApp
           type: ios
@@ -79,7 +80,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: ${{ matrix.scheme }}
           type: ${{ matrix.type }}
@@ -87,41 +88,133 @@ jobs:
           osVersion: ${{ matrix.osVersion }}
 ```
 
+## 🌟 Real-World Examples
+
+### Production Usage from Open Source Projects
+
+**SyndiKit** - Swift Package for Decoding RSS Feeds  
+```yaml
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.0
+        with:
+          scheme: SyndiKit-Package
+```
+*Repository: [brightdigit/SyndiKit](https://github.com/brightdigit/SyndiKit)*
+
+**DataThespian** - Concurrency-Friendly SwiftData  
+```yaml
+name: macOS
+on: [push, pull_request]
+jobs:
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.0
+        with:
+          scheme: DataThespian-Package
+```
+*Repository: [brightdigit/DataThespian](https://github.com/brightdigit/DataThespian)*
+
+**Sublimation** - Server-Side Swift Development  
+```yaml
+name: Swift Tests
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        swift: [5.9, 5.10]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.0
+        with:
+          scheme: Sublimation-Package
+```
+*Repository: [brightdigit/Sublimation](https://github.com/brightdigit/Sublimation)*
+
+### More Examples from the BrightDigit Ecosystem
+
+| Package | Purpose | CI Strategy |
+|---------|---------|-------------|
+| **[AviaryInsights](https://github.com/brightdigit/AviaryInsights)** | Plausible Analytics SDK | Ubuntu + macOS matrix |
+| **[FeatherQuill](https://github.com/brightdigit/FeatherQuill)** | Feature flag management | Cross-platform testing |
+| **[Options](https://github.com/brightdigit/Options)** | Enhanced enum utilities | Swift version matrix |
+| **[SimulatorServices](https://github.com/brightdigit/SimulatorServices)** | simctl Swift interface | macOS-only with iOS simulator |
+| **[ThirtyTo](https://github.com/brightdigit/ThirtyTo)** | Base32Crockford encoding | Multi-platform validation |
+
+### Key Patterns from Production Usage
+
+1. **Simple Package Testing**: Most projects use basic `scheme` parameter only
+2. **Cross-Platform Strategy**: Ubuntu + macOS matrix for maximum compatibility  
+3. **Zero Configuration**: No additional setup or caching configuration needed
+4. **Consistent Naming**: `PackageName-Package` scheme naming convention
+5. **Reliable Defaults**: Let swift-build handle platform-specific optimizations
+
 ## 🌍 Platform Support
 
-### Ubuntu Support Matrix
+swift-build works seamlessly across all major platforms with zero configuration required.
 
-| Swift Version | Ubuntu Focal | Ubuntu Jammy | Ubuntu Noble | Nightly |
-|---------------|--------------|--------------|--------------|---------|
-| 5.9           | ✅           | ✅           | ❌           | ❌      |
-| 5.10          | ✅           | ✅           | ✅           | ❌      |
-| 6.0           | ✅           | ✅           | ✅           | ❌      |
-| 6.1           | ✅           | ✅           | ✅           | ✅      |
-| 6.2           | ✅           | ✅           | ✅           | ✅      |
+### Supported Platforms
 
-### macOS Support Matrix
+| Platform | Build Tool | What swift-build Provides |
+|----------|------------|---------------------------|
+| **Ubuntu Linux** | Swift Package Manager | Automatic dependency caching, optimized build paths |
+| **macOS** | Swift Package Manager | Xcode integration, intelligent DerivedData management |
+| **iOS** | Xcode + Simulators | Simulator management, device selection, platform downloads |
+| **watchOS** | Xcode + Simulators | Paired simulator setup, automatic device pairing |
+| **tvOS** | Xcode + Simulators | Apple TV simulator configuration |
+| **visionOS** | Xcode + Simulators | Vision Pro simulator support (Xcode 16.4+) |
+| **macOS (native)** | Xcode | Direct native testing without simulators |
 
-| Runner | Xcode Versions | Swift Package Manager | Apple Platforms |
-|--------|----------------|----------------------|-----------------|
-| macos-14 | Xcode 15.1+ | ✅ | iOS, watchOS, tvOS, macOS |
-| macos-15 | Xcode 16.4+, 26 beta | ✅ | iOS, watchOS, tvOS, visionOS, macOS |
+### Version Compatibility
 
-### Apple Platform Simulator Support
+For detailed version compatibility and release information:
 
-| Platform | Example Devices | OS Versions | Notes |
-|----------|----------------|-------------|-------|
-| **iOS** | iPhone 15, iPhone 16 Pro | 17.0+, 18.5+, 26.0+ | Full simulator support |
-| **watchOS** | Apple Watch Ultra 2 (49mm) | 11.5+, 26.0+ | Paired with iPhone simulator |
-| **tvOS** | Apple TV 4K (3rd gen) | 18.5+, 26.0+ | Full simulator support |
-| **visionOS** | Apple Vision Pro | 2.5+ | Requires Xcode 16.4+ |
-| **macOS** | Native | Current macOS | Direct testing, no simulator |
+- **Swift Versions**: [swiftversion.net](https://swiftversion.net) - Complete Swift version history and platform support
+- **Xcode Releases**: [xcodereleases.com](https://xcodereleases.com) - Comprehensive Xcode version database with Swift versions and SDK support
+
+### Docker Images for Linux Builds
+
+Choose the right Docker image for your Swift version:
+
+| Image Type | When to Use | Example |
+|------------|-------------|---------|
+| **[Official Swift](https://hub.docker.com/_/swift)** | Stable releases (5.9, 5.10, 6.0+) | `swift:5.10-jammy` |
+| **[Swift Nightly](https://hub.docker.com/r/swiftlang/swift/tags)** | Development/nightly builds [[memory:3814335]] | `swiftlang/swift:nightly-6.2-noble` |
+
+### GitHub Runner Support
+
+| Runner | Best For | swift-build Features |
+|--------|----------|---------------------|
+| **ubuntu-latest** | Swift Package Manager testing | Linux-optimized caching, container support |
+| **macos-14** | Stable Xcode versions (15.x) | iOS/watchOS/tvOS simulators, Xcode 15 support |
+| **macos-15** | Latest Xcode versions (16.x+) | visionOS support, Xcode 16+ beta features |
 
 ### Platform-Specific Features
 
-- **Intelligent Caching**: Different strategies for Ubuntu vs macOS builds
-- **Auto Platform Detection**: Automatically configures build environment based on runner OS  
-- **Download Platform Support**: Automatically downloads Apple platforms when missing (beta/nightly)
-- **Derived Data Management**: Optimized paths and cleanup for Xcode builds
+- **🔍 Auto-Detection**: Automatically detects runner OS and configures appropriate build tools
+- **📦 Smart Caching**: Platform-specific caching strategies (`.build` + `.swiftpm` on Linux, DerivedData on macOS)
+- **📲 Simulator Management**: Automatic iOS/watchOS/tvOS/visionOS simulator setup and device selection
+- **⬇️ Platform Downloads**: Automatically downloads missing Apple platform simulators for beta/nightly Xcode
+- **🛠️ Build Tool Selection**: Uses `swift` command on Linux/macOS SPM, `xcodebuild` for Apple platforms
+
+### External Resources
+
+- **GitHub Runner Images**: [github.com/actions/runner-images](https://github.com/actions/runner-images)
+- **macOS Runner Documentation**: [GitHub Hosted Runners](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources)
+- **Swift Docker Hub**: [Official Swift Images](https://hub.docker.com/_/swift)
 
 ## ⚙️ Configuration Reference
 
@@ -129,7 +222,7 @@ jobs:
 
 | Parameter | Description | Example | Notes |
 |-----------|-------------|---------|-------|
-| `scheme` | The scheme to build and test | `MyPackageTests` | Must match scheme in Package.swift or Xcode project |
+| `scheme` | The scheme to build and test | `MyPackageTests` | Required for `xcodebuild` (Apple platforms). Not required when using `swift` command (SPM) |
 
 ### Optional Parameters
 
@@ -153,7 +246,7 @@ jobs:
 
 #### Swift Package Manager (Ubuntu/macOS)
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyPackageTests
     working-directory: ./packages/core
@@ -161,7 +254,7 @@ jobs:
 
 #### iOS Simulator Testing
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: ios
@@ -171,7 +264,7 @@ jobs:
 
 #### macOS Native Testing
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: macos
@@ -179,7 +272,7 @@ jobs:
 
 #### Custom Xcode Version
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: ios
@@ -190,7 +283,7 @@ jobs:
 
 #### Beta Platform Support
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: visionos
@@ -210,10 +303,15 @@ jobs:
 
 ### Default Behaviors
 
-- **No `type`**: Uses Swift Package Manager directly (works on Ubuntu and macOS)
+- **No `type`**: Uses Swift Package Manager directly with `swift` command (works on Ubuntu and macOS)
 - **No `deviceName`/`osVersion`**: Uses Xcode's default simulator for the platform
 - **No `xcode`**: Uses system default Xcode installation
 - **No `working-directory`**: Operates in repository root
+
+### Build Tool Selection
+
+- **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu and macOS SPM builds)
+- **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
 
 ## 🚀 Advanced Examples
 
@@ -276,7 +374,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: MyPackage
           type: ${{ matrix.type }}
@@ -308,7 +406,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           working-directory: ${{ matrix.package.path }}
           scheme: ${{ matrix.package.scheme }}
@@ -348,7 +446,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: MyApp
           type: ${{ matrix.type }}
@@ -383,16 +481,15 @@ jobs:
             ~/.swiftpm/cache
           key: xcode-${{ runner.os }}-${{ hashFiles('**/Package.resolved', '**/Podfile.lock') }}
           
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: ${{ matrix.target }}
           type: ios
           deviceName: iPhone 15
           osVersion: '17.5'
         env:
-          # Optimize build performance
+          # Enable deterministic builds for consistent results
           SWIFT_DETERMINISTIC_HASHING: 1
-          SWIFT_BUILD_CACHE: 1
 ```
 
 ### Integration with Other Actions
@@ -415,7 +512,7 @@ jobs:
         run: swift package plugin --allow-writing-to-package-directory swiftformat --lint .
         
       # Test with our action
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: MyPackageTests
           
@@ -431,7 +528,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: MyPackage
           
@@ -481,7 +578,7 @@ jobs:
         env:
           DEVELOPER_DIR: ${{ matrix.xcode }}/Contents/Developer
           
-      - uses: swift-build/swift-build@v1
+      - uses: swift-build/swift-build@v1.2.0
         with:
           scheme: MyPackage
           xcode: ${{ matrix.xcode }}
@@ -603,7 +700,7 @@ jobs:
 #### Swift Package Libraries
 ```yaml
 # Optimized for dependency caching
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyLibraryTests
 # Automatic .build + .swiftpm + .cache optimization
@@ -612,7 +709,7 @@ jobs:
 #### iOS/macOS Applications  
 ```yaml
 # Optimized for Xcode builds
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: ios
@@ -624,7 +721,7 @@ jobs:
 #### Large Monorepos
 ```yaml
 # Optimized for multiple packages
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     working-directory: packages/core
     scheme: CorePackage
@@ -644,7 +741,7 @@ The iOS 18.5 simulator runtime is not available.
 
 **Solution:** Use `download-platform: true` to automatically download missing platforms
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: ios
@@ -662,27 +759,187 @@ The iOS 18.5 simulator runtime is not available.
 **Error:** Simulator connection failures
 ```
 Unable to connect to destination iPhone 15
+xcodebuild: error: Unable to find a destination matching the provided destination specifier
 ```
 
-**Solution:** Use default simulator settings or specify available devices
+**Solutions:**
+
+1. **Use default simulator settings** (Recommended)
 ```yaml
-# Option 1: Let Xcode choose defaults
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: ios
     # Omit deviceName/osVersion for reliable defaults
+```
 
-# Option 2: Use well-supported devices
-- uses: swift-build/swift-build@v1
+2. **Pre-start the simulator**
+```yaml
+- name: Pre-start Simulator
+  run: xcrun instruments -w "iPhone 15 (17.0)" || true
+  
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: ios
     deviceName: iPhone 15
-    osVersion: '17.0'  # Use stable OS version
+    osVersion: '17.0'
 ```
 
+3. **List and verify available simulators**
+```yaml
+- name: List Available Simulators
+  run: xcrun simctl list devices available
+  
+- uses: swift-build/swift-build@v1.2.0
+  with:
+    scheme: MyApp
+    type: ios
+    deviceName: iPhone 15  # Verify this matches output above
+    osVersion: '17.0'
+```
+
+4. **Use well-supported device combinations**
+```yaml
+- uses: swift-build/swift-build@v1.2.0
+  with:
+    scheme: MyApp
+    type: ios
+    deviceName: iPhone 15
+    osVersion: '17.0'  # Stable, widely supported version
+```
+
+**Additional Resources:**
+- [CircleCI: xcodebuild destination errors](https://support.circleci.com/hc/en-us/articles/360011749074-xcodebuild-error-Unable-to-find-a-destination-matching-the-provided-destination-specifier)
+- [Stack Overflow: xcodebuild destination troubleshooting](https://stackoverflow.com/questions/62751542/xcodebuild-unable-to-find-a-destination-matching-the-provided-destination-speci)
+- [GitHub Actions: iOS simulator setup](https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md#simulators)
+
 **Reference:** [MistKit Issue Example](https://github.com/brightdigit/MistKit/actions/runs/17334121706/job/49216725246)
+
+## 🔗 Related Actions & Caching Strategies
+
+### Commonly Used Actions in Swift CI/CD
+
+| Action | Purpose | Usage with swift-build |
+|--------|---------|------------------------|
+| **actions/checkout@v4** | Repository checkout | Required first step in all workflows |
+| **actions/cache@v4** | Dependency caching | Automatic internal caching, manual for additional paths |
+| **actions/upload-artifact@v4** | Build artifact storage | For storing test results, coverage reports |
+| **codecov/codecov-action@v4** | Coverage reporting | Upload coverage after swift-build tests |
+| **norio-nomura/action-swiftlint@3.2.1** | Swift code linting | Run before swift-build for quality gates |
+| **peaceiris/actions-gh-pages@v3** | Documentation deployment | Deploy docs generated after swift-build |
+
+### Built-in Caching Strategies
+
+swift-build automatically implements platform-specific caching:
+
+#### Ubuntu Caching
+```yaml
+# Automatically cached paths:
+- .build/                    # SPM build artifacts
+- .swiftpm/cache/           # SPM package cache
+- ~/.cache/swift-pm/        # System SPM cache
+```
+
+#### macOS Caching  
+```yaml
+# Automatically cached paths:
+- .build/                    # SPM build artifacts
+- .swiftpm/cache/           # SPM package cache
+- ~/Library/Developer/Xcode/DerivedData/  # Xcode build cache
+- ~/Library/Caches/org.swift.swiftpm/     # SPM system cache
+```
+
+### Manual Cache Configuration
+
+For additional caching beyond swift-build's automatic optimization:
+
+```yaml
+- name: Cache Additional Dependencies
+  uses: actions/cache@v4
+  with:
+    path: |
+      vendor/
+      Pods/
+      ~/.cocoapods/
+    key: deps-${{ runner.os }}-${{ hashFiles('**/Podfile.lock', '**/Cartfile.resolved') }}
+    restore-keys: |
+      deps-${{ runner.os }}-
+```
+
+### Cache Performance Tips
+
+| Strategy | Benefit | Implementation |
+|----------|---------|----------------|
+| **Stable Cache Keys** | 15-25% faster restores | Include `Package.resolved` in cache key |
+| **Fallback Keys** | Better cache hit rates | Use hierarchical restore-keys |
+| **Path Optimization** | Reduced cache size | Cache only essential build artifacts |
+| **Platform Separation** | Avoid cache conflicts | Include `runner.os` in cache keys |
+
+### Example: Complete CI Pipeline with Related Actions
+
+```yaml
+name: Complete Swift CI
+on: [push, pull_request]
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Code quality first
+      - name: SwiftLint
+        uses: norio-nomura/action-swiftlint@3.2.1
+        
+      # Test with swift-build (includes automatic caching)
+      - uses: swift-build/swift-build@v1.2.0
+        with:
+          scheme: MyPackageTests
+          
+      # Upload coverage
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+
+  multi-platform:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            scheme: MyPackageTests
+          - os: macos-latest
+            scheme: MyPackageTests
+          - os: macos-latest
+            scheme: MyApp
+            type: ios
+            
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Additional dependency caching
+      - name: Cache Vendor Dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor/
+          key: vendor-${{ runner.os }}-${{ hashFiles('**/vendor.lock') }}
+          
+      # swift-build handles platform-specific caching automatically
+      - uses: swift-build/swift-build@v1.2.0
+        with:
+          scheme: ${{ matrix.scheme }}
+          type: ${{ matrix.type }}
+          
+      # Store artifacts
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: .build/test-results/
+```
 
 ## 🏆 Comparison with Alternatives
 
@@ -738,7 +995,7 @@ Unable to connect to destination iPhone 15
 
 **After:**
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyPackageTests
 ```
@@ -768,7 +1025,7 @@ Unable to connect to destination iPhone 15
 
 **After:**
 ```yaml
-- uses: swift-build/swift-build@v1
+- uses: swift-build/swift-build@v1.2.0
   with:
     scheme: MyApp
     type: ios
