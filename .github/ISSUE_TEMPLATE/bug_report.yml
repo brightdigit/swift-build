@@ -1,0 +1,142 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior with swift-build action
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the following sections to help us resolve the issue quickly.
+        
+        **Before submitting:** Please search existing issues and check our [FAQ](https://github.com/brightdigit/swift-build#-troubleshooting--faq) first.
+
+  - type: input
+    id: action-version
+    attributes:
+      label: swift-build Action Version
+      description: Which version of the action are you using?
+      placeholder: v1.2.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runner-os
+    attributes:
+      label: Runner OS
+      description: Which GitHub Actions runner are you using?
+      options:
+        - ubuntu-latest
+        - ubuntu-22.04 (jammy)
+        - ubuntu-20.04 (focal)
+        - macos-14
+        - macos-15
+        - macos-latest
+    validations:
+      required: true
+
+  - type: dropdown
+    id: build-type
+    attributes:
+      label: Build Type
+      description: What type of build are you attempting?
+      options:
+        - Swift Package Manager (SPM) - Cross-platform
+        - iOS Simulator Testing
+        - watchOS Simulator Testing
+        - tvOS Simulator Testing
+        - visionOS Simulator Testing
+        - macOS Native Testing
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Action Configuration
+      description: Your swift-build action configuration (please include the complete step)
+      placeholder: |
+        - uses: brightdigit/swift-build@v1.2.1
+          with:
+            scheme: MyApp
+            type: ios
+            deviceName: iPhone 15
+            osVersion: '17.0'
+      render: yaml
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Complete error message and relevant logs
+      placeholder: |
+        xcodebuild: error: Unable to find a destination matching the provided destination specifier
+        [Full error output here]
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: The action should successfully build and test my project
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostic-info
+    attributes:
+      label: Diagnostic Information
+      description: |
+        Please run these diagnostic commands and include the output:
+        
+        **For Ubuntu/Linux runners:**
+        ```bash
+        swift --version
+        swift package describe
+        ls -la Package.swift
+        ```
+        
+        **For macOS runners with simulator issues:**
+        ```bash
+        xcrun simctl list devices available
+        xcodebuild -showsdks
+        xcodebuild -list
+        ```
+        
+        **For macOS runners with package issues:**
+        ```bash
+        swift --version
+        swift package describe
+        xcodebuild -version
+        ```
+      placeholder: Paste diagnostic command outputs here
+      render: shell
+
+  - type: input
+    id: reproduction-link
+    attributes:
+      label: Reproduction Link
+      description: Link to failing workflow run or minimal reproduction repository
+      placeholder: https://github.com/yourorg/yourrepo/actions/runs/12345678
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: I have consulted the troubleshooting FAQ
+          required: true
+        - label: I have included complete error output
+          required: true
+        - label: I have included diagnostic command output
+          required: true
+        - label: I have provided a reproduction link or detailed steps
+          required: true
