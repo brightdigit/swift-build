@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/brightdigit/swift-build/discussions
+    about: Ask questions and get help from the community
+  - name: 📖 Troubleshooting FAQ
+    url: https://github.com/brightdigit/swift-build#-troubleshooting--faq
+    about: Search our comprehensive FAQ before opening an issue
+  - name: 🌟 Real-World Examples
+    url: https://github.com/brightdigit/swift-build#-real-world-examples
+    about: Browse production usage examples for inspiration

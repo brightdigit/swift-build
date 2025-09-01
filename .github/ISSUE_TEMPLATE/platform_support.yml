@@ -1,0 +1,79 @@
+name: 🚀 Platform Support Request
+description: Request support for a new platform or Swift version
+title: "[Platform]: "
+labels: ["platform-support", "enhancement", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request support for a new platform, Swift version, or Xcode version in swift-build action.
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Platform Request Type
+      description: What type of platform support are you requesting?
+      options:
+        - New Swift version (Ubuntu)
+        - New Xcode version (macOS)
+        - New iOS version
+        - New watchOS version
+        - New tvOS version
+        - New visionOS version
+        - New macOS version
+        - Entirely new platform
+    validations:
+      required: true
+
+  - type: input
+    id: platform-version
+    attributes:
+      label: Platform/Version Details
+      description: Specific version or platform you'd like supported
+      placeholder: "Swift 6.2, iOS 19.0, Xcode 17.0, etc."
+    validations:
+      required: true
+
+  - type: textarea
+    id: availability
+    attributes:
+      label: Platform Availability
+      description: Where is this platform/version available?
+      placeholder: |
+        - GitHub Actions runner: macos-15
+        - Xcode version: 17.0 beta
+        - Release status: Beta/RC/Stable
+        - Documentation links: https://developer.apple.com/...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Why do you need this platform support?
+      placeholder: |
+        - Testing new iOS 19 features
+        - Supporting latest Swift 6.2 syntax
+        - Preparing for visionOS 3.0 launch
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-workaround
+    attributes:
+      label: Current Workaround
+      description: How are you currently handling this? (if any)
+      placeholder: |
+        Currently using manual xcodebuild commands or other actions
+    
+  - type: checkboxes
+    id: platform-checklist
+    attributes:
+      label: Platform Support Checklist
+      options:
+        - label: I have verified this platform/version is available on GitHub Actions
+        - label: I have checked that this isn't already supported
+        - label: I understand this may require beta/experimental support initially

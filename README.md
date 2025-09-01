@@ -994,57 +994,268 @@ jobs:
           xcode: ${{ matrix.xcode }}
 ```
 
-## 🔧 Troubleshooting
+## 🔧 Troubleshooting & FAQ
 
-### Common Issues
+### 📋 Table of Contents
 
-#### ❌ Missing SDK Platform
-
-**Error:** Platform not available for testing
-```
-The iOS 18.5 simulator runtime is not available.
-```
-
-**Solution:** Use `download-platform: true` to automatically download missing platforms
-```yaml
-- uses: swift-build/swift-build@v1.2.0
-  with:
-    scheme: MyApp
-    type: ios
-    deviceName: iPhone 16 Pro
-    osVersion: '18.5'
-    download-platform: true  # Downloads platform if missing
-```
-
-**Reference:** [MistKit Issue Example](https://github.com/brightdigit/MistKit/actions/runs/17333339225/job/49214277993)
+- [🔍 Quick Problem Finder](#-quick-problem-finder)
+- [❓ Frequently Asked Questions](#-frequently-asked-questions)
+  - [📱 iOS Issues](#-ios-issues)
+  - [⌚ watchOS Issues](#-watchos-issues) 
+  - [📺 tvOS Issues](#-tvos-issues)
+  - [🥽 visionOS Issues](#-visionos-issues)
+  - [🖥️ macOS Issues](#-macos-issues)
+  - [⚙️ Configuration Issues](#️-configuration-issues)
+  - [🔗 Simulator & Connection Issues](#-simulator--connection-issues)
+- [🆘 Community Support](#-community-support)
+- [🐛 Reporting Issues](#-reporting-issues)
 
 ---
 
-#### ❌ Unable to Connect to Simulator
+### 🔍 Quick Problem Finder
 
-**Error:** Simulator connection failures
-```
-Unable to connect to destination iPhone 15
-xcodebuild: error: Unable to find a destination matching the provided destination specifier
-```
+**Search by Error Message:** Use Ctrl+F to search for your specific error message in this FAQ.
 
-**Solutions:**
+| Error Type | Search Terms | Quick Fix |
+|------------|-------------|-----------|
+| Simulator not found | `Unable to find device`, `deviceName` | [→ Device/Version Combinations](#q-what-devicenameosversion-combinations-are-valid) |
+| Platform missing | `runtime is not available`, `download` | [→ Platform Downloads](#q-how-do-i-fix-platform-not-available-errors) |
+| Scheme errors | `scheme`, `does not contain` | [→ Scheme Naming](#q-how-do-i-fix-scheme-not-found-errors) |
+| Xcode path issues | `DEVELOPER_DIR`, `xcode-select` | [→ Xcode Paths](#q-what-xcode-path-format-should-i-use) |
+| Connection failures | `Lost connection`, `Unable to connect` | [→ Simulator Connection](#q-how-do-i-fix-simulator-connection-issues) |
+| Parameter validation | `Invalid input`, `requires` | [→ Parameter Rules](#q-what-are-the-parameter-validation-rules) |
 
-1. **Use default simulator settings** (Recommended)
+---
+
+### ❓ Frequently Asked Questions
+
+#### 📱 iOS Issues
+
+**Q: What deviceName/osVersion combinations are valid for iOS?**
+
+✅ **Validated iOS combinations:**
 ```yaml
-- uses: swift-build/swift-build@v1.2.0
+# Xcode 15.1 - macos-14
+- deviceName: iPhone 15
+  osVersion: '17.0'
+- deviceName: iPhone 15 Pro  
+  osVersion: '17.2'
+
+# Xcode 16.4 - macos-15
+- deviceName: iPhone 16
+  osVersion: '18.0'
+- deviceName: iPhone 16 Pro
+  osVersion: '18.5'
+```
+
+**Q: How do I fix "Unable to find device iPhone X" errors?**
+
+1. **Check available devices first:**
+```yaml
+- name: List Available iOS Devices
+  run: xcrun simctl list devices available | grep iPhone
+```
+
+2. **Use validated combinations** from the table above
+
+3. **Let swift-build choose defaults** (recommended):
+```yaml
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyApp
+    type: ios
+    # Omit deviceName/osVersion for automatic selection
+```
+
+**Q: How do I fix iOS simulator connection issues?**
+
+1. **Pre-boot the simulator:**
+```yaml
+- name: Pre-start iOS Simulator  
+  run: xcrun simctl boot "iPhone 15 (17.0)" || true
+```
+
+2. **Use reliable device combinations** (see table above)
+
+3. **Enable diagnostic logging:**
+```yaml
+- name: iOS Connection Diagnostics
+  run: |
+    xcrun simctl list devices available | grep iPhone
+    xcrun simctl list runtimes | grep iOS
+```
+
+#### ⌚ watchOS Issues
+
+**Q: How do I fix watchOS pairing issues?**
+
+watchOS simulators require iPhone pairing. **Solution:**
+```yaml
+- name: Setup watchOS Pairing
+  run: |
+    # Create paired simulators
+    IPHONE_ID=$(xcrun simctl create "iPhone-For-Watch" "iPhone 15" "iOS-17-0")
+    WATCH_ID=$(xcrun simctl create "Apple-Watch-Test" "Apple Watch Ultra 2 (49mm)" "watchOS-11-0")
+    xcrun simctl pair "$WATCH_ID" "$IPHONE_ID"
+
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyWatchApp
+    type: watchos
+    deviceName: Apple Watch Ultra 2 (49mm)
+    osVersion: '11.0'
+```
+
+**Q: What watchOS device names should I use?**
+
+✅ **Valid watchOS devices:**
+- `Apple Watch Series 9 (45mm)` - Xcode 15.1+
+- `Apple Watch Ultra 2 (49mm)` - Xcode 15.4+  
+- `Apple Watch Series 10 (46mm)` - Xcode 16.4+
+
+#### 📺 tvOS Issues
+
+**Q: How do I fix Apple TV simulator issues?**
+
+**Always use this exact device name:**
+```yaml
+deviceName: Apple TV 4K (3rd generation)
+```
+
+**Valid tvOS versions by Xcode:**
+- Xcode 15.1: `17.0`, `17.2`
+- Xcode 16.4: `18.0`, `18.5`
+
+#### 🥽 visionOS Issues
+
+**Q: Why does visionOS say "not supported"?**
+
+visionOS requires **Xcode 16.4+** and **macOS 15+**. Check requirements:
+```yaml
+- name: Validate visionOS Requirements
+  run: |
+    XCODE_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
+    if (( $(echo "$XCODE_VERSION < 16.4" | bc -l) )); then
+      echo "❌ visionOS requires Xcode 16.4+, found $XCODE_VERSION"
+      exit 1
+    fi
+```
+
+**Q: What visionOS configurations work?**
+
+✅ **Valid visionOS setup:**
+```yaml
+runs-on: macos-15  # Required: macOS 15+
+steps:
+  - uses: swift-build/swift-build@v1.2.1
+    with:
+      scheme: MyVisionApp
+      type: visionos
+      xcode: /Applications/Xcode_16.4.app  # Required: Xcode 16.4+
+      deviceName: Apple Vision Pro
+      osVersion: '2.0'  # or '1.0', '2.5'
+      download-platform: true  # Recommended for beta versions
+```
+
+#### 🖥️ macOS Issues
+
+**Q: How do I configure macOS testing correctly?**
+
+macOS is **native testing only** - no simulators needed:
+```yaml
+# ✅ Correct macOS configuration
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyMacApp
+    type: macos
+    # DO NOT include deviceName/osVersion for macOS
+
+# ❌ Wrong: macOS doesn't use deviceName/osVersion
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyMacApp  
+    type: macos
+    deviceName: MacBook Pro  # ERROR
+    osVersion: '15.0'        # ERROR
+```
+
+#### ⚙️ Configuration Issues
+
+**Q: What are the parameter validation rules?**
+
+| Build Type | Required Parameters | Optional | Invalid |
+|------------|-------------------|----------|---------|
+| **SPM Build** | `scheme` | `working-directory` | `type`, `deviceName`, `osVersion` |
+| **macOS Native** | `scheme`, `type: macos` | `xcode`, `working-directory` | `deviceName`, `osVersion` |
+| **iOS Simulator** | `scheme`, `type: ios`, `deviceName`, `osVersion` | `xcode`, `download-platform` | None |
+| **Other Simulators** | `scheme`, `type`, `deviceName`, `osVersion` | `xcode`, `download-platform` | None |
+
+**Q: How do I fix scheme not found errors?**
+
+1. **Check if you have a Swift Package:**
+```yaml
+- name: List Package Schemes
+  run: |
+    echo "Package targets:"
+    swift package describe --type json | jq -r '.targets[].name'
+    echo "SPM schemes follow pattern: PackageName-Package"
+```
+
+2. **Check if you have an Xcode project:**
+```yaml  
+- name: List Xcode Schemes
+  run: xcodebuild -list | grep -A 10 "Schemes:"
+```
+
+3. **Use correct naming conventions:**
+- **Swift Packages**: `MyPackage-Package` (note the `-Package` suffix)
+- **Xcode Projects**: Use exact scheme name from `xcodebuild -list`
+
+**Q: What Xcode path format should I use?**
+
+✅ **Correct format:** `/Applications/Xcode_15.1.app`
+
+❌ **Common mistakes:**
+- `Xcode_15.1.app` (missing `/Applications/`)
+- `/Applications/Xcode.app` (missing version)
+- `~/Applications/Xcode_15.1.app` (using `~`)
+
+**Q: How do I fix working directory errors?**
+
+1. **Validate the directory exists:**
+```yaml
+- name: Check Directory Structure
+  run: |
+    ls -la "${{ inputs.working-directory || '.' }}"
+    test -f "${{ inputs.working-directory || '.' }}/Package.swift" && echo "✅ Package.swift found"
+```
+
+2. **Use correct path format:**
+```yaml
+working-directory: ./MyPackage    # ✅ Relative with ./
+working-directory: packages/core  # ✅ Relative without ./
+working-directory: .              # ✅ Current directory
+```
+
+#### 🔗 Simulator & Connection Issues
+
+**Q: How do I fix simulator connection issues?**
+
+**Quick fix - Use defaults** (recommended):
+```yaml
+- uses: swift-build/swift-build@v1.2.1
   with:
     scheme: MyApp
     type: ios
     # Omit deviceName/osVersion for reliable defaults
 ```
 
-2. **Pre-start the simulator**
+**Advanced fix - Pre-start simulator:**
 ```yaml
 - name: Pre-start Simulator
   run: xcrun instruments -w "iPhone 15 (17.0)" || true
-  
-- uses: swift-build/swift-build@v1.2.0
+
+- uses: swift-build/swift-build@v1.2.1
   with:
     scheme: MyApp
     type: ios
@@ -1052,27 +1263,147 @@ xcodebuild: error: Unable to find a destination matching the provided destinatio
     osVersion: '17.0'
 ```
 
-3. **List and verify available simulators**
+**Q: How do I fix "Platform not available" errors?**
+
+**Enable automatic platform downloads:**
 ```yaml
-- name: List Available Simulators
-  run: xcrun simctl list devices available
-  
-- uses: swift-build/swift-build@v1.2.0
+- uses: swift-build/swift-build@v1.2.1
   with:
     scheme: MyApp
     type: ios
-    deviceName: iPhone 15  # Verify this matches output above
-    osVersion: '17.0'
+    deviceName: iPhone 16 Pro
+    osVersion: '18.5'
+    download-platform: true  # ✅ Auto-downloads missing platforms
 ```
 
-4. **Use well-supported device combinations**
+**Q: How do I clean up simulator issues?**
+
 ```yaml
-- uses: swift-build/swift-build@v1.2.0
+- name: Clean Simulator State
+  run: |
+    xcrun simctl shutdown all           # Stop all simulators
+    xcrun simctl delete unavailable     # Remove broken simulators
+    xcrun simctl list devices           # List clean state
+```
+
+---
+
+### 🆘 Community Support
+
+#### 📞 Getting Help
+
+- **🐛 Bug Reports:** [GitHub Issues](https://github.com/brightdigit/swift-build/issues/new)
+- **💬 Discussion:** [GitHub Discussions](https://github.com/brightdigit/swift-build/discussions)
+- **📖 Documentation:** [README.md](https://github.com/brightdigit/swift-build#readme)
+- **🔄 Examples:** [Real-world usage examples](#-real-world-examples)
+
+#### 🤝 Community Guidelines
+
+- **Search first:** Check existing issues and discussions before posting
+- **Use templates:** Follow issue templates for faster resolution
+- **Be specific:** Include error messages, configuration, and environment details
+- **Share solutions:** Help others by sharing what worked for you
+
+#### 📝 Contributing
+
+We welcome contributions! See our [Contributing Guidelines](#contributing-to-swift-build) for:
+- How to submit bug fixes
+- Feature request process  
+- Code style guidelines
+- Testing requirements
+
+---
+
+### 🐛 Reporting Issues
+
+#### 🔍 Before Reporting
+
+1. **Search existing issues:** Check if your problem is already reported
+2. **Try diagnostic commands:** Run platform-specific diagnostics from this FAQ
+3. **Test with defaults:** Try omitting optional parameters
+4. **Isolate the issue:** Remove optional parameters to identify root cause
+
+#### 📋 Issue Template
+
+**Use this template when creating issues:**
+
+```markdown
+## Problem Description
+Brief description of the issue
+
+## Environment
+- Runner OS: [ubuntu-latest/macos-14/macos-15]
+- Xcode Version: [15.1/16.4/etc]
+- Swift Version: [5.9/6.0/etc]
+
+## Configuration
+```yaml
+- uses: swift-build/swift-build@v1.2.1
   with:
-    scheme: MyApp
-    type: ios
-    deviceName: iPhone 15
-    osVersion: '17.0'  # Stable, widely supported version
+    # Your exact configuration here
+```
+
+## Error Output
+```
+Full error message and relevant logs here
+```
+
+## Expected Behavior
+What you expected to happen
+
+## Reproduction
+Steps to reproduce the issue or link to failing workflow run
+```
+
+#### 🚀 Quick Self-Diagnosis
+
+Before reporting, check:
+
+| Problem | Check This First |
+|---------|------------------|
+| Device not found | Use [validated combinations](#q-what-devicenameosversion-combinations-are-valid-for-ios) |
+| Scheme not found | Check [scheme naming rules](#q-how-do-i-fix-scheme-not-found-errors) |
+| Platform missing | Enable [download-platform](#q-how-do-i-fix-platform-not-available-errors) |
+| Xcode errors | Verify [Xcode path format](#q-what-xcode-path-format-should-i-use) |
+| Configuration errors | Review [parameter rules](#q-what-are-the-parameter-validation-rules) |
+
+#### 📎 Useful Diagnostic Commands
+
+Include output from these commands in your issue:
+
+**For Ubuntu/Linux runners:**
+```yaml
+# Swift and package info
+- run: swift --version
+- run: swift package describe
+- run: ls -la Package.swift
+
+# System information
+- run: cat /etc/os-release
+- run: df -h
+```
+
+**For macOS runners with simulator issues:**
+```yaml
+# Platform availability
+- run: xcrun simctl list devices available
+- run: xcodebuild -showsdks
+
+# System information
+- run: xcodebuild -version
+- run: sw_vers
+```
+
+**For macOS runners with package issues:**
+```yaml
+# Swift and package info
+- run: swift --version
+- run: swift package describe
+- run: xcodebuild -list
+
+# System information
+- run: xcodebuild -version
+- run: sw_vers
 ```
 
 
@@ -2233,6 +2564,137 @@ Is this a Swift Package or Xcode project?
     │   └── Use: scheme + type: macos
     └── iOS/watchOS/tvOS/visionOS app?
         └── Use: scheme + type + deviceName + osVersion
+```
+
+## 🐛 Issue Reporting and Debug Guide
+
+### Before Reporting Issues
+
+1. **Test against our reference implementation:** Compare your configuration with the working examples in our [public test workflow](https://github.com/swift-build/swift-build/blob/main/.github/workflows/swift-test.yml)
+
+2. **Run diagnostic commands to gather information:**
+```yaml
+- name: Debug Environment Information
+  run: |
+    echo "=== System Information ==="
+    uname -a
+    sw_vers || cat /etc/os-release
+    
+    echo "=== Swift/Xcode Information ==="
+    swift --version
+    xcode-select -p || echo "No Xcode found"
+    xcodebuild -version || echo "xcodebuild not available"
+    
+    echo "=== Package Information ==="
+    cat Package.swift
+    swift package describe || echo "Not a Swift package"
+    
+    echo "=== Available Simulators (macOS only) ==="
+    xcrun simctl list devices available || echo "No simulators available"
+    
+    echo "=== Available SDKs (macOS only) ==="
+    xcodebuild -showsdks || echo "No SDKs available"
+```
+
+### Issue Reporting Template
+
+When reporting issues, please include:
+
+#### Required Information
+
+**Environment:**
+- [ ] Runner OS (ubuntu-latest, macos-14, macos-15)
+- [ ] Swift version (`swift --version`)
+- [ ] Xcode version (if applicable, `xcodebuild -version`)
+- [ ] Container image (if Ubuntu, e.g., `swift:6.1`)
+
+**Configuration:**
+- [ ] Complete swift-build step configuration (copy from your workflow)
+- [ ] Working directory structure (`ls -la` output)
+- [ ] Package.swift or Xcode project structure
+
+**Error Details:**
+- [ ] Complete error message and logs
+- [ ] Expected vs. actual behavior
+- [ ] Steps to reproduce
+
+#### Diagnostic Commands Output
+
+Please run and include output from these commands:
+
+```yaml
+# For all platforms
+- run: swift --version
+- run: swift package describe  # If Swift package
+- run: ls -la  # Show directory structure
+
+# For macOS runners only
+- run: xcodebuild -version
+- run: xcodebuild -showsdks
+- run: xcrun simctl list devices available  # If using simulators
+- run: xcode-select -p
+
+# For Ubuntu runners only  
+- run: cat /etc/os-release
+- run: which swift
+```
+
+#### Reproduction Test
+
+**Before reporting, test your configuration against our reference:**
+
+1. **Compare with working examples:** Check [swift-test.yml](https://github.com/swift-build/swift-build/blob/main/.github/workflows/swift-test.yml) for similar configurations
+2. **Test minimal configuration:** Try with just `scheme` parameter first
+3. **Isolate the issue:** Remove optional parameters to identify the root cause
+
+#### Quick Self-Diagnosis
+
+| Problem | Check This First |
+|---------|------------------|
+| Scheme not found | Compare with Package.swift targets or `xcodebuild -list` output |
+| Device not available | Run `xcrun simctl list devices available` and match exact names |
+| Platform missing | Try `download-platform: true` or check Xcode version compatibility |
+| Build failures | Test locally with same Swift/Xcode versions first |
+| Configuration errors | Validate against parameter combination rules in README |
+
+#### Submit Your Issue
+
+Create a new issue at: [https://github.com/swift-build/swift-build/issues](https://github.com/swift-build/swift-build/issues)
+
+**Use this template:**
+
+```markdown
+## Problem Description
+Brief description of the issue
+
+## Environment
+- Runner OS: 
+- Swift version: 
+- Xcode version (if applicable):
+- Container (if Ubuntu):
+
+## Configuration
+```yaml
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    # Your complete configuration here
+```
+
+## Error Output
+```
+Full error message and relevant logs here
+```
+
+## Diagnostic Information
+```
+Output from diagnostic commands above
+```
+
+## Expected Behavior
+What you expected to happen
+
+## Reproduction
+Steps to reproduce the issue or link to failing workflow run
 ```
 
 ### Performance Configuration Guidelines
