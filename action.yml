@@ -194,6 +194,9 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
+        # Fix for iOS simulator connection issue (https://github.com/actions/runner-images/issues/12862)
+        # Establish simulator connection before running xcodebuild
+        xcrun simctl list > /dev/null
         case ${{ inputs.type }} in
           ios)
             xcodebuild -downloadPlatform iOS
@@ -419,6 +422,9 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
+        # Fix for iOS simulator connection issue (https://github.com/actions/runner-images/issues/12862)
+        # Establish simulator connection before running xcodebuild
+        xcrun simctl list > /dev/null
         if [ "${{ inputs.type }}" = "macos" ]; then
           xcodebuild test \
             -scheme ${{ inputs.scheme }} \

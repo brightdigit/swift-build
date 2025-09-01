@@ -6,6 +6,28 @@
 
 **A comprehensive GitHub Action for building and testing Swift packages across all platforms with intelligent caching and zero-config setup.**
 
+## 📋 Table of Contents
+
+- [✨ Why Choose This Action?](#-why-choose-this-action)
+- [⚙️ Configuration Reference](#️-configuration-reference)
+  - [Required Parameters](#required-parameters)
+  - [Optional Parameters](#optional-parameters)
+  - [Parameter Combinations & Interactions](#parameter-combinations--interactions)
+  - [Default Behaviors](#default-behaviors)
+  - [Build Tool Selection](#build-tool-selection)
+- [🚀 Quick Start](#-quick-start)
+  - [Basic Usage Examples](#basic-usage-examples)
+  - [iOS Simulator Testing](#ios-simulator-testing)
+  - [Multi-Platform Matrix Configurations](#multi-platform-matrix-configurations)
+- [⚙️ Configuration Examples by Use Case](#️-configuration-examples-by-use-case)
+- [🌟 Real-World Examples](#-real-world-examples)
+- [🌍 Platform Support](#-platform-support)
+- [🚀 Advanced Examples](#-advanced-examples)
+- [🔧 Troubleshooting & FAQ](#-troubleshooting--faq)
+- [🔗 Related Actions & Caching Strategies](#-related-actions--caching-strategies)
+- [🔄 Migration Guides and Workflow Templates](#-migration-guides-and-workflow-templates)
+- [🐛 Issue Reporting and Debug Guide](#-issue-reporting-and-debug-guide)
+
 ## ✨ Why Choose This Action?
 
 🚀 **Zero Configuration** - Works out of the box with just a scheme parameter  
@@ -13,6 +35,54 @@
 🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS)  
 🎯 **Optimized Workflows** - Purpose-built for modern Swift CI/CD pipelines  
 📦 **Real-World Proven** - Used by 25+ open source Swift packages including SyndiKit, DataThespian, and more  
+
+## ⚙️ Configuration Reference
+
+### Required Parameters
+
+| Parameter | Description | Example | Notes |
+|-----------|-------------|---------|-------|
+| `scheme` | The scheme to build and test | `MyPackage-Package` | Required for Apple platforms (iOS, watchOS, tvOS, visionOS, macOS). Not required for Ubuntu/Linux builds using Swift Package Manager |
+
+### Optional Parameters
+
+#### Basic Configuration
+
+| Parameter | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` |
+
+#### Apple Platform Configuration
+
+| Parameter | Description | Default | Example | Valid Values |
+|-----------|-------------|---------|---------|--------------|
+| `type` | Build type for Apple platforms | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos` |
+| `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path |
+| `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator |
+| `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version |
+| `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` |
+
+
+
+### Parameter Combinations & Interactions
+
+- **Ubuntu builds**: Only `working-directory` is used (no `scheme` needed)
+- **macOS SPM builds**: `scheme`, `working-directory` (no `type` specified)
+- **Apple platform builds**: Require `scheme`, `type`, and optionally `deviceName`/`osVersion`
+- **Custom Xcode**: When `xcode` is specified, it overrides system default
+- **Platform download**: Only effective with Xcode versions
+
+### Default Behaviors
+
+- **No `type`**: Uses Swift Package Manager directly with `swift` command (works on Ubuntu and macOS)
+- **No `deviceName`/`osVersion`**: Uses Xcode's default simulator for the platform
+- **No `xcode`**: Uses system default Xcode installation
+- **No `working-directory`**: Operates in repository root
+
+### Build Tool Selection
+
+- **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu and macOS SPM builds)
+- **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
 
 ## 🚀 Quick Start
 
@@ -570,6 +640,57 @@ jobs:
 4. **Consistent Naming**: `PackageName-Package` scheme naming convention
 5. **Reliable Defaults**: Let swift-build handle platform-specific optimizations
 
+## ⚙️ Configuration Examples by Use Case
+
+### Swift Package Manager (Ubuntu/macOS)
+```yaml
+- uses: brightdigit/swift-build@v1.2.0
+  with:
+    scheme: MyPackageTests
+    working-directory: ./packages/core
+```
+
+### iOS Simulator Testing
+```yaml
+- uses: brightdigit/swift-build@v1.2.0
+  with:
+    scheme: MyApp
+    type: ios
+    deviceName: iPhone 15 Pro
+    osVersion: '17.5'
+```
+
+### macOS Native Testing
+```yaml
+- uses: brightdigit/swift-build@v1.2.0
+  with:
+    scheme: MyApp
+    type: macos
+```
+
+### Custom Xcode Version
+```yaml
+- uses: brightdigit/swift-build@v1.2.0
+  with:
+    scheme: MyApp
+    type: ios
+    xcode: /Applications/Xcode_16.4.app
+    deviceName: iPhone 16 Pro
+    osVersion: '18.5'
+```
+
+### Beta Platform Support
+```yaml
+- uses: brightdigit/swift-build@v1.2.0
+  with:
+    scheme: MyApp
+    type: visionos
+    xcode: /Applications/Xcode_26_beta.app
+    deviceName: Apple Vision Pro
+    osVersion: '26.0'
+    download-platform: true
+```
+
 ## 🌍 Platform Support
 
 swift-build works seamlessly across all major platforms with zero configuration required.
@@ -623,103 +744,6 @@ Choose the right Docker image for your Swift version:
 - **GitHub Runner Images**: [github.com/actions/runner-images](https://github.com/actions/runner-images)
 - **macOS Runner Documentation**: [GitHub Hosted Runners](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources)
 - **Swift Docker Hub**: [Official Swift Images](https://hub.docker.com/_/swift)
-
-## ⚙️ Configuration Reference
-
-### Required Parameters
-
-| Parameter | Description | Example | Notes |
-|-----------|-------------|---------|-------|
-| `scheme` | The scheme to build and test | `MyPackage-Package` | Required for `xcodebuild` (Apple platforms). Not required when using `swift` command (SPM) |
-
-### Optional Parameters
-
-#### Basic Configuration
-
-| Parameter | Description | Default | Example |
-|-----------|-------------|---------|---------|
-| `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` |
-
-#### Apple Platform Configuration
-
-| Parameter | Description | Default | Example | Valid Values |
-|-----------|-------------|---------|---------|--------------|
-| `type` | Build type for Apple platforms | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos` |
-| `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path |
-| `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator |
-| `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version |
-| `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` |
-
-### Configuration Examples by Use Case
-
-#### Swift Package Manager (Ubuntu/macOS)
-```yaml
-- uses: brightdigit/swift-build@v1.2.0
-  with:
-    scheme: MyPackageTests
-    working-directory: ./packages/core
-```
-
-#### iOS Simulator Testing
-```yaml
-- uses: brightdigit/swift-build@v1.2.0
-  with:
-    scheme: MyApp
-    type: ios
-    deviceName: iPhone 15 Pro
-    osVersion: '17.5'
-```
-
-#### macOS Native Testing
-```yaml
-- uses: brightdigit/swift-build@v1.2.0
-  with:
-    scheme: MyApp
-    type: macos
-```
-
-#### Custom Xcode Version
-```yaml
-- uses: brightdigit/swift-build@v1.2.0
-  with:
-    scheme: MyApp
-    type: ios
-    xcode: /Applications/Xcode_16.4.app
-    deviceName: iPhone 16 Pro
-    osVersion: '18.5'
-```
-
-#### Beta Platform Support
-```yaml
-- uses: brightdigit/swift-build@v1.2.0
-  with:
-    scheme: MyApp
-    type: visionos
-    xcode: /Applications/Xcode_26_beta.app
-    deviceName: Apple Vision Pro
-    osVersion: '26.0'
-    download-platform: true
-```
-
-### Parameter Combinations & Interactions
-
-- **Ubuntu builds**: Only `scheme` and `working-directory` are used
-- **macOS SPM builds**: `scheme`, `working-directory` (no `type` specified)
-- **Apple platform builds**: Require `scheme`, `type`, and optionally `deviceName`/`osVersion`
-- **Custom Xcode**: When `xcode` is specified, it overrides system default
-- **Platform download**: Only effective with beta/nightly Xcode versions
-
-### Default Behaviors
-
-- **No `type`**: Uses Swift Package Manager directly with `swift` command (works on Ubuntu and macOS)
-- **No `deviceName`/`osVersion`**: Uses Xcode's default simulator for the platform
-- **No `xcode`**: Uses system default Xcode installation
-- **No `working-directory`**: Operates in repository root
-
-### Build Tool Selection
-
-- **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu and macOS SPM builds)
-- **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
 
 ## 🚀 Advanced Examples
 
