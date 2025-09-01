@@ -115,7 +115,7 @@
             "description": "Add comprehensive header comments explaining the action's purpose, key features, and advantages over alternatives",
             "dependencies": [],
             "details": "Add a detailed header comment block at the top of action.yml explaining: the action's purpose as a Swift build/test solution, key features like multi-platform support and intelligent caching, advantages over swift-actions/setup-swift, and supported platforms (Ubuntu Swift 5.9-6.2, macOS Xcode 15.1+). Include brief overview of the action's workflow and main capabilities.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -126,7 +126,7 @@
               "2.1"
             ],
             "details": "Document each input parameter in action.yml with inline comments including: parameter purpose, valid values and formats, usage examples, default behavior when omitted, and relationships between parameters. Cover scheme (required), working-directory, type (platform selection), xcode path, deviceName/osVersion combinations, and download-platform flag with practical examples.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -137,7 +137,7 @@
               "2.2"
             ],
             "details": "Add detailed comments to the OS detection and environment setup steps explaining: how runner.os is used to differentiate Ubuntu vs macOS workflows, environment variable setup for different platforms, working directory handling, and the conditional logic that determines whether to use SPM or Xcode build paths. Include explanations of why different approaches are needed for different operating systems.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -148,7 +148,7 @@
               "2.3"
             ],
             "details": "Document the Xcode setup process including: how xcode path parameter maps to developer directory selection, SDK and platform mapping logic for iOS/watchOS/tvOS/visionOS/macOS, simulator destination string construction, platform download functionality when platforms are missing, and the conditional logic that determines when Xcode vs SPM builds are used. Explain the relationship between type parameter and actual build configuration.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -159,7 +159,7 @@
               "2.4"
             ],
             "details": "Document the intelligent caching strategies with comments explaining: why different caching approaches are used for macOS (irgaly/xcode-cache with derived data) vs Ubuntu (actions/cache with .build/.swiftpm directories), cache key generation strategies and what invalidates caches, derived data path usage and benefits, performance implications of different caching approaches, and how cache restoration impacts build times. Include explanations of when caches are effective and limitations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -485,7 +485,7 @@
     ],
     "metadata": {
       "created": "2025-08-31T16:12:40.581Z",
-      "updated": "2025-08-31T18:23:38.807Z",
+      "updated": "2025-09-01T02:43:14.651Z",
       "description": "Tasks for master context"
     }
   }
