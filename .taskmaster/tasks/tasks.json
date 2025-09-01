@@ -107,7 +107,7 @@
         "testStrategy": "Review commented action.yml for clarity and accuracy. Ensure all comments accurately reflect the actual functionality. Test that comments don't break action execution. Validate complex logic explanations with actual behavior testing.",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -170,7 +170,7 @@
               "2.5"
             ],
             "details": "Document the build and test execution logic including: differences between SPM builds (swift build/test commands) and Xcode simulator builds (xcodebuild test), parameter passing and flag usage for different build types, code coverage enabling across different platforms, cache path utilization and force-resolved-versions usage, and performance optimization notes. Explain why certain flags and approaches are used for different platform combinations and how they improve reliability.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -185,7 +185,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -193,7 +193,7 @@
             "description": "Develop minimal configuration examples for simple Swift packages using just the scheme parameter",
             "dependencies": [],
             "details": "Create clear, copy-paste examples showing the simplest possible configurations for Swift Package Manager builds. Include examples for single-target packages, basic testing, and minimal YAML configurations that new users can immediately use.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -204,7 +204,7 @@
               "3.1"
             ],
             "details": "Develop matrix configuration examples covering Ubuntu (Swift 5.9-6.2 across focal/jammy/noble distributions) and macOS setups. Base examples on existing CI workflow patterns while making them user-friendly and explaining the platform selection rationale.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -215,7 +215,7 @@
               "3.2"
             ],
             "details": "Create detailed examples for each Apple platform including iPhone simulators, Apple Watch, Apple TV, Apple Vision Pro, and macOS native testing. Include device name and OS version configurations, explaining the relationship between Xcode versions and available simulators.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -226,7 +226,7 @@
               "3.3"
             ],
             "details": "Develop advanced configuration examples showing custom Xcode version paths, non-root working directories, platform auto-download functionality, and complex parameter combinations. Include explanations of when and why to use each advanced feature.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -237,7 +237,7 @@
               "3.4"
             ],
             "details": "Create performance-focused examples demonstrating cache key strategies, derived data optimization, and build time reduction techniques. Include before/after comparisons and explain the performance impact of different configuration choices.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -248,7 +248,7 @@
               "3.5"
             ],
             "details": "Develop comprehensive migration guides showing how to transition from manual xcodebuild commands, swift-actions/setup-swift, and basic GitHub templates. Include real-world workflow templates that users can copy-paste and customize for their projects.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -259,7 +259,7 @@
               "3.6"
             ],
             "details": "Create examples covering scheme naming conventions, automatic '-Package' suffix handling, common parameter combinations and their use cases, and troubleshooting examples with before/after configurations. Include explanations of when each approach is most appropriate.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -485,7 +485,7 @@
     ],
     "metadata": {
       "created": "2025-08-31T16:12:40.581Z",
-      "updated": "2025-09-01T02:43:14.651Z",
+      "updated": "2025-09-01T02:53:30.207Z",
       "description": "Tasks for master context"
     }
   }

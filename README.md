@@ -16,10 +16,13 @@
 
 ## 🚀 Quick Start
 
-### Basic Swift Package Testing
+### Basic Usage Examples
 
+The simplest possible configurations for common Swift package scenarios:
+
+#### Minimal Swift Package Testing (Ubuntu)
 ```yaml
-name: Test Swift Package
+name: Test Package
 on: [push, pull_request]
 
 jobs:
@@ -28,9 +31,55 @@ jobs:
     container: swift:6.1
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1.2.0
+      - uses: swift-build/swift-build@v1.2.1
         with:
-          scheme: YourPackageTests
+          scheme: MyPackage  # Just your package name
+```
+
+#### Minimal Swift Package Testing (macOS)
+```yaml
+name: Test Package
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage-Package  # Standard SPM scheme naming
+```
+
+#### Single-Target Package with Auto-Generated Scheme
+```yaml
+name: Test Single Target
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyLibrary  # Matches your target name in Package.swift
+```
+
+#### Multi-Target Package Testing
+```yaml
+name: Test Multi-Target Package
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage-Package  # Tests all targets
 ```
 
 ### iOS Simulator Testing
@@ -44,7 +93,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1.2.0
+      - uses: swift-build/swift-build@v1.2.1
         with:
           scheme: YourApp
           type: ios
@@ -52,35 +101,383 @@ jobs:
           osVersion: '17.0'
 ```
 
-### Multi-Platform Matrix
+### Multi-Platform Matrix Configurations
 
+#### Complete Ubuntu Swift Version Matrix
 ```yaml
-name: Cross-Platform Testing
+name: Ubuntu Swift Testing
 on: [push, pull_request]
 
 jobs:
-  test:
+  test-ubuntu:
+    strategy:
+      matrix:
+        swift: ['5.9', '5.10', '6.0', '6.1', '6.2']
+        ubuntu: [focal, jammy, noble]
+        nightly: [false, true]
+        exclude:
+          # Swift 5.9 not available on Ubuntu Noble
+          - swift: '5.9'
+            ubuntu: noble
+          # Nightly only for latest Swift version
+          - swift: '5.9'
+            nightly: true
+          - swift: '5.10'
+            nightly: true
+          - swift: '6.0'
+            nightly: true
+          - swift: '6.1'
+            nightly: true
+          # Stable releases only for older Swift versions
+          - swift: '6.2'
+            nightly: false
+    
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage
+```
+
+#### macOS + iOS Combined Matrix
+```yaml
+name: macOS and iOS Testing
+on: [push, pull_request]
+
+jobs:
+  test-apple-platforms:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            container: swift:6.1
-            scheme: YourPackageTests
-          - os: macos-latest
-            scheme: YourPackageTests
-          - os: macos-latest
-            scheme: YourApp
+          # macOS SPM builds
+          - os: macos-14
+            xcode: /Applications/Xcode_15.1.app
+          - os: macos-15
+            xcode: /Applications/Xcode_16.4.app
+          
+          # macOS native testing
+          - os: macos-14
+            type: macos
+            xcode: /Applications/Xcode_15.1.app
+          - os: macos-15
+            type: macos
+            xcode: /Applications/Xcode_16.4.app
+          
+          # iOS simulator testing
+          - os: macos-14
             type: ios
+            xcode: /Applications/Xcode_15.1.app
             deviceName: iPhone 15
             osVersion: '17.0'
+          - os: macos-15
+            type: ios
+            xcode: /Applications/Xcode_16.4.app
+            deviceName: iPhone 16 Pro
+            osVersion: '18.5'
+    
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-      - uses: swift-build/swift-build@v1.2.0
+      - uses: swift-build/swift-build@v1.2.1
         with:
-          scheme: ${{ matrix.scheme }}
+          scheme: MyPackage
           type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+#### Cross-Platform SPM Matrix (Ubuntu + macOS)
+```yaml
+name: Cross-Platform SPM Testing
+on: [push, pull_request]
+
+jobs:
+  test-cross-platform:
+    strategy:
+      matrix:
+        include:
+          # Ubuntu builds
+          - os: ubuntu-latest
+            container: swift:5.9-jammy
+            swift: '5.9'
+          - os: ubuntu-latest
+            container: swift:6.1-noble
+            swift: '6.1'
+          - os: ubuntu-latest
+            container: swiftlang/swift:nightly-6.2-noble
+            swift: '6.2-nightly'
+          
+          # macOS builds
+          - os: macos-14
+            xcode: /Applications/Xcode_15.1.app
+            swift: '5.9'
+          - os: macos-15
+            xcode: /Applications/Xcode_16.4.app
+            swift: '6.0'
+    
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      - name: Display Swift Version
+        run: swift --version
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage-Package
+          xcode: ${{ matrix.xcode }}
+```
+
+### Apple Platform Simulator Testing Examples
+
+#### iOS Simulator Testing
+```yaml
+name: iOS Testing
+on: [push, pull_request]
+
+jobs:
+  test-ios:
+    strategy:
+      matrix:
+        include:
+          # iPhone simulators with Xcode 15.1
+          - deviceName: iPhone 15
+            osVersion: '17.0'
+            xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+          - deviceName: iPhone 15 Pro
+            osVersion: '17.5'
+            xcode: /Applications/Xcode_15.4.app
+            runner: macos-14
+          
+          # iPhone simulators with Xcode 16.4
+          - deviceName: iPhone 16
+            osVersion: '18.0'
+            xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+          - deviceName: iPhone 16 Pro
+            osVersion: '18.5'
+            xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyApp
+          type: ios
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+#### watchOS Simulator Testing
+```yaml
+name: watchOS Testing
+on: [push, pull_request]
+
+jobs:
+  test-watchos:
+    strategy:
+      matrix:
+        include:
+          # Apple Watch simulators
+          - deviceName: Apple Watch Series 9 (45mm)
+            osVersion: '10.0'
+            xcode: /Applications/Xcode_15.1.app
+          - deviceName: Apple Watch Ultra 2 (49mm)
+            osVersion: '11.0'
+            xcode: /Applications/Xcode_16.4.app
+          - deviceName: Apple Watch Series 10 (46mm)
+            osVersion: '11.5'
+            xcode: /Applications/Xcode_16.4.app
+
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyWatchApp
+          type: watchos
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+#### tvOS Simulator Testing
+```yaml
+name: tvOS Testing
+on: [push, pull_request]
+
+jobs:
+  test-tvos:
+    strategy:
+      matrix:
+        include:
+          # Apple TV simulators
+          - deviceName: Apple TV 4K (3rd generation)
+            osVersion: '17.0'
+            xcode: /Applications/Xcode_15.1.app
+          - deviceName: Apple TV 4K (3rd generation)
+            osVersion: '18.0'
+            xcode: /Applications/Xcode_16.4.app
+          - deviceName: Apple TV 4K (3rd generation)
+            osVersion: '18.5'
+            xcode: /Applications/Xcode_16.4.app
+
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyTVApp
+          type: tvos
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+#### visionOS Simulator Testing
+```yaml
+name: visionOS Testing
+on: [push, pull_request]
+
+jobs:
+  test-visionos:
+    strategy:
+      matrix:
+        include:
+          # Apple Vision Pro simulators
+          - deviceName: Apple Vision Pro
+            osVersion: '1.0'
+            xcode: /Applications/Xcode_15.1.app
+          - deviceName: Apple Vision Pro
+            osVersion: '2.0'
+            xcode: /Applications/Xcode_16.4.app
+          - deviceName: Apple Vision Pro
+            osVersion: '2.5'
+            xcode: /Applications/Xcode_16.4.app
+
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyVisionApp
+          type: visionos
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+#### macOS Native Testing
+```yaml
+name: macOS Native Testing
+on: [push, pull_request]
+
+jobs:
+  test-macos:
+    strategy:
+      matrix:
+        include:
+          # macOS native builds with different Xcode versions
+          - xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+          - xcode: /Applications/Xcode_15.4.app
+            runner: macos-14
+          - xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyMacApp
+          type: macos
+          xcode: ${{ matrix.xcode }}
+```
+
+#### Complete Apple Ecosystem Matrix
+```yaml
+name: Apple Ecosystem Testing
+on: [push, pull_request]
+
+jobs:
+  test-apple-ecosystem:
+    strategy:
+      matrix:
+        include:
+          # iOS platforms
+          - type: ios
+            deviceName: iPhone 15
+            osVersion: '17.0'
+            xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+          - type: ios
+            deviceName: iPhone 16 Pro
+            osVersion: '18.5'
+            xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+          
+          # watchOS platforms
+          - type: watchos
+            deviceName: Apple Watch Ultra 2 (49mm)
+            osVersion: '10.0'
+            xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+          - type: watchos
+            deviceName: Apple Watch Ultra 2 (49mm)
+            osVersion: '11.5'
+            xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+          
+          # tvOS platforms
+          - type: tvos
+            deviceName: Apple TV 4K (3rd generation)
+            osVersion: '17.0'
+            xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+          - type: tvos
+            deviceName: Apple TV 4K (3rd generation)
+            osVersion: '18.5'
+            xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+          
+          # visionOS platforms
+          - type: visionos
+            deviceName: Apple Vision Pro
+            osVersion: '1.0'
+            xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+          - type: visionos
+            deviceName: Apple Vision Pro
+            osVersion: '2.5'
+            xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+          
+          # macOS native
+          - type: macos
+            xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+          - type: macos
+            xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyUniversalApp
+          type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
           osVersion: ${{ matrix.osVersion }}
 ```
@@ -679,6 +1076,469 @@ xcodebuild: error: Unable to find a destination matching the provided destinatio
 ```
 
 
+## 🔧 Advanced Configuration Examples
+
+### Custom Xcode Version Management
+```yaml
+name: Multi-Xcode Testing
+on: [push, pull_request]
+
+jobs:
+  test-xcode-versions:
+    strategy:
+      matrix:
+        include:
+          # Production Xcode versions
+          - xcode: /Applications/Xcode_15.1.app
+            runner: macos-14
+            swift: '5.9'
+            stability: stable
+          - xcode: /Applications/Xcode_15.4.app
+            runner: macos-14
+            swift: '5.10'
+            stability: stable
+          - xcode: /Applications/Xcode_16.4.app
+            runner: macos-15
+            swift: '6.0'
+            stability: stable
+          
+          # Beta/RC Xcode versions
+          - xcode: /Applications/Xcode_16.5_RC.app
+            runner: macos-15
+            swift: '6.1-rc'
+            stability: experimental
+          - xcode: /Applications/Xcode_26_beta.app
+            runner: macos-15
+            swift: '6.2-beta'
+            stability: experimental
+
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: ${{ matrix.stability == 'experimental' }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      - name: Display Xcode and Swift Version
+        run: |
+          xcode-select -p
+          swift --version
+        env:
+          DEVELOPER_DIR: ${{ matrix.xcode }}/Contents/Developer
+          
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage
+          xcode: ${{ matrix.xcode }}
+```
+
+### Working Directory Configurations
+```yaml
+name: Monorepo Package Testing
+on: [push, pull_request]
+
+jobs:
+  test-monorepo:
+    strategy:
+      matrix:
+        package:
+          - { path: 'packages/core', scheme: 'CorePackage' }
+          - { path: 'packages/networking', scheme: 'NetworkingKit' }
+          - { path: 'packages/ui', scheme: 'UIComponents' }
+          - { path: 'apps/ios', scheme: 'MyiOSApp' }
+          - { path: 'shared/utilities', scheme: 'SharedUtilities-Package' }
+
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Package Structure
+        run: |
+          echo "Testing package at: ${{ matrix.package.path }}"
+          ls -la ${{ matrix.package.path }}/
+          cat ${{ matrix.package.path }}/Package.swift
+          
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          working-directory: ${{ matrix.package.path }}
+          scheme: ${{ matrix.package.scheme }}
+```
+
+### Platform Auto-Download for Beta Testing
+```yaml
+name: Beta Platform Testing
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+  workflow_dispatch:     # Allow manual triggers
+
+jobs:
+  test-beta-platforms:
+    strategy:
+      fail-fast: false  # Continue testing other platforms if one fails
+      matrix:
+        include:
+          # iOS beta platform testing
+          - type: ios
+            deviceName: iPhone 16 Pro
+            osVersion: '26.0'
+            xcode: /Applications/Xcode_26_beta.app
+            platform: iOS
+          
+          # watchOS beta platform testing
+          - type: watchos
+            deviceName: Apple Watch Ultra 2 (49mm)
+            osVersion: '26.0'
+            xcode: /Applications/Xcode_26_beta.app
+            platform: watchOS
+          
+          # tvOS beta platform testing
+          - type: tvos
+            deviceName: Apple TV 4K (3rd generation)
+            osVersion: '26.0'
+            xcode: /Applications/Xcode_26_beta.app
+            platform: tvOS
+          
+          # visionOS beta platform testing
+          - type: visionos
+            deviceName: Apple Vision Pro
+            osVersion: '3.0'
+            xcode: /Applications/Xcode_26_beta.app
+            platform: visionOS
+
+    runs-on: macos-15
+    timeout-minutes: 45  # Allow time for platform downloads
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check Platform Availability
+        run: |
+          echo "Checking availability of ${{ matrix.platform }} platform..."
+          xcodebuild -showsdks | grep ${{ matrix.platform }} || echo "Platform may need download"
+        env:
+          DEVELOPER_DIR: ${{ matrix.xcode }}/Contents/Developer
+          
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyApp
+          type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+          download-platform: true  # Automatically download missing platforms
+```
+
+### Complex Parameter Combinations
+```yaml
+name: Complex Configuration Testing
+on: [push, pull_request]
+
+jobs:
+  test-complex-configs:
+    strategy:
+      matrix:
+        include:
+          # Nested package with custom Xcode
+          - working-directory: ./MyFramework/Sources
+            scheme: MyFramework
+            type: ios
+            xcode: /Applications/Xcode_16.4.app
+            deviceName: iPhone 16 Pro
+            osVersion: '18.5'
+            description: "Nested iOS framework"
+          
+          # Custom working directory with macOS testing
+          - working-directory: ./MyMacApp
+            scheme: MyMacApp
+            type: macos
+            xcode: /Applications/Xcode_16.4.app
+            description: "Custom directory macOS app"
+          
+          # Multi-target package with platform download
+          - working-directory: ./ComplexPackage
+            scheme: ComplexPackage-Package
+            type: visionos
+            xcode: /Applications/Xcode_26_beta.app
+            deviceName: Apple Vision Pro
+            osVersion: '3.0'
+            download-platform: true
+            description: "Beta visionOS with auto-download"
+
+    runs-on: macos-15
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate Configuration
+        run: |
+          echo "Testing: ${{ matrix.description }}"
+          echo "Working directory: ${{ matrix.working-directory }}"
+          echo "Scheme: ${{ matrix.scheme }}"
+          echo "Platform: ${{ matrix.type }}"
+          ls -la ${{ matrix.working-directory }}/
+          
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          working-directory: ${{ matrix.working-directory }}
+          scheme: ${{ matrix.scheme }}
+          type: ${{ matrix.type }}
+          xcode: ${{ matrix.xcode }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+          download-platform: ${{ matrix.download-platform || 'false' }}
+```
+
+### Environment Variable Overrides
+```yaml
+name: Environment Override Testing
+on: [push, pull_request]
+
+jobs:
+  test-env-overrides:
+    runs-on: macos-15
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Custom derived data location
+      - name: Setup Custom Build Paths
+        run: |
+          mkdir -p /tmp/custom-derived-data
+          echo "CUSTOM_DERIVED_DATA=/tmp/custom-derived-data" >> $GITHUB_ENV
+          
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage
+          type: ios
+          xcode: /Applications/Xcode_16.4.app
+          deviceName: iPhone 16 Pro
+          osVersion: '18.5'
+        env:
+          # Override default derived data path
+          DERIVED_DATA_PATH: ${{ env.CUSTOM_DERIVED_DATA }}
+          # Enable deterministic builds
+          SWIFT_DETERMINISTIC_HASHING: 1
+          # Increase build verbosity
+          XCODE_XCCONFIG_FILE: ./build-configs/debug.xcconfig
+```
+
+## ⚡ Performance Optimization Examples
+
+### Build Time Comparison: Before & After
+```yaml
+name: Performance Comparison
+on: [push, pull_request]
+
+jobs:
+  # Without swift-build (manual setup) - ~8-12 minutes
+  test-manual:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Manual Swift Setup
+        run: |
+          # Manual Xcode configuration (2-3 minutes)
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -downloadPlatform iOS  # 5-8 minutes on fresh runner
+      - name: Manual Build and Test
+        run: |
+          # Manual build commands (3-5 minutes without caching)
+          xcodebuild clean build test -scheme MyApp -sdk iphonesimulator
+          
+  # With swift-build - ~2-3 minutes (with cache), ~4-5 minutes (without cache)
+  test-optimized:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1  # 2-3 minutes total
+        with:
+          scheme: MyApp
+          type: ios
+          deviceName: iPhone 16 Pro
+          osVersion: '18.5'
+          download-platform: true  # Handled efficiently by action
+```
+
+### Cache Strategy Optimization
+```yaml
+name: Optimized Caching Strategy
+on: [push, pull_request]
+
+jobs:
+  test-cache-optimization:
+    strategy:
+      matrix:
+        include:
+          # Ubuntu: Optimized SPM caching
+          - os: ubuntu-latest
+            container: swift:6.1
+            cache-strategy: "spm-ubuntu"
+            expected-reduction: "65-80%"
+          
+          # macOS SPM: Cross-platform package caching
+          - os: macos-latest
+            cache-strategy: "spm-macos"
+            expected-reduction: "60-75%"
+          
+          # macOS Xcode: Derived data caching
+          - os: macos-latest
+            type: ios
+            deviceName: iPhone 16 Pro
+            osVersion: '18.5'
+            cache-strategy: "xcode-deriveddata"
+            expected-reduction: "70-85%"
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Cache Performance Info
+        run: |
+          echo "Cache strategy: ${{ matrix.cache-strategy }}"
+          echo "Expected build time reduction: ${{ matrix.expected-reduction }}"
+          
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage
+          type: ${{ matrix.type }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+### Large Project with Optimized Parallel Testing
+```yaml
+name: Large Project Optimization
+on: [push, pull_request]
+
+jobs:
+  # Parallel test execution for large codebases
+  test-parallel:
+    strategy:
+      matrix:
+        test-suite:
+          - { scheme: UnitTests, timeout: 15 }
+          - { scheme: IntegrationTests, timeout: 25 }
+          - { scheme: UITests, timeout: 35 }
+          - { scheme: PerformanceTests, timeout: 20 }
+        platform:
+          - { type: ios, device: iPhone 15, version: '17.0' }
+          - { type: ios, device: iPhone 16 Pro, version: '18.5' }
+
+    runs-on: macos-15
+    timeout-minutes: ${{ matrix.test-suite.timeout }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Pre-warm derived data cache
+      - name: Cache Build Artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            ~/.swiftpm/cache
+          key: xcode-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            xcode-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}-
+            xcode-${{ runner.os }}-
+            
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: ${{ matrix.test-suite.scheme }}
+          type: ${{ matrix.platform.type }}
+          deviceName: ${{ matrix.platform.device }}
+          osVersion: ${{ matrix.platform.version }}
+        env:
+          # Performance optimizations
+          SWIFT_DETERMINISTIC_HASHING: 1
+          XCODE_XCCONFIG_FILE: ./configs/performance.xcconfig
+```
+
+### Memory and Build Time Optimization
+```yaml
+name: Resource-Optimized Building
+on: [push, pull_request]
+
+jobs:
+  test-resource-optimized:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Monitor resource usage
+      - name: Pre-Build System Info
+        run: |
+          echo "Available disk space:"
+          df -h
+          echo "Memory usage:"
+          vm_stat
+          
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyLargeProject
+          type: ios
+          deviceName: iPhone 16 Pro
+          osVersion: '18.5'
+        env:
+          # Optimize for memory usage
+          SWIFT_EXEC: /usr/bin/swift
+          # Reduce parallel compilation for memory-constrained environments
+          SWIFT_BUILD_JOBS: 2
+          # Enable build timing
+          XCODE_ENABLE_BUILD_TIMING: YES
+          
+      # Post-build analysis
+      - name: Post-Build Performance Analysis
+        run: |
+          echo "Final disk usage:"
+          df -h
+          echo "Derived data size:"
+          du -sh ~/Library/Developer/Xcode/DerivedData/ || echo "No derived data found"
+```
+
+### Incremental Build Optimization
+```yaml
+name: Incremental Build Testing
+on: [push, pull_request]
+
+jobs:
+  test-incremental:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # First build (full compilation)
+      - name: Initial Build
+        uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage
+        env:
+          BUILD_PHASE: initial
+          
+      # Simulate code change
+      - name: Make Incremental Change
+        run: |
+          echo "// Performance test change $(date)" >> Sources/MyPackage/MyPackage.swift
+          
+      # Second build (should be much faster due to caching)
+      - name: Incremental Build
+        uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage
+        env:
+          BUILD_PHASE: incremental
+          
+      # Performance comparison
+      - name: Compare Build Times
+        run: |
+          echo "Incremental builds should show significant time reduction"
+          echo "Typical reduction: 80-90% for small changes"
+```
+
 ## 🔗 Related Actions & Caching Strategies
 
 ### Commonly Used Actions in Swift CI/CD
@@ -712,58 +1572,702 @@ swift-build automatically implements platform-specific caching:
 
 
 
-### Migration Effort
+## 🔄 Migration Guides and Workflow Templates
 
-#### From swift-actions/setup-swift
+### Migration from swift-actions/setup-swift
 
-**Before:**
+#### Basic SPM Package Migration
+
+**Before (swift-actions/setup-swift):**
 ```yaml
-- uses: swift-actions/setup-swift@v1
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: '6.1'
+      - name: Build and Test
+        run: |
+          swift build --build-tests
+          swift test --enable-code-coverage
+```
+
+**After (swift-build):**
+```yaml
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: swift:6.1  # Direct container usage for better performance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage  # Simplified configuration
+```
+
+**Benefits:** Eliminates Swift installation step, adds intelligent caching, reduces workflow complexity.
+
+#### Multi-Platform Migration
+
+**Before (manual matrix with swift-actions):**
+```yaml
+name: Cross-Platform Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        swift: ['5.9', '6.0', '6.1']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v1
+        with:
+          swift-version: ${{ matrix.swift }}
+      - name: Build and Test
+        run: |
+          swift build --build-tests
+          swift test --enable-code-coverage
+```
+
+**After (swift-build with optimized matrix):**
+```yaml
+name: Cross-Platform Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            container: swift:5.9-jammy
+          - os: ubuntu-latest
+            container: swift:6.1-noble
+          - os: macos-14
+            xcode: /Applications/Xcode_15.1.app
+          - os: macos-15
+            xcode: /Applications/Xcode_16.4.app
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage
+          xcode: ${{ matrix.xcode }}
+```
+
+**Benefits:** Platform-specific optimization, better caching, explicit Xcode version control.
+
+### Migration from Manual xcodebuild Commands
+
+#### iOS App Testing Migration
+
+**Before (manual xcodebuild):**
+```yaml
+name: iOS Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -downloadPlatform iOS
+      - name: List Simulators
+        run: xcrun simctl list devices available
+      - name: Build and Test
+        run: |
+          xcodebuild clean build test \
+            -scheme MyApp \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5' \
+            -enableCodeCoverage YES \
+            -derivedDataPath ./DerivedData
+```
+
+**After (swift-build):**
+```yaml
+name: iOS Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyApp
+          type: ios
+          xcode: /Applications/Xcode_16.4.app
+          deviceName: iPhone 16 Pro
+          osVersion: '18.5'
+```
+
+**Benefits:** Eliminates 30+ lines of setup code, automatic platform downloads, optimized caching.
+
+#### Multi-Platform App Migration
+
+**Before (complex manual setup):**
+```yaml
+name: Multi-Platform App Tests
+on: [push, pull_request]
+
+jobs:
+  test-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup iOS
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -downloadPlatform iOS
+      - name: Test iOS
+        run: |
+          xcodebuild test -scheme MyApp -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5'
+            
+  test-watchos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup watchOS
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -downloadPlatform watchOS
+      - name: Test watchOS
+        run: |
+          xcodebuild test -scheme MyApp -sdk watchsimulator \
+            -destination 'platform=watchOS Simulator,name=Apple Watch Ultra 2 (49mm),OS=11.5'
+            
+  test-tvos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup tvOS
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -downloadPlatform tvOS
+      - name: Test tvOS
+        run: |
+          xcodebuild test -scheme MyApp -sdk appletvsimulator \
+            -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation),OS=18.5'
+```
+
+**After (swift-build matrix):**
+```yaml
+name: Multi-Platform App Tests
+on: [push, pull_request]
+
+jobs:
+  test-apple-platforms:
+    strategy:
+      matrix:
+        include:
+          - type: ios
+            deviceName: iPhone 16 Pro
+            osVersion: '18.5'
+          - type: watchos
+            deviceName: Apple Watch Ultra 2 (49mm)
+            osVersion: '11.5'
+          - type: tvos
+            deviceName: Apple TV 4K (3rd generation)
+            osVersion: '18.5'
+    
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyApp
+          type: ${{ matrix.type }}
+          xcode: /Applications/Xcode_16.4.app
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+          download-platform: true  # Automatic platform management
+```
+
+**Benefits:** Reduces 60+ lines to 25 lines, eliminates duplicate setup, unified platform management.
+
+### Migration from GitHub's Basic Templates
+
+#### From actions/starter-workflows Swift Template
+
+**Before (GitHub's basic Swift template):**
+```yaml
+name: Swift
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: swift build -v
+    - name: Run tests
+      run: swift test -v
+```
+
+**After (swift-build enhanced):**
+```yaml
+name: Swift Package Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-cross-platform:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            container: swift:6.1
+          - os: macos-latest
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyPackage-Package
+```
+
+**Benefits:** Adds cross-platform testing, intelligent caching, proper scheme handling.
+
+### Copy-Paste Workflow Templates
+
+#### Template 1: Basic Swift Package
+```yaml
+# Copy this template for basic Swift package testing
+name: Swift Package Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            container: swift:6.1
+          - os: macos-latest
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: REPLACE_WITH_YOUR_PACKAGE_NAME  # e.g., MyPackage-Package
+```
+
+#### Template 2: iOS/macOS App Testing
+```yaml
+# Copy this template for iOS/macOS app testing
+name: iOS App Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - type: ios
+            deviceName: iPhone 15
+            osVersion: '17.0'
+          - type: macos
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: REPLACE_WITH_YOUR_APP_SCHEME  # e.g., MyApp
+          type: ${{ matrix.type }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+#### Template 3: Complete Apple Ecosystem
+```yaml
+# Copy this template for full Apple platform testing
+name: Apple Ecosystem Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - type: ios
+            deviceName: iPhone 16 Pro
+            osVersion: '18.5'
+          - type: watchos
+            deviceName: Apple Watch Ultra 2 (49mm)
+            osVersion: '11.5'
+          - type: tvos
+            deviceName: Apple TV 4K (3rd generation)
+            osVersion: '18.5'
+          - type: visionos
+            deviceName: Apple Vision Pro
+            osVersion: '2.5'
+          - type: macos
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: REPLACE_WITH_YOUR_APP_SCHEME  # e.g., MyUniversalApp
+          type: ${{ matrix.type }}
+          xcode: /Applications/Xcode_16.4.app
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+```
+
+#### Template 4: Monorepo with Multiple Packages
+```yaml
+# Copy this template for monorepo with multiple Swift packages
+name: Monorepo Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        package:
+          - { path: 'REPLACE_PATH_1', scheme: 'REPLACE_SCHEME_1' }  # e.g., packages/core, CorePackage
+          - { path: 'REPLACE_PATH_2', scheme: 'REPLACE_SCHEME_2' }  # e.g., packages/ui, UIComponents
+          - { path: 'REPLACE_PATH_3', scheme: 'REPLACE_SCHEME_3' }  # e.g., apps/ios, MyiOSApp
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          working-directory: ${{ matrix.package.path }}
+          scheme: ${{ matrix.package.scheme }}
+```
+
+### Step-by-Step Migration Guide
+
+#### Step 1: Identify Your Current Setup
+1. **Find your current workflow files:** `.github/workflows/*.yml`
+2. **Identify build commands:** Look for `swift build`, `swift test`, or `xcodebuild` commands
+3. **Note platform requirements:** Ubuntu, macOS, iOS simulators, etc.
+4. **Check scheme names:** Usually found in `xcodebuild -scheme` or Package.swift
+
+#### Step 2: Choose the Right Template
+- **Basic Swift Package:** Use Template 1 above
+- **iOS/macOS Apps:** Use Template 2 above  
+- **Full Apple Ecosystem:** Use Template 3 above
+- **Monorepo:** Use Template 4 above
+
+#### Step 3: Replace Placeholders
+1. Replace `REPLACE_WITH_YOUR_PACKAGE_NAME` with your actual package name
+2. Replace `REPLACE_WITH_YOUR_APP_SCHEME` with your app scheme
+3. Update working directory paths if needed
+4. Adjust Swift/Xcode versions as needed
+
+#### Step 4: Test and Validate
+1. **Run locally first:** Test your scheme names with `swift package describe` or `xcodebuild -list`
+2. **Start with basic configuration:** Remove optional parameters initially
+3. **Add complexity gradually:** Start with SPM, then add Apple platforms
+4. **Verify caching works:** Check action logs for cache hit/miss information
+
+### Common Migration Scenarios
+
+#### Scenario 1: Converting Complex xcodebuild Scripts
+
+**Before (50+ lines of custom scripts):**
+```yaml
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+          xcodebuild -showsdks
+      - name: Setup iOS Simulator
+        run: |
+          xcrun simctl list devices
+          xcrun simctl create "TestDevice" "iPhone 16 Pro" "iOS-18-5"
+          xcrun simctl boot "TestDevice"
+      - name: Build for iOS
+        run: |
+          xcodebuild clean build \
+            -project MyApp.xcodeproj \
+            -scheme MyApp \
+            -sdk iphonesimulator \
+            -arch x86_64 \
+            -derivedDataPath ./DerivedData
+      - name: Test on iOS
+        run: |
+          xcodebuild test \
+            -project MyApp.xcodeproj \
+            -scheme MyApp \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=TestDevice" \
+            -derivedDataPath ./DerivedData
+```
+
+**After (5 lines with swift-build):**
+```yaml
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-build/swift-build@v1.2.1
+        with:
+          scheme: MyApp
+          type: ios
+          xcode: /Applications/Xcode_16.4.app
+          deviceName: iPhone 16 Pro
+          osVersion: '18.5'
+```
+
+#### Scenario 2: Migrating from Custom Caching Setup
+
+**Before (manual cache configuration):**
+```yaml
+- name: Cache SPM Dependencies
+  uses: actions/cache@v4
   with:
-    swift-version: '5.9'
+    path: |
+      .build
+      ~/.cache/org.swift.swiftpm
+    key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+    
+- name: Cache Xcode DerivedData
+  uses: actions/cache@v4
+  with:
+    path: ~/Library/Developer/Xcode/DerivedData
+    key: deriveddata-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+    
 - name: Build and Test
   run: |
-    swift build
-    swift test
+    swift build --build-tests --cache-path .cache
+    swift test --enable-code-coverage --cache-path .cache
 ```
 
-**After:**
+**After (automatic intelligent caching):**
 ```yaml
-- uses: swift-build/swift-build@v1.2.0
-  container: swift:5.9
+- uses: swift-build/swift-build@v1.2.1
   with:
-    scheme: MyPackageTests
+    scheme: MyPackage  # Caching handled automatically
 ```
 
-**Migration time:** < 5 minutes per workflow
+**Benefits:** Eliminates 15+ lines of cache configuration, uses optimized cache strategies.
 
-#### From Manual Setup
+### Common Parameter Combinations
 
-**Before:**
+#### Recommended Platform Combinations
+
+| Use Case | Platform Config | When to Use |
+|----------|----------------|-------------|
+| **Basic Package Testing** | `scheme: MyPackage` | Cross-platform libraries, no Apple-specific features |
+| **iOS App Development** | `scheme: MyApp, type: ios, deviceName: iPhone 15, osVersion: '17.0'` | iOS-specific features, UI testing |
+| **Apple Watch Apps** | `scheme: MyWatchApp, type: watchos, deviceName: Apple Watch Ultra 2 (49mm), osVersion: '11.0'` | watchOS complications, health features |
+| **Apple TV Apps** | `scheme: MyTVApp, type: tvos, deviceName: Apple TV 4K (3rd generation), osVersion: '18.0'` | tvOS focus management, remote interaction |
+| **Vision Pro Apps** | `scheme: MyVisionApp, type: visionos, deviceName: Apple Vision Pro, osVersion: '2.0'` | Spatial computing, immersive experiences |
+| **macOS Native Apps** | `scheme: MyMacApp, type: macos` | macOS-specific APIs, desktop features |
+
+#### Parameter Validation Examples
+
+**✅ Valid Combinations:**
 ```yaml
-- name: Install Swift
-  run: |
-    # 20+ lines of manual Swift installation
-    
-- name: Setup Xcode
-  run: |
-    # 10+ lines of Xcode configuration
-    
-- name: Configure Simulator
-  run: |
-    # 15+ lines of simulator setup
-    
-- name: Build and Test
-  run: |
-    # Custom build commands
+# SPM build (cross-platform)
+scheme: MyPackage
+# No other parameters needed
+
+# iOS simulator testing
+scheme: MyApp
+type: ios
+deviceName: iPhone 15
+osVersion: '17.0'
+
+# macOS native testing  
+scheme: MyMacApp
+type: macos
+# deviceName/osVersion not needed for macOS
+
+# Custom Xcode with platform download
+scheme: MyApp
+type: visionos
+xcode: /Applications/Xcode_26_beta.app
+deviceName: Apple Vision Pro
+osVersion: '3.0'
+download-platform: true
 ```
 
-**After:**
+**❌ Invalid Combinations:**
 ```yaml
-- uses: swift-build/swift-build@v1.2.0
+# Missing required deviceName/osVersion for simulators
+scheme: MyApp
+type: ios
+# Error: deviceName and osVersion required for simulator platforms
+
+# deviceName/osVersion without type
+scheme: MyApp
+deviceName: iPhone 15
+osVersion: '17.0'
+# Error: type parameter required when using deviceName/osVersion
+
+# Non-existent platform
+scheme: MyApp
+type: androidOS  # Invalid platform type
+```
+
+
+
+### Troubleshooting Configuration Examples
+
+#### Issue: Scheme Not Found
+**Error:** `Scheme 'MyPackage' does not exist`
+
+**Troubleshooting steps:**
+```yaml
+# Step 1: List available schemes
+- name: Debug Schemes
+  run: |
+    swift package describe --type json | jq '.targets[].name'
+    # For Xcode projects: xcodebuild -list
+
+# Step 2: Use correct scheme name
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyPackage-Package  # Note the -Package suffix
+```
+
+#### Issue: Simulator Device Not Available
+**Error:** `Unable to find destination matching iPhone 17`
+
+**Before (problematic):**
+```yaml
+- uses: swift-build/swift-build@v1.2.1
   with:
     scheme: MyApp
     type: ios
-    deviceName: iPhone 15
-    osVersion: '17.0'
+    deviceName: iPhone 17  # Device doesn't exist
+    osVersion: '19.0'      # Version too new
+```
+
+**After (corrected):**
+```yaml
+# Option 1: Use well-supported devices
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyApp
+    type: ios
+    deviceName: iPhone 15  # Widely available
+    osVersion: '17.0'      # Stable version
+
+# Option 2: Let swift-build choose defaults
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyApp
+    type: ios
+    # Omit deviceName/osVersion for automatic selection
+```
+
+#### Issue: Platform Not Available
+**Error:** `The visionOS 3.0 simulator runtime is not available`
+
+**Before (fails on missing platform):**
+```yaml
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyApp
+    type: visionos
+    deviceName: Apple Vision Pro
+    osVersion: '3.0'  # Beta version not installed
+```
+
+**After (auto-downloads platform):**
+```yaml
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyApp
+    type: visionos
+    xcode: /Applications/Xcode_26_beta.app
+    deviceName: Apple Vision Pro
+    osVersion: '3.0'
+    download-platform: true  # Downloads platform if missing
+```
+
+### Configuration Decision Tree
+
+```
+Is this a Swift Package or Xcode project?
+├── Swift Package (Package.swift exists)
+│   ├── Cross-platform library?
+│   │   └── Use: scheme only, test on Ubuntu + macOS
+│   └── Apple platform specific?
+│       └── Use: scheme + type + deviceName/osVersion
+└── Xcode Project (.xcodeproj exists)  
+    ├── macOS app?
+    │   └── Use: scheme + type: macos
+    └── iOS/watchOS/tvOS/visionOS app?
+        └── Use: scheme + type + deviceName + osVersion
+```
+
+### Performance Configuration Guidelines
+
+#### For Small Projects (< 10 targets)
+```yaml
+# Simple configuration - let swift-build optimize
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MySmallPackage
+```
+
+#### For Medium Projects (10-50 targets)
+```yaml
+# Add explicit Xcode version for consistency
+- uses: swift-build/swift-build@v1.2.1
+  with:
+    scheme: MyMediumPackage
+    xcode: /Applications/Xcode_16.4.app  # Consistent toolchain
+```
+
+#### For Large Projects (50+ targets)
+```yaml
+# Optimize for parallel testing
+strategy:
+  matrix:
+    test-suite: [UnitTests, IntegrationTests, UITests]
+    
+steps:
+  - uses: swift-build/swift-build@v1.2.1
+    with:
+      scheme: ${{ matrix.test-suite }}
+      type: ios
+      deviceName: iPhone 15
+      osVersion: '17.0'
+    env:
+      SWIFT_BUILD_JOBS: 4  # Limit parallel compilation
 ```

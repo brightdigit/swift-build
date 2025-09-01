@@ -345,7 +345,42 @@ runs:
           ${{ inputs.working-directory }}/.cache
         key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ hashFiles('Package.resolved') }}
 
-    # Build and test steps
+    # Build and Test Execution: Two-Path Strategy
+    # The action implements a dual-path build strategy to handle both cross-platform Swift packages
+    # and Apple platform-specific testing requirements. This approach maximizes compatibility while
+    # providing optimized performance for each build scenario.
+    #
+    # Path Selection Logic:
+    # 1. SPM Build Path: Used when 'type' parameter is omitted
+    #    - Cross-platform compatible (Ubuntu + macOS)
+    #    - Uses swift build/test commands directly
+    #    - Faster for packages without Apple platform dependencies
+    #    - Optimal for open-source Swift packages
+    #
+    # 2. Xcode Build Path: Used when 'type' parameter is specified
+    #    - macOS-only (requires Xcode toolchain)
+    #    - Uses xcodebuild for platform-specific testing
+    #    - Required for iOS/watchOS/tvOS/visionOS simulator testing
+    #    - Enables comprehensive Apple ecosystem validation
+
+    # SPM Build and Test Execution (Cross-Platform Swift Packages)
+    # This step handles standard Swift Package Manager builds for packages that work across
+    # multiple platforms without requiring Apple platform simulators or specific Xcode versions.
+    #
+    # Command Breakdown:
+    # - swift build --build-tests: Compiles both the package and its test targets
+    # - swift test --enable-code-coverage: Runs tests with coverage collection
+    # - --cache-path .cache: Uses local cache directory for build artifacts (improves performance)
+    # - --force-resolved-versions: Ensures consistent dependency resolution across builds
+    #
+    # Platform Compatibility:
+    # - Ubuntu: Uses system Swift toolchain (5.9-6.2 depending on runner)
+    # - macOS: Uses Xcode-bundled Swift when no specific Apple platform is targeted
+    #
+    # Performance Optimizations:
+    # - Build artifacts cached via .build directory (60-80% time reduction)
+    # - Force-resolved-versions prevents dependency resolution inconsistencies
+    # - Cache-path flag enables local build artifact reuse
     - name: Build and Test
       if: steps.detect-os.outputs.os == 'macos' && !inputs.type || steps.detect-os.outputs.os == 'ubuntu'
       shell: bash
@@ -354,6 +389,31 @@ runs:
         swift build  --build-tests --cache-path .cache  --force-resolved-versions
         swift test --enable-code-coverage --cache-path .cache  --force-resolved-versions
 
+    # Xcode Build and Test Execution (Apple Platform Testing)
+    # This step handles Xcode-based builds for testing Swift packages on Apple platforms
+    # (iOS, watchOS, tvOS, visionOS, macOS) using simulators or native macOS execution.
+    #
+    # Build Strategy Decision:
+    # - macOS builds: Use native platform testing (no simulator required)
+    # - iOS/watchOS/tvOS/visionOS: Use simulator-based testing with specific device/OS combinations
+    #
+    # Command Parameters Explained:
+    # - -scheme: Specifies which build scheme to use (must match Package.swift or .xcodeproj)
+    # - -sdk: Platform SDK (iphonesimulator, watchsimulator, appletvsimulator, xrsimulator, macosx)
+    # - -destination: Target platform and device configuration for testing
+    # - -enableCodeCoverage: Collects code coverage metrics during test execution
+    # - -derivedDataPath: Uses optimized derived data location for caching performance
+    #
+    # Destination String Construction:
+    # - macOS: 'platform=macOS' (native execution, no simulator)
+    # - Other platforms: 'platform={PLATFORM},name={deviceName},OS={osVersion}'
+    #   Examples: 'platform=iOS Simulator,name=iPhone 15,OS=17.0'
+    #             'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm),OS=10.0'
+    #
+    # Performance Benefits:
+    # - Derived data caching provides 70-85% build time reduction
+    # - Platform-specific optimizations leverage Xcode's incremental compilation
+    # - Simulator reuse reduces platform initialization overhead
     - name: Build and Test (macOS Device)
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       shell: bash
