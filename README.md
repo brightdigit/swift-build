@@ -14,12 +14,6 @@
 🎯 **Optimized Workflows** - Purpose-built for modern Swift CI/CD pipelines  
 📦 **Real-World Proven** - Used by 25+ open source Swift packages including SyndiKit, DataThespian, and more  
 
-### vs. swift-actions/setup-swift
-- ✅ **Built-in testing workflows** vs manual test commands
-- ✅ **Automatic cache optimization** vs manual cache configuration  
-- ✅ **Apple simulator support** vs basic Swift setup only
-- ✅ **Multi-platform matrix ready** vs single platform focus
-
 ## 🚀 Quick Start
 
 ### Basic Swift Package Testing
@@ -31,6 +25,7 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    container: swift:6.1
     steps:
       - uses: actions/checkout@v4
       - uses: swift-build/swift-build@v1.2.0
@@ -69,6 +64,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            container: swift:6.1
             scheme: YourPackageTests
           - os: macos-latest
             scheme: YourPackageTests
@@ -78,6 +74,7 @@ jobs:
             deviceName: iPhone 15
             osVersion: '17.0'
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
       - uses: swift-build/swift-build@v1.2.0
@@ -100,8 +97,12 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            container: swift:6.1
+          - os: macos-latest
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
       - uses: swift-build/swift-build@v1.2.0
@@ -133,9 +134,19 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        swift: [5.9, 5.10]
+        include:
+          - os: ubuntu-latest
+            container: swift:5.9
+            swift: 5.9
+          - os: ubuntu-latest
+            container: swift:5.10
+            swift: 5.10
+          - os: macos-latest
+            swift: 5.9
+          - os: macos-latest
+            swift: 5.10
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
       - uses: swift-build/swift-build@v1.2.0
@@ -191,7 +202,7 @@ Choose the right Docker image for your Swift version:
 
 | Image Type | When to Use | Example |
 |------------|-------------|---------|
-| **[Official Swift](https://hub.docker.com/_/swift)** | Stable releases (5.9, 5.10, 6.0+) | `swift:5.10-jammy` |
+| **[Official Swift](https://hub.docker.com/_/swift)** | Stable releases (6.0, 6.1+) | `swift:6.1-noble` |
 | **[Swift Nightly](https://hub.docker.com/r/swiftlang/swift/tags)** | Development/nightly builds [[memory:3814335]] | `swiftlang/swift:nightly-6.2-noble` |
 
 ### GitHub Runner Support
@@ -222,7 +233,7 @@ Choose the right Docker image for your Swift version:
 
 | Parameter | Description | Example | Notes |
 |-----------|-------------|---------|-------|
-| `scheme` | The scheme to build and test | `MyPackageTests` | Required for `xcodebuild` (Apple platforms). Not required when using `swift` command (SPM) |
+| `scheme` | The scheme to build and test | `MyPackage-Package` | Required for `xcodebuild` (Apple platforms). Not required when using `swift` command (SPM) |
 
 ### Optional Parameters
 
@@ -398,11 +409,12 @@ jobs:
           - { path: 'packages/networking', scheme: 'NetworkingKit' }
           - { path: 'packages/ui', scheme: 'UIComponents' }
         platform:
-          - { os: ubuntu-latest }
+          - { os: ubuntu-latest, container: swift:6.1 }
           - { os: macos-latest }
           - { os: macos-latest, type: ios, device: iPhone 15, version: '17.5' }
 
     runs-on: ${{ matrix.platform.os }}
+    container: ${{ matrix.platform.container }}
     
     steps:
       - uses: actions/checkout@v4
@@ -501,6 +513,7 @@ on: [push, pull_request]
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
+    container: swift:6.1
     steps:
       - uses: actions/checkout@v4
       
@@ -584,150 +597,6 @@ jobs:
           xcode: ${{ matrix.xcode }}
 ```
 
-## 📊 Performance Benchmarks
-
-### Build Time Comparisons
-
-| Project Size | This Action | swift-actions/setup-swift | Manual Setup | Time Saved |
-|--------------|-------------|---------------------------|--------------|------------|
-| **Small Package** (< 10 deps) | 2m 30s → 45s | 3m 15s → 1m 45s | 4m 30s → 3m 30s | **70% vs 46% vs 22%** |
-| **Medium Project** (10-50 deps) | 8m 15s → 1m 30s | 10m 30s → 4m 15s | 12m 45s → 9m 20s | **82% vs 59% vs 27%** |
-| **Large Project** (50+ deps) | 15m 45s → 2m 45s | 18m 30s → 8m 15s | 22m 15s → 16m 45s | **83% vs 55% vs 25%** |
-
-*First time → Cached build performance. Percentages show improvement over first build.*
-
-### Cache Hit Rate Statistics
-
-| Build Scenario | This Action | swift-actions/setup-swift | Manual Setup |
-|-----------------|-------------|---------------------------|--------------|
-| **Clean Build** | 0% | 0% | 0% |
-| **Incremental Build** (no deps changed) | 🟢 **90-95%** | 🟡 **65-75%** | 🔴 **30-50%** |
-| **Package.resolved Changed** | 🟢 **20-30%** | 🟡 **8-15%** | 🔴 **0-5%** |
-| **Source Code Only** | 🟢 **95-98%** | 🟡 **80-85%** | 🔴 **40-60%** |
-
-### Platform-Specific Performance
-
-| Platform | Average Build Time | Cache Strategy | Typical Savings |
-|----------|-------------------|----------------|-----------------|
-| **Ubuntu** | 3-5 min → 30-60s | `.build` + `.swiftpm` + `.cache` | **75-85%** |
-| **macOS SPM** | 4-7 min → 45-90s | `.build` + Xcode integration | **78-88%** |
-| **macOS Xcode** | 8-12 min → 60-120s | `DerivedData` + simulator cache | **82-92%** |
-| **Apple Platforms** | 10-15 min → 90-150s | Platform-specific + device cache | **85-90%** |
-
-### Resource Efficiency Metrics
-
-| Resource Type | This Action | Competitors | Improvement |
-|---------------|-------------|-------------|-------------|
-| **Peak Memory Usage** | 3.2 GB | 4.8 GB | 🟢 **33% less** |
-| **Disk Space (cached)** | 1.2 GB | 2.1 GB | 🟢 **43% less** |
-| **Network Downloads** | 45 MB | 180 MB | 🟢 **75% less** |
-| **Cache Restore Time** | 15-30s | 45-90s | 🟢 **67% faster** |
-| **Setup Overhead** | 10-20s | 60-120s | 🟢 **80% faster** |
-
-### Real-World Case Studies
-
-#### **Large Swift Package** (60+ Dependencies)
-- **Before**: 18m clean, 12m incremental
-- **After**: 18m clean, 90s incremental 
-- **Result**: 🚀 **92% faster incremental builds**
-- **Cost Savings**: ~$200/month in CI time
-
-#### **iOS App with Xcode** (Complex UI + Networking)
-- **Before**: 15m clean, 8m incremental
-- **After**: 15m clean, 2m incremental
-- **Result**: 🚀 **75% faster incremental builds**
-- **Developer Impact**: 6+ builds/day = 36min saved daily
-
-#### **Multi-Platform Matrix** (Ubuntu + 4 Apple Platforms)
-- **Before**: 45m total pipeline
-- **After**: 12m total pipeline
-- **Result**: 🚀 **73% faster complete pipeline**
-- **PR Feedback**: 45min → 12min turnaround
-
-### Cache Optimization Strategies
-
-#### Optimal Cache Configuration
-
-```yaml
-# Recommended cache setup for maximum performance
-- name: Optimized Swift Cache
-  uses: actions/cache@v4
-  with:
-    path: |
-      .build
-      .swiftpm/cache
-      ~/.cache/swift-pm
-    key: swift-${{ runner.os }}-${{ hashFiles('Package.resolved', 'Package.swift') }}
-    restore-keys: |
-      swift-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
-      swift-${{ runner.os }}-
-```
-
-#### Performance Tuning Tips
-
-| Strategy | Impact | Implementation |
-|----------|--------|----------------|
-| **Stable Cache Keys** | 15-25% improvement | Use `Package.resolved` in cache key |
-| **Parallel Builds** | 10-20% improvement | Set `SWIFT_BUILD_JOBS=auto` |
-| **Derived Data Path** | 20-30% improvement | Use consistent `DERIVED_DATA_PATH` |
-| **Platform Caching** | 30-40% improvement | Cache platform-specific artifacts |
-
-### Performance Comparison Matrix
-
-| Feature | This Action | swift-actions/setup-swift | Manual Setup |
-|---------|-------------|---------------------------|--------------|
-| **Ubuntu Caching** | ✅ Intelligent multi-path | ❌ Basic .build only | ❌ No caching |
-| **macOS Optimization** | ✅ DerivedData + SPM | ✅ Basic SPM | ❌ No optimization |
-| **Apple Platforms** | ✅ Full simulator support | ❌ Manual setup required | ❌ Complex manual config |
-| **Cache Restoration** | ✅ 15-30s average | ❌ 60-120s average | ❌ No restoration |
-| **Multi-Platform** | ✅ Unified approach | ❌ Platform-specific setup | ❌ Manual per-platform |
-| **Zero Configuration** | ✅ Works out of box | ❌ Requires setup | ❌ Full manual setup |
-
-### ROI Calculator
-
-**Small Team** (5 developers, 20 builds/day)
-- Time saved: 2h/day × $50/hour × 250 days = **$25,000/year**
-- CI cost reduction: 60% less time × $200/month = **$1,440/year**
-- **Total ROI: $26,440/year**
-
-**Medium Team** (15 developers, 60 builds/day)  
-- Time saved: 6h/day × $60/hour × 250 days = **$90,000/year**
-- CI cost reduction: 65% less time × $800/month = **$6,240/year**
-- **Total ROI: $96,240/year**
-
-### Optimization Recommendations by Project Type
-
-#### Swift Package Libraries
-```yaml
-# Optimized for dependency caching
-- uses: swift-build/swift-build@v1.2.0
-  with:
-    scheme: MyLibraryTests
-# Automatic .build + .swiftpm + .cache optimization
-```
-
-#### iOS/macOS Applications  
-```yaml
-# Optimized for Xcode builds
-- uses: swift-build/swift-build@v1.2.0
-  with:
-    scheme: MyApp
-    type: ios
-    deviceName: iPhone 15
-    osVersion: '17.5'
-# Automatic DerivedData + simulator optimization
-```
-
-#### Large Monorepos
-```yaml
-# Optimized for multiple packages
-- uses: swift-build/swift-build@v1.2.0
-  with:
-    working-directory: packages/core
-    scheme: CorePackage
-# Intelligent per-package caching strategy
-```
-
 ## 🔧 Troubleshooting
 
 ### Common Issues
@@ -809,12 +678,6 @@ xcodebuild: error: Unable to find a destination matching the provided destinatio
     osVersion: '17.0'  # Stable, widely supported version
 ```
 
-**Additional Resources:**
-- [CircleCI: xcodebuild destination errors](https://support.circleci.com/hc/en-us/articles/360011749074-xcodebuild-error-Unable-to-find-a-destination-matching-the-provided-destination-specifier)
-- [Stack Overflow: xcodebuild destination troubleshooting](https://stackoverflow.com/questions/62751542/xcodebuild-unable-to-find-a-destination-matching-the-provided-destination-speci)
-- [GitHub Actions: iOS simulator setup](https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md#simulators)
-
-**Reference:** [MistKit Issue Example](https://github.com/brightdigit/MistKit/actions/runs/17334121706/job/49216725246)
 
 ## 🔗 Related Actions & Caching Strategies
 
@@ -823,11 +686,8 @@ xcodebuild: error: Unable to find a destination matching the provided destinatio
 | Action | Purpose | Usage with swift-build |
 |--------|---------|------------------------|
 | **actions/checkout@v4** | Repository checkout | Required first step in all workflows |
-| **actions/cache@v4** | Dependency caching | Automatic internal caching, manual for additional paths |
 | **actions/upload-artifact@v4** | Build artifact storage | For storing test results, coverage reports |
 | **codecov/codecov-action@v4** | Coverage reporting | Upload coverage after swift-build tests |
-| **norio-nomura/action-swiftlint@3.2.1** | Swift code linting | Run before swift-build for quality gates |
-| **peaceiris/actions-gh-pages@v3** | Documentation deployment | Deploy docs generated after swift-build |
 
 ### Built-in Caching Strategies
 
@@ -850,133 +710,7 @@ swift-build automatically implements platform-specific caching:
 - ~/Library/Caches/org.swift.swiftpm/     # SPM system cache
 ```
 
-### Manual Cache Configuration
 
-For additional caching beyond swift-build's automatic optimization:
-
-```yaml
-- name: Cache Additional Dependencies
-  uses: actions/cache@v4
-  with:
-    path: |
-      vendor/
-      Pods/
-      ~/.cocoapods/
-    key: deps-${{ runner.os }}-${{ hashFiles('**/Podfile.lock', '**/Cartfile.resolved') }}
-    restore-keys: |
-      deps-${{ runner.os }}-
-```
-
-### Cache Performance Tips
-
-| Strategy | Benefit | Implementation |
-|----------|---------|----------------|
-| **Stable Cache Keys** | 15-25% faster restores | Include `Package.resolved` in cache key |
-| **Fallback Keys** | Better cache hit rates | Use hierarchical restore-keys |
-| **Path Optimization** | Reduced cache size | Cache only essential build artifacts |
-| **Platform Separation** | Avoid cache conflicts | Include `runner.os` in cache keys |
-
-### Example: Complete CI Pipeline with Related Actions
-
-```yaml
-name: Complete Swift CI
-on: [push, pull_request]
-
-jobs:
-  quality-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      # Code quality first
-      - name: SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.1
-        
-      # Test with swift-build (includes automatic caching)
-      - uses: swift-build/swift-build@v1.2.0
-        with:
-          scheme: MyPackageTests
-          
-      # Upload coverage
-      - name: Upload Coverage
-        uses: codecov/codecov-action@v4
-        with:
-          fail_ci_if_error: true
-
-  multi-platform:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            scheme: MyPackageTests
-          - os: macos-latest
-            scheme: MyPackageTests
-          - os: macos-latest
-            scheme: MyApp
-            type: ios
-            
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      
-      # Additional dependency caching
-      - name: Cache Vendor Dependencies
-        uses: actions/cache@v4
-        with:
-          path: vendor/
-          key: vendor-${{ runner.os }}-${{ hashFiles('**/vendor.lock') }}
-          
-      # swift-build handles platform-specific caching automatically
-      - uses: swift-build/swift-build@v1.2.0
-        with:
-          scheme: ${{ matrix.scheme }}
-          type: ${{ matrix.type }}
-          
-      # Store artifacts
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-${{ matrix.os }}
-          path: .build/test-results/
-```
-
-## 🏆 Comparison with Alternatives
-
-### Feature Comparison Matrix
-
-| Feature | swift-build/swift-build | swift-actions/setup-swift | Manual Setup |
-|---------|-------------------------|---------------------------|--------------|
-| **Zero Configuration** | ✅ Just scheme required | ❌ Multiple setup steps | ❌ Full manual config |
-| **Ubuntu Support** | ✅ Swift 5.9-6.2, all distros | ✅ Basic Swift setup | ✅ Manual install |
-| **macOS SPM Support** | ✅ Optimized caching | ✅ Basic support | ✅ Manual commands |
-| **iOS Simulator** | ✅ Built-in, configured | ❌ Manual setup required | ❌ Complex manual setup |
-| **watchOS Simulator** | ✅ Built-in, configured | ❌ Manual setup required | ❌ Complex manual setup |
-| **tvOS Simulator** | ✅ Built-in, configured | ❌ Manual setup required | ❌ Complex manual setup |
-| **visionOS Simulator** | ✅ Built-in, configured | ❌ Manual setup required | ❌ Complex manual setup |
-| **Intelligent Caching** | ✅ Platform-optimized | ❌ Basic/none | ❌ Manual only |
-| **Auto Platform Download** | ✅ `download-platform` flag | ❌ Manual download | ❌ Manual download |
-| **Multi-Platform Matrix** | ✅ Single action config | ❌ Platform-specific setup | ❌ Different per platform |
-
-### Performance Comparison
-
-| Metric | swift-build/swift-build | swift-actions/setup-swift | Manual Setup |
-|--------|-------------------------|---------------------------|--------------|
-| **Setup Time** | 10-20s | 60-120s | 180-300s |
-| **Cache Hit Rate** | 90-95% | 65-75% | 30-50% |
-| **Build Time (cached)** | 45s-2m | 1m-4m | 3m-9m |
-| **Memory Usage** | 3.2 GB | 4.8 GB | 5.5 GB |
-| **Maintenance Effort** | None | Low | High |
-
-### Ease of Use Comparison
-
-| Aspect | swift-build/swift-build | swift-actions/setup-swift | Manual Setup |
-|--------|-------------------------|---------------------------|--------------|
-| **Learning Curve** | ⭐⭐⭐⭐⭐ Minimal | ⭐⭐⭐ Moderate | ⭐ Steep |
-| **Configuration Lines** | 3-8 lines | 15-25 lines | 40-100 lines |
-| **Platform Coverage** | 1 action = all platforms | 1 action = SPM only | Custom per platform |
-| **Error Debugging** | Clear action logs | Mixed action/manual logs | Full manual debugging |
-| **Documentation** | Comprehensive guide | Basic examples | Community/manual |
 
 ### Migration Effort
 
@@ -996,6 +730,7 @@ jobs:
 **After:**
 ```yaml
 - uses: swift-build/swift-build@v1.2.0
+  container: swift:5.9
   with:
     scheme: MyPackageTests
 ```
@@ -1032,14 +767,3 @@ jobs:
     deviceName: iPhone 15
     osVersion: '17.0'
 ```
-
-**Migration time:** 30-60 minutes per complex workflow
-
-### Why Choose swift-build/swift-build?
-
-✅ **Simplicity**: Single action replaces complex multi-step setups  
-✅ **Performance**: 70-90% faster builds with intelligent caching  
-✅ **Reliability**: Handles platform edge cases automatically  
-✅ **Coverage**: Complete platform support in one action  
-✅ **Maintenance**: Zero ongoing configuration updates needed  
-✅ **Cost**: Significant CI time and developer hour savings
