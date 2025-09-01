@@ -38,29 +38,17 @@
 
 ## ⚙️ Configuration Reference
 
-### Required Parameters
+### Parameters
 
-| Parameter | Description | Example | Notes |
-|-----------|-------------|---------|-------|
-| `scheme` | The scheme to build and test | `MyPackage-Package` | Required for Apple platforms (iOS, watchOS, tvOS, visionOS, macOS). Not required for Ubuntu/Linux builds using Swift Package Manager |
-
-### Optional Parameters
-
-#### Basic Configuration
-
-| Parameter | Description | Default | Example |
-|-----------|-------------|---------|---------|
-| `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` |
-
-#### Apple Platform Configuration
-
-| Parameter | Description | Default | Example | Valid Values |
-|-----------|-------------|---------|---------|--------------|
-| `type` | Build type for Apple platforms | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos` |
-| `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path |
-| `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator |
-| `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version |
-| `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` |
+| Parameter | Description | Default | Example | Valid Values | Used By |
+|-----------|-------------|---------|---------|--------------|---------|
+| `scheme` | The scheme to build and test | Required when `type` specified | `MyPackage-Package` | Any valid scheme name | **Xcode builds only** - Required when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS simulator testing). Not needed for SPM builds (Ubuntu/macOS) |
+| `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` | Any valid directory path | **All platforms** - SPM (Ubuntu/macOS) and Xcode builds |
+| `type` | Build type for Apple platforms | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos` | **Xcode builds only** - When specified, uses xcodebuild. When `null` (not specified), uses SPM (swift build/test) instead |
+| `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path | **Xcode builds only** - iOS, watchOS, tvOS, visionOS, macOS simulator testing |
+| `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator | **Xcode builds only** - Required when `type` is specified (except `macos`) |
+| `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version | **Xcode builds only** - Required when `type` is specified (except `macos`) |
+| `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` | **Xcode builds only** - iOS, watchOS, tvOS, visionOS simulator testing |
 
 
 
