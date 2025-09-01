@@ -129,12 +129,12 @@ swift-build/
 
 ### Key Parameters
 
-- `scheme`: Required - the scheme to build/test
+- `scheme`: Required when using Xcode builds (when `type` is specified) - the scheme to build/test
 - `type`: Optional - specifies Apple platform for simulator testing
-- `working-directory`: Optional - supports monorepo structures
+- `working-directory`: Optional - supports monorepo structures (default: '.')
 - `xcode`: Optional - custom Xcode version path
-- `deviceName`/`osVersion`: Required for simulator testing
-- `download-platform`: Optional - auto-download missing platforms
+- `deviceName`/`osVersion`: Optional (required when using type for simulator testing; deviceName and osVersion must be provided together)
+- `download-platform`: Optional - auto-download missing platforms (default: false)
 
 ## 🧪 Testing Your Changes
 
@@ -153,7 +153,7 @@ swift-build/
 
 2. **Test action locally** using [act](https://github.com/nektos/act):
    ```bash
-   act -j test-ubuntu-latest
+   act -j test-single-target-ubuntu
    ```
 
 ### CI Testing
