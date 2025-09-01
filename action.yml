@@ -45,7 +45,7 @@ inputs:
   # Omit this parameter for cross-platform SPM builds
   # Required when using deviceName/osVersion parameters
   type:
-    description: 'Build type for Apple platforms (ios, watchos, visionos, tvos, macos)
+    description: 'Build type for Apple platforms (ios, watchos, visionos, tvos, macos)'
     required: false
   
   # Path to specific Xcode installation for macOS builds
