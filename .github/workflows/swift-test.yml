@@ -155,6 +155,8 @@ jobs:
     runs-on: windows-2025
     steps:
       # https://download.swift.org/swift-6.2-branch/windows10/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a-windows10.exe
+
+      # https://download.swift.org/swift-6.2-branch/windows10/swift-swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a/swift-swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a-windows10.exe
       - uses: actions/checkout@v4
       - name: Configure dev environment
         uses: compnerd/gha-setup-vsdevenv@main
@@ -165,7 +167,7 @@ jobs:
         uses: compnerd/gha-setup-swift@main
         with:
           branch: swift-6.2-branch
-          tag: swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          tag: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
           # swift test test/SingleTargetPackage ${WITH_TSAN} ${TEST_FILTER} ${EXTRA_FLAGS} -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
       - run: |
           swift test --package-path=test/SingleTargetPackage -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
