@@ -1,10 +1,13 @@
-# Swift Build & Test Action
+# Swift-Build 
 
 [![CI](https://github.com/brightdigit/swift-build/workflows/CI/badge.svg)](https://github.com/brightdigit/swift-build/actions)
 [![GitHub release](https://img.shields.io/github/release/brightdigit/swift-build.svg)](https://github.com/brightdigit/swift-build/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A comprehensive GitHub Action for building and testing Swift packages across all platforms with intelligent caching and zero-config setup.**
+
+> [!NOTE]
+> :open_book: **Learn how** `swift-build` works in [this blog post.](https://brightdigit.com/tutorials/swift-build/)
 
 ## 📋 Table of Contents
 
