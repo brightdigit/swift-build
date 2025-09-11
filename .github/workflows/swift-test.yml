@@ -229,3 +229,44 @@ jobs:
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage 
+  test-single-target-windows:
+    name: Test Single Target Package (Windows)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [windows-2022, windows-2025]
+        include:
+          - swift-version: swift-6.2-branch
+            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          - swift-version: swift-6.1-release
+            swift-build: 6.1-RELEASE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+          windows-swift-version: ${{ matrix.swift-version }}
+          windows-swift-build: ${{ matrix.swift-build }}
+
+  test-multi-target-windows:
+    name: Test Multi-Target Package (Windows)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [windows-2022, windows-2025]
+        include:
+          - swift-version: swift-6.2-branch
+            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          - swift-version: swift-6.1-release
+            swift-build: 6.1-RELEASE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage-Package
+          windows-swift-version: ${{ matrix.swift-version }}
+          windows-swift-build: ${{ matrix.swift-build }}
