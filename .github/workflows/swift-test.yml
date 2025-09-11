@@ -153,6 +153,11 @@ jobs:
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: windows-2025
+    strategy:
+      matrix:
+        include:
+          - swift-version: swift-6.2-branch
+            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
     steps:
       # https://download.swift.org/swift-6.2-branch/windows10/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a-windows10.exe
 
@@ -166,8 +171,8 @@ jobs:
       - name: Install Windows Swift toolchain
         uses: compnerd/gha-setup-swift@main
         with:
-          swift-version: swift-6.2-branch
-          swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          swift-version: ${{ matrix.swift-version }}
+          swift-build: ${{ matrix.swift-build }}
           # swift test test/SingleTargetPackage ${WITH_TSAN} ${TEST_FILTER} ${EXTRA_FLAGS} -Xbuild-tools-swiftc -windows-sdk-root -Xbuild-tools-swiftc "${env:WindowsSdkDir}" -Xbuild-tools-swiftc -windows-sdk-version -Xbuild-tools-swiftc ${env:UCRTVersion} -Xswiftc -windows-sdk-root -Xswiftc "${env:WindowsSdkDir}" -Xswiftc -windows-sdk-version -Xswiftc ${env:UCRTVersion}
       - run: |
           swift test --package-path=test/SingleTargetPackage --verbose
