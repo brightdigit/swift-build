@@ -242,8 +242,8 @@ jobs:
           - swift-version: swift-6.1-release
             swift-build: 6.1-RELEASE
   
-          - swift-version: swift-6.0-release
-            swift-build: 6.0-RELEASE
+          # - swift-version: swift-6.0-release
+          #   swift-build: 6.0-RELEASE
             
           # - swift-version: swift-5.10-release
           #   swift-build: 5.10-RELEASE
