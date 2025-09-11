@@ -231,25 +231,16 @@ jobs:
           scheme: MultiTargetPackage 
   test-single-target-windows:
     name: Test Single Target Package (Windows)
-    runs-on: windows-2025
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
+        runs-on: [windows-2022, windows-2025]
         include:
           - swift-version: swift-6.2-branch
             swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
-  
           - swift-version: swift-6.1-release
             swift-build: 6.1-RELEASE
-  
-          # - swift-version: swift-6.0-release
-          #   swift-build: 6.0-RELEASE
-            
-          # - swift-version: swift-5.10-release
-          #   swift-build: 5.10-RELEASE
-            
-          # - swift-version: swift-5.9-release
-          #   swift-build: 5.9-RELEASE
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -261,14 +252,14 @@ jobs:
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
-    runs-on: windows-2025
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
+        runs-on: [windows-2022, windows-2025]
         include:
           - swift-version: swift-6.2-branch
             swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
-  
           - swift-version: swift-6.1-release
             swift-build: 6.1-RELEASE
     steps:

@@ -21,7 +21,7 @@
 # Supported Platforms:
 # - Ubuntu: focal/jammy/noble with Swift 5.9, 6.0, 6.1, 6.2
 # - macOS: Xcode 15.1+ with full Apple platform ecosystem support
-# - Windows: windows-2025 with Swift 6.1+ via compnerd/gha-setup-swift
+# - Windows: windows-2022/windows-2025 with Swift 6.1+ via compnerd/gha-setup-swift
 
 name: 'Swift - Build and Test'
 description: 'Builds and tests a Swift package on the current platform'
@@ -321,6 +321,8 @@ runs:
       run: |
         SWIFT_VERSION=$(swift --version | head -n 1 | cut -d ' ' -f 3)
         echo "SWIFT_VERSION=$SWIFT_VERSION" >> $GITHUB_ENV
+        OS_VERSION=$(. /etc/os-release && echo $VERSION_CODENAME)
+        echo "OS_VERSION=$OS_VERSION" >> $GITHUB_ENV
 
     # Windows specific steps
     - name: Get Swift version for Windows
