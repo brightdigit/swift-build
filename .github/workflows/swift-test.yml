@@ -158,11 +158,11 @@ jobs:
 
       # https://download.swift.org/swift-6.2-branch/windows10/swift-swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a/swift-swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a-windows10.exe
       - uses: actions/checkout@v4
-      - name: Configure dev environment
-        uses: compnerd/gha-setup-vsdevenv@main
-        with:
-          toolset_version: 14.29
-          winsdk: 10.0.22621.0
+      # - name: Configure dev environment
+      #   uses: compnerd/gha-setup-vsdevenv@main
+      #   with:
+      #     toolset_version: 14.29
+      #     winsdk: 10.0.22621.0
       - name: Install Windows Swift toolchain
         uses: compnerd/gha-setup-swift@main
         with:
