@@ -154,10 +154,23 @@ jobs:
     name: Test Single Target Package (Windows)
     runs-on: windows-2025
     strategy:
+      fail-fast: false
       matrix:
         include:
           - swift-version: swift-6.2-branch
             swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+
+          - swift-version: swift-6.1-release
+            swift-build: 6.1-RELEASE
+
+          - swift-version: swift-6.0-release
+            swift-build: 6.0-RELEASE
+            
+          - swift-version: swift-5.10-release
+            swift-build: 5.10-RELEASE
+            
+          - swift-version: swift-5.9-release
+            swift-build: 5.9-RELEASE
     steps:
       # https://download.swift.org/swift-6.2-branch/windows10/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a/swift-6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a-windows10.exe
 
