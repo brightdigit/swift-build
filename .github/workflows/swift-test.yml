@@ -18,7 +18,7 @@ jobs:
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
-            
+
           # iOS Build Matrix
           - type: ios
             runs-on: macos-14
@@ -38,7 +38,7 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "26.0"
             download-platform: "true"
-  
+
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -75,12 +75,12 @@ jobs:
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage          
+          scheme: SingleTargetPackage
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
           osVersion: ${{ matrix.osVersion }}
-          download-platform: ${{ matrix.download-platform || 'false' }}
+          download-platform: ${{ matrix['download-platform'] || 'false' }}
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -96,7 +96,7 @@ jobs:
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
-          
+
           # iOS Build Matrix
           - type: ios
             runs-on: macos-15
@@ -110,7 +110,7 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             download-platform: "true"
-  
+
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -152,7 +152,7 @@ jobs:
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
           osVersion: ${{ matrix.osVersion }}
-          download-platform: ${{ matrix.download-platform || 'false' }}
+          download-platform: ${{ matrix['download-platform'] || 'false' }}
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -228,4 +228,45 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage 
+          scheme: MultiTargetPackage
+  test-single-target-windows:
+    name: Test Single Target Package (Windows)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [windows-2022, windows-2025]
+        include:
+          - swift-version: swift-6.2-branch
+            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          - swift-version: swift-6.1-release
+            swift-build: 6.1-RELEASE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+          windows-swift-version: ${{ matrix.swift-version }}
+          windows-swift-build: ${{ matrix.swift-build }}
+
+  test-multi-target-windows:
+    name: Test Multi-Target Package (Windows)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [windows-2022, windows-2025]
+        include:
+          - swift-version: swift-6.2-branch
+            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          - swift-version: swift-6.1-release
+            swift-build: 6.1-RELEASE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage-Package
+          windows-swift-version: ${{ matrix.swift-version }}
+          windows-swift-build: ${{ matrix.swift-build }}
