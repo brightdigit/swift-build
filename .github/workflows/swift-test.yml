@@ -18,7 +18,7 @@ jobs:
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
-            
+
           # iOS Build Matrix
           - type: ios
             runs-on: macos-14
@@ -38,7 +38,7 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "26.0"
             download-platform: "true"
-  
+
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -75,7 +75,7 @@ jobs:
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage          
+          scheme: SingleTargetPackage
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
@@ -96,7 +96,7 @@ jobs:
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
-          
+
           # iOS Build Matrix
           - type: ios
             runs-on: macos-15
@@ -110,7 +110,7 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             download-platform: "true"
-  
+
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -228,7 +228,7 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage 
+          scheme: MultiTargetPackage
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}

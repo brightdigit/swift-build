@@ -1,5 +1,5 @@
 # Swift - Build and Test GitHub Action
-# 
+#
 # A comprehensive GitHub Action for building and testing Swift packages across multiple platforms.
 # Provides intelligent caching, multi-platform support, and optimized workflows for both
 # Swift Package Manager (SPM) and Xcode-based builds.
@@ -39,14 +39,14 @@ inputs:
     description: 'Directory containing the Swift package'
     required: false
     default: '.'
-  
+
   # The scheme name to build and test (REQUIRED)
   # Must match a scheme defined in your Package.swift or .xcodeproj
   # Examples: 'MyPackage', 'MyLibrary', 'MyApp-iOS'
   scheme:
     description: 'The scheme to build and test'
     required: true
-  
+
   # Apple platform type for simulator/device testing
   # Valid values: 'ios', 'watchos', 'visionos', 'tvos', 'macos'
   # Omit this parameter for cross-platform SPM builds
@@ -54,7 +54,7 @@ inputs:
   type:
     description: 'Build type for Apple platforms (ios, watchos, visionos, tvos, macos)'
     required: false
-  
+
   # Path to specific Xcode installation for macOS builds
   # Examples: '/Applications/Xcode_15.1.app', '/Applications/Xcode_16.0.app'
   # Default: Uses system default Xcode when omitted
@@ -62,7 +62,7 @@ inputs:
   xcode:
     description: 'Xcode version path for Apple platforms'
     required: false
-  
+
   # Simulator device name for Apple platform testing
   # Examples: 'iPhone 15', 'Apple Watch Series 9 (45mm)', 'Apple TV 4K (3rd generation)'
   # Must be used together with osVersion parameter
@@ -70,15 +70,15 @@ inputs:
   deviceName:
     description: 'Simulator device name for Apple platforms'
     required: false
-  
-  # Simulator OS version for Apple platform testing  
+
+  # Simulator OS version for Apple platform testing
   # Examples: '17.0', '10.0', '17.0' (iOS), '7.0' (watchOS), '17.0' (tvOS)
   # Must be used together with deviceName parameter
   # Version must be available for the specified platform type
   osVersion:
     description: 'Simulator OS version for Apple platforms'
     required: false
-  
+
   # Automatically download missing Apple platforms via xcodebuild
   # Set to 'true' to download iOS, watchOS, tvOS, or visionOS if not installed
   # Only applies to Apple platform builds (when type is specified)
@@ -87,7 +87,7 @@ inputs:
     description: 'Whether to download the platform if not available'
     required: false
     default: 'false'
-  
+
   # Windows Swift toolchain version for Windows runners
   # Examples: 'swift-6.2-branch', 'swift-6.1-release', 'swift-6.0-release'
   # Only used on Windows runners to install specific Swift toolchain
@@ -95,7 +95,7 @@ inputs:
   windows-swift-version:
     description: 'Swift version for Windows Swift toolchain installation'
     required: false
-  
+
   # Windows Swift build identifier for Windows runners
   # Examples: '6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a', '6.1-RELEASE'
   # Only used on Windows runners with windows-swift-version parameter
@@ -140,7 +140,7 @@ runs:
     # These steps only execute on macOS runners when Apple platform builds are requested.
     # They configure the Xcode toolchain, map platform types to SDK/simulator names,
     # and optionally download missing Apple platforms.
-    
+
     # Extract Xcode version name from the provided Xcode path with robust fallback
     # Example: '/Applications/Xcode_15.1.app' → 'XCODE_NAME=15.1'
     # This version identifier is used for cache key generation to ensure
@@ -151,10 +151,10 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        # Extract version from path, handling edge cases
+        # Extract version from path, handling edge cases and version suffixes
         XCODE_BASENAME=$(basename -- "${{ inputs.xcode }}")
-        EXTRACTED_VERSION=$(echo "$XCODE_BASENAME" | sed 's/\.[^.]*$//' | cut -d'_' -f2)
-        
+        EXTRACTED_VERSION=$(echo "$XCODE_BASENAME" | sed -e 's/\.app$//' -e 's/^Xcode_//' -e 's/_.*$//')
+
         # Check if extraction was successful and not empty
         if [[ -n "$EXTRACTED_VERSION" && "$EXTRACTED_VERSION" != "$XCODE_BASENAME" && "$EXTRACTED_VERSION" != "Xcode" ]]; then
           echo "XCODE_NAME=$EXTRACTED_VERSION" >> $GITHUB_ENV
@@ -163,7 +163,7 @@ runs:
           FALLBACK_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
           echo "XCODE_NAME=${FALLBACK_VERSION:-default}" >> $GITHUB_ENV
         fi
-    
+
     # Set default Xcode Name when no specific Xcode path is provided
     # Uses the system default Xcode version for cache key generation
     - name: Set Default Xcode Name
@@ -174,7 +174,7 @@ runs:
         # Use system default Xcode version for cache isolation
         DEFAULT_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
         echo "XCODE_NAME=${DEFAULT_VERSION:-system}" >> $GITHUB_ENV
-    
+
     # Configure the Xcode developer directory for the build environment
     # Sets DEVELOPER_DIR to point to the specific Xcode installation's Developer directory
     # This ensures all Xcode tools (xcodebuild, xcrun, etc.) use the correct toolchain
@@ -184,14 +184,14 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: echo "DEVELOPER_DIR=${{ inputs.xcode }}/Contents/Developer" >> $GITHUB_ENV
-  
+
     # Map platform type parameter to Xcode SDK and platform destination strings
     # This critical step translates user-friendly type inputs into the specific
     # SDK and platform identifiers required by xcodebuild commands.
-    # 
+    #
     # Platform Mapping Logic:
     # - 'ios' → SDK='iphonesimulator', PLATFORM='iOS Simulator'
-    # - 'watchos' → SDK='watchsimulator', PLATFORM='watchOS Simulator'  
+    # - 'watchos' → SDK='watchsimulator', PLATFORM='watchOS Simulator'
     # - 'visionos' → SDK='xrsimulator', PLATFORM='visionOS Simulator'
     # - 'tvos' → SDK='appletvsimulator', PLATFORM='tvOS Simulator'
     # - 'macos' → SDK='macosx', PLATFORM='macOS' (no simulator, native)
@@ -229,7 +229,7 @@ runs:
     # Automatically download missing Apple platform support (optional)
     # This step executes only when download-platform is set to 'true' and runs
     # xcodebuild -downloadPlatform to install missing platform SDKs and simulators.
-    # 
+    #
     # Platform Download Behavior:
     # - Downloads the complete platform SDK and simulator runtime
     # - Only downloads if the platform is not already installed
@@ -300,7 +300,7 @@ runs:
     #
     # 2. SPM Builds (when 'type' is omitted):
     #    - Uses swift build/test commands directly
-    #    - Cross-platform compatible (works on both macOS and Ubuntu)  
+    #    - Cross-platform compatible (works on both macOS and Ubuntu)
     #    - Uses standard .build directory caching
     #    - Faster for packages without Apple platform dependencies
     #
@@ -315,7 +315,7 @@ runs:
     # Cache Key Strategy:
     # - Primary: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageResolvedHash}-{CommitSHA}
     # - Fallback: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageResolvedHash}-
-    # 
+    #
     # Key Components Explained:
     # - runner.os: Ensures platform isolation (different derived data per OS)
     # - XCODE_NAME: Isolates builds between different Xcode versions (critical for compatibility)
@@ -361,7 +361,7 @@ runs:
     # This action implements four distinct caching strategies optimized for different build scenarios:
     #
     # Strategy 1: Xcode Derived Data Caching (macOS + Apple platforms)
-    #   - Uses irgaly/xcode-cache for Xcode simulator builds  
+    #   - Uses irgaly/xcode-cache for Xcode simulator builds
     #   - Caches derived data directory with build artifacts and module cache
     #   - Most efficient for iOS/watchOS/tvOS/visionOS/macOS testing
     #   - Achieves 70-85% build time reduction
@@ -389,11 +389,11 @@ runs:
     # - Swift/Xcode version changes (toolchain compatibility)
     # - OS version changes (ABI compatibility)
     # - Exact commit SHA ensures build reproducibility
-    
+
     # Intelligent Caching Strategy 2: Swift Package Manager Builds
     # These caching steps use the standard actions/cache for SPM builds, which is optimal
     # for cross-platform Swift packages that don't require Apple platform simulators.
-    
+
     # Intelligent Caching Strategy 2a: macOS SPM Cache (Cross-Platform Packages)
     # Used when building Swift packages on macOS without specific Apple platform targeting.
     # Focuses on .build directory which contains Swift Package Manager compilation artifacts.
@@ -418,7 +418,7 @@ runs:
     # Comprehensive caching for Ubuntu Swift builds covering all SPM directories.
     # Includes additional .swiftpm and .cache directories that Swift uses for metadata.
     #
-    # Cache Key Strategy:  
+    # Cache Key Strategy:
     # - Pattern: spm-{UbuntuVersion}-{SwiftVersion}-{PackageResolvedHash}
     # - OS version isolation (focal/jammy/noble) ensures ABI compatibility
     # - Swift version isolation prevents toolchain conflicts
@@ -503,7 +503,7 @@ runs:
     # - Force-resolved-versions prevents dependency resolution inconsistencies
     # - Cache-path flag enables local build artifact reuse
     - name: Build and Test
-      if: steps.detect-os.outputs.os == 'macos' && !inputs.type || steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
+      if: (steps.detect-os.outputs.os == 'macos' && !inputs.type) || steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
