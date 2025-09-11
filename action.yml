@@ -141,15 +141,39 @@ runs:
     # They configure the Xcode toolchain, map platform types to SDK/simulator names,
     # and optionally download missing Apple platforms.
     
-    # Extract Xcode version name from the provided Xcode path
+    # Extract Xcode version name from the provided Xcode path with robust fallback
     # Example: '/Applications/Xcode_15.1.app' → 'XCODE_NAME=15.1'
     # This version identifier is used for cache key generation to ensure
     # build artifacts are isolated between different Xcode versions
+    # Falls back to xcodebuild -version if parsing fails or path is generic
     - name: Set Xcode Name
       if: steps.detect-os.outputs.os == 'macos' && inputs.xcode
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: echo "XCODE_NAME=$(basename -- ${{ inputs.xcode }} | sed 's/\.[^.]*$//' | cut -d'_' -f2)" >> $GITHUB_ENV
+      run: |
+        # Extract version from path, handling edge cases
+        XCODE_BASENAME=$(basename -- "${{ inputs.xcode }}")
+        EXTRACTED_VERSION=$(echo "$XCODE_BASENAME" | sed 's/\.[^.]*$//' | cut -d'_' -f2)
+        
+        # Check if extraction was successful and not empty
+        if [[ -n "$EXTRACTED_VERSION" && "$EXTRACTED_VERSION" != "$XCODE_BASENAME" && "$EXTRACTED_VERSION" != "Xcode" ]]; then
+          echo "XCODE_NAME=$EXTRACTED_VERSION" >> $GITHUB_ENV
+        else
+          # Fallback to xcodebuild version for cache isolation
+          FALLBACK_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
+          echo "XCODE_NAME=${FALLBACK_VERSION:-default}" >> $GITHUB_ENV
+        fi
+    
+    # Set default Xcode Name when no specific Xcode path is provided
+    # Uses the system default Xcode version for cache key generation
+    - name: Set Default Xcode Name
+      if: steps.detect-os.outputs.os == 'macos' && !inputs.xcode
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        # Use system default Xcode version for cache isolation
+        DEFAULT_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
+        echo "XCODE_NAME=${DEFAULT_VERSION:-system}" >> $GITHUB_ENV
     
     # Configure the Xcode developer directory for the build environment
     # Sets DEVELOPER_DIR to point to the specific Xcode installation's Developer directory
@@ -221,7 +245,7 @@ runs:
     # Performance Impact: First-time downloads can add 5-15 minutes to workflow runtime
     # but subsequent builds benefit from pre-installed platforms
     - name: Download Platform
-      if: steps.detect-os.outputs.os == 'macos' && inputs.type && inputs.download-platform == 'true'
+      if: steps.detect-os.outputs.os == 'macos' && inputs.type && inputs.type != 'macos' && inputs.download-platform == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
