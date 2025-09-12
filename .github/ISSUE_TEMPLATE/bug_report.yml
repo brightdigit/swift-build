@@ -33,6 +33,9 @@ body:
         - macos-14
         - macos-15
         - macos-latest
+        - windows-2022
+        - windows-2025
+        - windows-latest
     validations:
       required: true
 
