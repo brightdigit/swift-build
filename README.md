@@ -35,7 +35,7 @@
 
 🚀 **Zero Configuration** - Works out of the box with just a scheme parameter  
 ⚡ **Intelligent Caching** - Platform-specific caching strategies for maximum performance  
-🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS)  
+🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS) + Windows (Swift 6.1+)  
 🎯 **Optimized Workflows** - Purpose-built for modern Swift CI/CD pipelines  
 📦 **Real-World Proven** - Used by 25+ open source Swift packages including SyndiKit, DataThespian, and more  
 
@@ -52,6 +52,8 @@
 | `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` | **Xcode builds only** - iOS, watchOS, tvOS, visionOS simulator testing |
+| `windows-swift-version` | Swift version for Windows toolchain | `null` | `swift-6.1-release` | `swift-6.0-release`, `swift-6.1-release`, `swift-6.2-branch` | **Windows builds only** - Maps to `swift-version` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
+| `windows-swift-build` | Swift build identifier for Windows | `null` | `6.1-RELEASE` | `6.1-RELEASE`, `6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a` | **Windows builds only** - Maps to `swift-build` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 
 
 
@@ -60,19 +62,21 @@
 - **Ubuntu builds**: Only `working-directory` is used (no `scheme` needed)
 - **macOS SPM builds**: `scheme`, `working-directory` (no `type` specified)
 - **Apple platform builds**: Require `scheme`, `type`, and optionally `deviceName`/`osVersion`
+- **Windows builds**: `working-directory`, `windows-swift-version`, `windows-swift-build` (no `scheme` needed)
 - **Custom Xcode**: When `xcode` is specified, it overrides system default
 - **Platform download**: Only effective with Xcode versions
 
 ### Default Behaviors
 
-- **No `type`**: Uses Swift Package Manager directly with `swift` command (works on Ubuntu and macOS)
+- **No `type`**: Uses Swift Package Manager directly with `swift` command (works on Ubuntu, macOS, and Windows)
 - **No `deviceName`/`osVersion`**: Uses Xcode's default simulator for the platform
 - **No `xcode`**: Uses system default Xcode installation
 - **No `working-directory`**: Operates in repository root
+- **No Windows parameters**: Windows builds require `windows-swift-version` and `windows-swift-build` to be specified
 
 ### Build Tool Selection
 
-- **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu and macOS SPM builds)
+- **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SPM builds)
 - **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
 
 ## 🚀 Quick Start
@@ -141,6 +145,22 @@ jobs:
       - uses: brightdigit/swift-build@v1.3.0
         with:
           scheme: MyPackage-Package  # Tests all targets
+```
+
+#### Windows Swift Package Testing
+```yaml
+name: Test Windows Package
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.0
+        with:
+          windows-swift-version: swift-6.1-release
+          windows-swift-build: 6.1-RELEASE
 ```
 
 ### iOS Simulator Testing
@@ -252,7 +272,7 @@ jobs:
           osVersion: ${{ matrix.osVersion }}
 ```
 
-#### Cross-Platform SPM Matrix (Ubuntu + macOS)
+#### Cross-Platform SPM Matrix (Ubuntu + macOS + Windows)
 ```yaml
 name: Cross-Platform SPM Testing
 on: [push, pull_request]
@@ -280,6 +300,12 @@ jobs:
           - os: macos-15
             xcode: /Applications/Xcode_16.4.app
             swift: '6.0'
+          
+          # Windows builds
+          - os: windows-latest
+            windows-swift-version: swift-6.1-release
+            windows-swift-build: 6.1-RELEASE
+            swift: '6.1'
     
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
@@ -292,6 +318,76 @@ jobs:
         with:
           scheme: MyPackage-Package
           xcode: ${{ matrix.xcode }}
+          windows-swift-version: ${{ matrix.windows-swift-version }}
+          windows-swift-build: ${{ matrix.windows-swift-build }}
+```
+
+### Windows Swift Development Examples
+
+#### Basic Windows Swift Package Testing
+```yaml
+name: Windows Swift Package Tests
+on: [push, pull_request]
+
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.0
+        with:
+          windows-swift-version: swift-6.1-release
+          windows-swift-build: 6.1-RELEASE
+```
+
+#### Windows Swift Version Matrix
+```yaml
+name: Windows Swift Version Testing
+on: [push, pull_request]
+
+jobs:
+  test-windows-versions:
+    strategy:
+      matrix:
+        include:
+          - windows-swift-version: swift-6.0-release
+            windows-swift-build: 6.0-RELEASE
+            swift: '6.0'
+          - windows-swift-version: swift-6.1-release
+            windows-swift-build: 6.1-RELEASE
+            swift: '6.1'
+          - windows-swift-version: swift-6.2-branch
+            windows-swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+            swift: '6.2-dev'
+    
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Display Swift Version
+        run: swift --version
+      - uses: brightdigit/swift-build@v1.3.0
+        with:
+          windows-swift-version: ${{ matrix.windows-swift-version }}
+          windows-swift-build: ${{ matrix.windows-swift-build }}
+```
+
+> **Note:** The Windows Swift toolchain installation is handled automatically by [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) based on the provided `windows-swift-version` and `windows-swift-build` parameters. These map to the `swift-version` and `swift-build` parameters respectively in the underlying action.
+
+#### Windows with Custom Working Directory
+```yaml
+name: Windows Custom Directory
+on: [push, pull_request]
+
+jobs:
+  test-windows-custom:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.0
+        with:
+          working-directory: ./packages/core
+          windows-swift-version: swift-6.1-release
+          windows-swift-build: 6.1-RELEASE
 ```
 
 ### Apple Platform Simulator Testing Examples
@@ -633,12 +729,20 @@ jobs:
 
 ## ⚙️ Configuration Examples by Use Case
 
-### Swift Package Manager (Ubuntu/macOS)
+### Swift Package Manager (Ubuntu/macOS/Windows)
 ```yaml
+# Ubuntu/macOS
 - uses: brightdigit/swift-build@v1.3.0
   with:
     scheme: MyPackageTests
     working-directory: ./packages/core
+
+# Windows
+- uses: brightdigit/swift-build@v1.3.0
+  with:
+    working-directory: ./packages/core
+    windows-swift-version: swift-6.1-release
+    windows-swift-build: 6.1-RELEASE
 ```
 
 ### iOS Simulator Testing
@@ -692,6 +796,7 @@ swift-build works seamlessly across all major platforms with zero configuration 
 |----------|------------|---------------------------|
 | **Ubuntu Linux** | Swift Package Manager | Automatic dependency caching, optimized build paths |
 | **macOS** | Swift Package Manager | Xcode integration, intelligent DerivedData management |
+| **Windows** | Swift Package Manager | Windows Swift toolchain installation, Windows-specific caching |
 | **iOS** | Xcode + Simulators | Simulator management, device selection, platform downloads |
 | **watchOS** | Xcode + Simulators | Paired simulator setup, automatic device pairing |
 | **tvOS** | Xcode + Simulators | Apple TV simulator configuration |
@@ -719,22 +824,25 @@ Choose the right Docker image for your Swift version:
 | Runner | Best For | swift-build Features |
 |--------|----------|---------------------|
 | **ubuntu-latest** | Swift Package Manager testing | Linux-optimized caching, container support |
+| **windows-latest** | Windows Swift development | Windows Swift toolchain installation, Windows-specific caching |
 | **macos-14** | Stable Xcode versions (15.x) | iOS/watchOS/tvOS simulators, Xcode 15 support |
 | **macos-15** | Latest Xcode versions (16.x+) | visionOS support, Xcode 16+ beta features |
 
 ### Platform-Specific Features
 
 - **🔍 Auto-Detection**: Automatically detects runner OS and configures appropriate build tools
-- **📦 Smart Caching**: Platform-specific caching strategies (`.build` + `.swiftpm` on Linux, DerivedData on macOS)
+- **📦 Smart Caching**: Platform-specific caching strategies (`.build` + `.swiftpm` on Linux/Windows, DerivedData on macOS)
+- **🪟 Windows Toolchain**: Automatic Swift toolchain installation and configuration for Windows runners
 - **📲 Simulator Management**: Automatic iOS/watchOS/tvOS/visionOS simulator setup and device selection
 - **⬇️ Platform Downloads**: Automatically downloads missing Apple platform simulators for beta/nightly Xcode
-- **🛠️ Build Tool Selection**: Uses `swift` command on Linux/macOS SPM, `xcodebuild` for Apple platforms
+- **🛠️ Build Tool Selection**: Uses `swift` command on Linux/macOS/Windows SPM, `xcodebuild` for Apple platforms
 
 ### External Resources
 
 - **GitHub Runner Images**: [github.com/actions/runner-images](https://github.com/actions/runner-images)
 - **macOS Runner Documentation**: [GitHub Hosted Runners](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources)
 - **Swift Docker Hub**: [Official Swift Images](https://hub.docker.com/_/swift)
+- **Windows Swift Setup**: [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) - The underlying action used for Windows Swift toolchain installation with detailed parameter documentation
 
 ## 🚀 Advanced Examples
 
@@ -1020,6 +1128,7 @@ jobs:
   - [📺 tvOS Issues](#-tvos-issues)
   - [🥽 visionOS Issues](#-visionos-issues)
   - [🖥️ macOS Issues](#-macos-issues)
+  - [🪟 Windows Issues](#-windows-issues)
   - [⚙️ Configuration Issues](#️-configuration-issues)
   - [🔗 Simulator & Connection Issues](#-simulator--connection-issues)
 - [🆘 Community Support](#-community-support)
@@ -1201,6 +1310,7 @@ macOS is **native testing only** - no simulators needed:
 | Build Type | Required Parameters | Optional | Invalid |
 |------------|-------------------|----------|---------|
 | **SPM Build** | `scheme` | `working-directory` | `type`, `deviceName`, `osVersion` |
+| **Windows Build** | `windows-swift-version`, `windows-swift-build` | `working-directory` | `scheme`, `type`, `deviceName`, `osVersion` |
 | **macOS Native** | `scheme`, `type: macos` | `xcode`, `working-directory` | `deviceName`, `osVersion` |
 | **iOS Simulator** | `scheme`, `type: ios`, `deviceName`, `osVersion` | `xcode`, `download-platform` | None |
 | **Other Simulators** | `scheme`, `type`, `deviceName`, `osVersion` | `xcode`, `download-platform` | None |
@@ -2220,13 +2330,18 @@ jobs:
           - os: ubuntu-latest
             container: swift:6.1
           - os: macos-latest
+          - os: windows-latest
+            windows-swift-version: swift-6.1-release
+            windows-swift-build: 6.1-RELEASE
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
       - uses: brightdigit/swift-build@v1.3.0
         with:
-          scheme: REPLACE_WITH_YOUR_PACKAGE_NAME  # e.g., MyPackage-Package
+          scheme: REPLACE_WITH_YOUR_PACKAGE_NAME  # e.g., MyPackage-Package (not needed for Windows)
+          windows-swift-version: ${{ matrix.windows-swift-version }}
+          windows-swift-build: ${{ matrix.windows-swift-build }}
 ```
 
 #### Template 2: iOS/macOS App Testing
@@ -2313,6 +2428,39 @@ jobs:
         with:
           working-directory: ${{ matrix.package.path }}
           scheme: ${{ matrix.package.scheme }}
+```
+
+#### Template 5: Windows-Only Swift Package
+```yaml
+# Copy this template for Windows-only Swift package testing
+# Uses compnerd/gha-setup-swift internally for Swift toolchain installation
+# Parameters map to: windows-swift-version → swift-version, windows-swift-build → swift-build
+name: Windows Swift Package Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - windows-swift-version: swift-6.0-release
+            windows-swift-build: 6.0-RELEASE
+            swift: '6.0'
+          - windows-swift-version: swift-6.1-release
+            windows-swift-build: 6.1-RELEASE
+            swift: '6.1'
+          - windows-swift-version: swift-6.2-branch
+            windows-swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+            swift: '6.2-dev'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Display Swift Version
+        run: swift --version
+      - uses: brightdigit/swift-build@v1.3.0
+        with:
+          windows-swift-version: ${{ matrix.windows-swift-version }}
+          windows-swift-build: ${{ matrix.windows-swift-build }}
 ```
 
 ### Step-by-Step Migration Guide
@@ -2652,6 +2800,12 @@ Please run and include output from these commands:
 # For Ubuntu runners only  
 - run: cat /etc/os-release
 - run: which swift
+
+# For Windows runners only
+- run: Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion
+- run: swift --version
+- run: where swift
+- run: Get-ChildItem Env: | Where-Object Name -like "*SWIFT*"
 ```
 
 #### Reproduction Test
