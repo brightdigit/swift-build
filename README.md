@@ -69,7 +69,7 @@
 ### Default Behaviors
 
 - **No `type`**: Uses Swift Package Manager directly with `swift` command (works on Ubuntu, macOS, and Windows)
-- **No `deviceName`/`osVersion`**: Uses Xcode's default simulator for the platform
+- **Simulator parameters**: For iOS/watchOS/tvOS/visionOS, you must specify both `deviceName` and `osVersion`. macOS native (`type: macos`) does not require them.
 - **No `xcode`**: Uses system default Xcode installation
 - **No `working-directory`**: Operates in repository root
 - **No Windows parameters**: Windows builds require `windows-swift-version` and `windows-swift-build` to be specified
@@ -1182,13 +1182,14 @@ jobs:
 
 2. **Use validated combinations** from the table above
 
-3. **Let swift-build choose defaults** (recommended):
+3. **Provide explicit `deviceName` and `osVersion`** (see validated combinations above):
 ```yaml
 - uses: brightdigit/swift-build@v1.3.0
   with:
     scheme: MyApp
     type: ios
-    # Omit deviceName/osVersion for automatic selection
+    deviceName: iPhone 17
+    osVersion: '26.0'
 ```
 
 **Q: How do I fix iOS simulator connection issues?**
@@ -1309,7 +1310,7 @@ macOS is **native testing only** - no simulators needed:
 
 | Build Type | Required Parameters | Optional | Invalid |
 |------------|-------------------|----------|---------|
-| **SPM Build** | `scheme` | `working-directory` | `type`, `deviceName`, `osVersion` |
+| **SPM Build** | `—` | `working-directory`, `scheme` (optional) | `type`, `deviceName`, `osVersion` |
 | **Windows Build** | `windows-swift-version`, `windows-swift-build` | `working-directory` | `scheme`, `type`, `deviceName`, `osVersion` |
 | **macOS Native** | `scheme`, `type: macos` | `xcode`, `working-directory` | `deviceName`, `osVersion` |
 | **iOS Simulator** | `scheme`, `type: ios`, `deviceName`, `osVersion` | `xcode`, `download-platform` | None |
