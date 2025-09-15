@@ -92,6 +92,7 @@ inputs:
   # Examples: 'swift-6.2-branch', 'swift-6.1-release', 'swift-6.0-release'
   # Only used on Windows runners to install specific Swift toolchain
   # Requires windows-swift-build parameter to be specified
+  # Maps to 'swift-version' parameter in compnerd/gha-setup-swift
   windows-swift-version:
     description: 'Swift version for Windows Swift toolchain installation'
     required: false
@@ -100,6 +101,7 @@ inputs:
   # Examples: '6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a', '6.1-RELEASE'
   # Only used on Windows runners with windows-swift-version parameter
   # Must match available builds for the specified swift-version
+  # Maps to 'swift-build' parameter in compnerd/gha-setup-swift
   windows-swift-build:
     description: 'Swift build identifier for Windows Swift toolchain installation'
     required: false
@@ -270,15 +272,16 @@ runs:
     # Windows Swift Toolchain Installation
     # This step only executes on Windows runners when windows-swift-version is provided.
     # Uses the compnerd/gha-setup-swift action to install the specified Swift toolchain.
+    # See: https://github.com/compnerd/gha-setup-swift for detailed parameter documentation
     #
     # Installation Process:
     # - Downloads and installs the specified Swift toolchain version
     # - Configures the Windows environment for Swift development
     # - Sets up necessary paths and environment variables
     #
-    # Parameters:
-    # - swift-version: Branch or release version (e.g., swift-6.2-branch, swift-6.1-release)
-    # - swift-build: Specific build identifier (e.g., 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a)
+    # Parameter Mapping:
+    # - windows-swift-version → swift-version (e.g., swift-6.2-branch, swift-6.1-release)
+    # - windows-swift-build → swift-build (e.g., 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a, 6.1-RELEASE)
     #
     # This enables Swift development on Windows runners with the exact toolchain
     # version required for your project, ensuring consistency across different environments.
