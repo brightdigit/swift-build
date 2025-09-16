@@ -60,7 +60,7 @@ body:
       label: Action Configuration
       description: Your swift-build action configuration (please include the complete step)
       placeholder: |
-        - uses: brightdigit/swift-build@v1.3.0
+        - uses: brightdigit/swift-build@v1.3.1
           with:
             scheme: MyApp
             type: ios

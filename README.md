@@ -96,7 +96,7 @@ jobs:
     container: swift:6.1
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage  # Just your package name
 ```
@@ -111,7 +111,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage-Package  # Standard SPM scheme naming
 ```
@@ -127,7 +127,7 @@ jobs:
     container: swift:6.1
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyLibrary  # Matches your target name in Package.swift
 ```
@@ -142,7 +142,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage-Package  # Tests all targets
 ```
@@ -157,7 +157,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           windows-swift-version: swift-6.1-release
           windows-swift-build: 6.1-RELEASE
@@ -174,7 +174,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: YourApp
           type: ios
@@ -219,7 +219,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
 ```
@@ -263,7 +263,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           type: ${{ matrix.type }}
@@ -314,7 +314,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Display Swift Version
         run: swift --version
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage-Package
           xcode: ${{ matrix.xcode }}
@@ -334,7 +334,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           windows-swift-version: swift-6.1-release
           windows-swift-build: 6.1-RELEASE
@@ -365,7 +365,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Display Swift Version
         run: swift --version
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           windows-swift-version: ${{ matrix.windows-swift-version }}
           windows-swift-build: ${{ matrix.windows-swift-build }}
@@ -383,7 +383,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           working-directory: ./packages/core
           windows-swift-version: swift-6.1-release
@@ -425,7 +425,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyApp
           type: ios
@@ -458,7 +458,7 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyWatchApp
           type: watchos
@@ -491,7 +491,7 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyTVApp
           type: tvos
@@ -524,7 +524,7 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyVisionApp
           type: visionos
@@ -554,7 +554,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyMacApp
           type: macos
@@ -630,7 +630,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyUniversalApp
           type: ${{ matrix.type }}
@@ -659,7 +659,7 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: SyndiKit-Package
 ```
@@ -674,7 +674,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: DataThespian-Package
 ```
@@ -703,7 +703,7 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: Sublimation-Package
 ```
@@ -732,13 +732,13 @@ jobs:
 ### Swift Package Manager (Ubuntu/macOS/Windows)
 ```yaml
 # Ubuntu/macOS
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyPackageTests
     working-directory: ./packages/core
 
 # Windows
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     working-directory: ./packages/core
     windows-swift-version: swift-6.1-release
@@ -747,7 +747,7 @@ jobs:
 
 ### iOS Simulator Testing
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -757,7 +757,7 @@ jobs:
 
 ### macOS Native Testing
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: macos
@@ -765,7 +765,7 @@ jobs:
 
 ### Custom Xcode Version
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -776,7 +776,7 @@ jobs:
 
 ### Beta Platform Support
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: visionos
@@ -905,7 +905,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           type: ${{ matrix.type }}
@@ -938,7 +938,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           working-directory: ${{ matrix.package.path }}
           scheme: ${{ matrix.package.scheme }}
@@ -978,7 +978,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyApp
           type: ${{ matrix.type }}
@@ -1013,7 +1013,7 @@ jobs:
             ~/.swiftpm/cache
           key: xcode-${{ runner.os }}-${{ hashFiles('**/Package.resolved', '**/Podfile.lock') }}
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: ${{ matrix.target }}
           type: ios
@@ -1045,7 +1045,7 @@ jobs:
         run: swift package plugin --allow-writing-to-package-directory swiftformat --lint .
         
       # Test with our action
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackageTests
           
@@ -1061,7 +1061,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           
@@ -1111,7 +1111,7 @@ jobs:
         env:
           DEVELOPER_DIR: ${{ matrix.xcode }}/Contents/Developer
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           xcode: ${{ matrix.xcode }}
@@ -1184,7 +1184,7 @@ jobs:
 
 3. **Provide explicit `deviceName` and `osVersion`** (see validated combinations above):
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -1223,7 +1223,7 @@ watchOS simulators require iPhone pairing. **Solution:**
     WATCH_ID=$(xcrun simctl create "Apple-Watch-Test" "Apple Watch Ultra 2 (49mm)" "watchOS-11-0")
     xcrun simctl pair "$WATCH_ID" "$IPHONE_ID"
 
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyWatchApp
     type: watchos
@@ -1272,7 +1272,7 @@ visionOS requires **Xcode 16.4+** and **macOS 15+**. Check requirements:
 ```yaml
 runs-on: macos-15  # Required: macOS 15+
 steps:
-  - uses: brightdigit/swift-build@v1.3.0
+  - uses: brightdigit/swift-build@v1.3.1
     with:
       scheme: MyVisionApp
       type: visionos
@@ -1289,14 +1289,14 @@ steps:
 macOS is **native testing only** - no simulators needed:
 ```yaml
 # ✅ Correct macOS configuration
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyMacApp
     type: macos
     # DO NOT include deviceName/osVersion for macOS
 
 # ❌ Wrong: macOS doesn't use deviceName/osVersion
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyMacApp  
     type: macos
@@ -1369,7 +1369,7 @@ working-directory: .              # ✅ Current directory
 
 **Quick fix - Use defaults** (recommended):
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -1381,7 +1381,7 @@ working-directory: .              # ✅ Current directory
 - name: Pre-start Simulator
   run: xcrun instruments -w "iPhone 15 (17.0)" || true
 
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -1393,7 +1393,7 @@ working-directory: .              # ✅ Current directory
 
 **Enable automatic platform downloads:**
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -1464,7 +1464,7 @@ Brief description of the issue
 
 ## Configuration
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     # Your exact configuration here
 ```
@@ -1581,7 +1581,7 @@ jobs:
         env:
           DEVELOPER_DIR: ${{ matrix.xcode }}/Contents/Developer
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           xcode: ${{ matrix.xcode }}
@@ -1614,7 +1614,7 @@ jobs:
           ls -la ${{ matrix.package.path }}/
           cat ${{ matrix.package.path }}/Package.swift
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           working-directory: ${{ matrix.package.path }}
           scheme: ${{ matrix.package.scheme }}
@@ -1675,7 +1675,7 @@ jobs:
         env:
           DEVELOPER_DIR: ${{ matrix.xcode }}/Contents/Developer
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyApp
           type: ${{ matrix.type }}
@@ -1734,7 +1734,7 @@ jobs:
           echo "Platform: ${{ matrix.type }}"
           ls -la ${{ matrix.working-directory }}/
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           working-directory: ${{ matrix.working-directory }}
           scheme: ${{ matrix.scheme }}
@@ -1763,7 +1763,7 @@ jobs:
           mkdir -p /tmp/custom-derived-data
           echo "CUSTOM_DERIVED_DATA=/tmp/custom-derived-data" >> $GITHUB_ENV
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           type: ios
@@ -1807,7 +1807,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0  # 2-3 minutes total
+      - uses: brightdigit/swift-build@v1.3.1  # 2-3 minutes total
         with:
           scheme: MyApp
           type: ios
@@ -1856,7 +1856,7 @@ jobs:
           echo "Cache strategy: ${{ matrix.cache-strategy }}"
           echo "Expected build time reduction: ${{ matrix.expected-reduction }}"
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           type: ${{ matrix.type }}
@@ -1901,7 +1901,7 @@ jobs:
             xcode-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}-
             xcode-${{ runner.os }}-
             
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: ${{ matrix.test-suite.scheme }}
           type: ${{ matrix.platform.type }}
@@ -1933,7 +1933,7 @@ jobs:
           echo "Memory usage:"
           vm_stat
           
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyLargeProject
           type: ios
@@ -1970,7 +1970,7 @@ jobs:
       
       # First build (full compilation)
       - name: Initial Build
-        uses: brightdigit/swift-build@v1.3.0
+        uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
         env:
@@ -1983,7 +1983,7 @@ jobs:
           
       # Second build (should be much faster due to caching)
       - name: Incremental Build
-        uses: brightdigit/swift-build@v1.3.0
+        uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
         env:
@@ -2065,7 +2065,7 @@ jobs:
     container: swift:6.1  # Direct container usage for better performance
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage  # Simplified configuration
 ```
@@ -2119,7 +2119,7 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage
           xcode: ${{ matrix.xcode }}
@@ -2167,7 +2167,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyApp
           type: ios
@@ -2249,7 +2249,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyApp
           type: ${{ matrix.type }}
@@ -2308,7 +2308,7 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyPackage-Package
 ```
@@ -2338,7 +2338,7 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: REPLACE_WITH_YOUR_PACKAGE_NAME  # e.g., MyPackage-Package (not needed for Windows)
           windows-swift-version: ${{ matrix.windows-swift-version }}
@@ -2363,7 +2363,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: REPLACE_WITH_YOUR_APP_SCHEME  # e.g., MyApp
           type: ${{ matrix.type }}
@@ -2398,7 +2398,7 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: REPLACE_WITH_YOUR_APP_SCHEME  # e.g., MyUniversalApp
           type: ${{ matrix.type }}
@@ -2425,7 +2425,7 @@ jobs:
     container: swift:6.1
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           working-directory: ${{ matrix.package.path }}
           scheme: ${{ matrix.package.scheme }}
@@ -2458,7 +2458,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Display Swift Version
         run: swift --version
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           windows-swift-version: ${{ matrix.windows-swift-version }}
           windows-swift-build: ${{ matrix.windows-swift-build }}
@@ -2536,7 +2536,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: brightdigit/swift-build@v1.3.0
+      - uses: brightdigit/swift-build@v1.3.1
         with:
           scheme: MyApp
           type: ios
@@ -2571,7 +2571,7 @@ jobs:
 
 **After (automatic intelligent caching):**
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyPackage  # Caching handled automatically
 ```
@@ -2653,7 +2653,7 @@ type: androidOS  # Invalid platform type
     # For Xcode projects: xcodebuild -list
 
 # Step 2: Use correct scheme name
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyPackage-Package  # Note the -Package suffix
 ```
@@ -2663,7 +2663,7 @@ type: androidOS  # Invalid platform type
 
 **Before (problematic):**
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -2674,7 +2674,7 @@ type: androidOS  # Invalid platform type
 **After (corrected):**
 ```yaml
 # Option 1: Use well-supported devices
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -2682,7 +2682,7 @@ type: androidOS  # Invalid platform type
     osVersion: '17.0'      # Stable version
 
 # Option 2: Let swift-build choose defaults
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: ios
@@ -2694,7 +2694,7 @@ type: androidOS  # Invalid platform type
 
 **Before (fails on missing platform):**
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: visionos
@@ -2704,7 +2704,7 @@ type: androidOS  # Invalid platform type
 
 **After (auto-downloads platform):**
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyApp
     type: visionos
@@ -2845,7 +2845,7 @@ Brief description of the issue
 
 ## Configuration
 ```yaml
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     # Your complete configuration here
 ```
@@ -2872,7 +2872,7 @@ Steps to reproduce the issue or link to failing workflow run
 #### For Small Projects (< 10 targets)
 ```yaml
 # Simple configuration - let swift-build optimize
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MySmallPackage
 ```
@@ -2880,7 +2880,7 @@ Steps to reproduce the issue or link to failing workflow run
 #### For Medium Projects (10-50 targets)
 ```yaml
 # Add explicit Xcode version for consistency
-- uses: brightdigit/swift-build@v1.3.0
+- uses: brightdigit/swift-build@v1.3.1
   with:
     scheme: MyMediumPackage
     xcode: /Applications/Xcode_16.4.app  # Consistent toolchain
@@ -2894,7 +2894,7 @@ strategy:
     test-suite: [UnitTests, IntegrationTests, UITests]
     
 steps:
-  - uses: brightdigit/swift-build@v1.3.0
+  - uses: brightdigit/swift-build@v1.3.1
     with:
       scheme: ${{ matrix.test-suite }}
       type: ios
