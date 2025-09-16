@@ -37,7 +37,7 @@ body:
         Example configuration or behavior:
         
         ```yaml
-        - uses: brightdigit/swift-build@v1.3.0
+        - uses: brightdigit/swift-build@v1.3.1
           with:
             new-parameter: value
         ```
