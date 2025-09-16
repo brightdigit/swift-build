@@ -359,6 +359,9 @@ runs:
       run: |
         SWIFT_VERSION=$(swift --version | head -n 1 | cut -d ' ' -f 3)
         echo "SWIFT_VERSION=$SWIFT_VERSION" >> $GITHUB_ENV
+        # Get the full Windows runner name (e.g., windows-2022, windows-2025)
+        RUNNER_NAME="${{ runner.name }}"
+        echo "RUNNER_NAME=$RUNNER_NAME" >> $GITHUB_ENV
 
     # Intelligent Caching Overview:
     # This action implements four distinct caching strategies optimized for different build scenarios:
@@ -448,10 +451,11 @@ runs:
     # Similar to Ubuntu but with Windows-specific Swift toolchain considerations.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-windows-{SwiftVersion}-{PackageResolvedHash}
+    # - Pattern: spm-{WindowsRunnerName}-{SwiftVersion}-{PackageResolvedHash}
     # - Windows platform isolation ensures toolchain compatibility
     # - Swift version isolation prevents conflicts between different Windows Swift builds
     # - Uses Swift version from installed Windows toolchain
+    # - Uses full Windows runner name (e.g., windows-2022, windows-2025) for proper cache isolation
     #
     # Cached Directories Explained:
     # - .build: Compiled Swift modules and intermediate build artifacts
@@ -467,7 +471,7 @@ runs:
           ${{ inputs.working-directory }}/.build
           ${{ inputs.working-directory }}/.swiftpm
           ${{ inputs.working-directory }}/.cache
-        key: spm-${{ runner.os }}-${{ env.SWIFT_VERSION }}-${{ hashFiles('Package.resolved') }}
+        key: spm-${{ env.RUNNER_NAME }}-${{ env.SWIFT_VERSION }}-${{ hashFiles('Package.resolved') }}
 
     # Build and Test Execution: Two-Path Strategy
     # The action implements a dual-path build strategy to handle both cross-platform Swift packages
