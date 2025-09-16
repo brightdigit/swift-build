@@ -467,7 +467,7 @@ runs:
           ${{ inputs.working-directory }}/.build
           ${{ inputs.working-directory }}/.swiftpm
           ${{ inputs.working-directory }}/.cache
-        key: spm-windows-${{ env.SWIFT_VERSION }}-${{ hashFiles('Package.resolved') }}
+        key: spm-${{ runner.os }}-${{ env.SWIFT_VERSION }}-${{ hashFiles('Package.resolved') }}
 
     # Build and Test Execution: Two-Path Strategy
     # The action implements a dual-path build strategy to handle both cross-platform Swift packages
