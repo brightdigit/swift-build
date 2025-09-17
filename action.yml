@@ -127,6 +127,16 @@ inputs:
     required: false
     default: 'default'
 
+  # xcbeautify version to install
+  # Specifies which version of xcbeautify to download and install
+  # Examples: '2.30.1', '2.29.0', '2.28.0'
+  # Only used when use-xcbeautify is 'true' and type parameter is specified
+  # Default: '2.30.1' (latest stable version)
+  xcbeautify-version:
+    description: 'xcbeautify version to install (e.g., 2.30.1, 2.29.0)'
+    required: false
+    default: '2.30.1'
+
 runs:
   using: "composite"
   steps:
@@ -322,17 +332,62 @@ runs:
     # - Better CI output formatting and error highlighting
     #
     # Installation Methods:
-    # - macOS: Uses Homebrew for fast installation
+    # - macOS: Downloads pre-built binary from GitHub releases with caching
+    # - Version controlled via xcbeautify-version input parameter
     #
     # Only installs when use-xcbeautify input is set to 'true' AND
     # when building Apple platforms (type parameter is specified)
+    - name: Cache xcbeautify
+      if: steps.detect-os.outputs.os == 'macos' && inputs.use-xcbeautify == 'true' && inputs.type
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/xcbeautify
+        key: xcbeautify-${{ inputs.xcbeautify-version }}
+        restore-keys: |
+          xcbeautify-
+
     - name: Install xcbeautify
       if: steps.detect-os.outputs.os == 'macos' && inputs.use-xcbeautify == 'true' && inputs.type
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        # Install xcbeautify via Homebrew
-        brew install xcbeautify
+        # Create local installation directory
+        XCBEAUTIFY_DIR="$RUNNER_TEMP/xcbeautify"
+        
+        # Check if xcbeautify is already cached and working
+        if [ -f "$XCBEAUTIFY_DIR/xcbeautify" ] && "$XCBEAUTIFY_DIR/xcbeautify" --version > /dev/null 2>&1; then
+          echo "xcbeautify found in cache, skipping download"
+        else
+          echo "xcbeautify not found in cache, downloading..."
+          mkdir -p "$XCBEAUTIFY_DIR"
+          
+          # Download the specified xcbeautify binary from GitHub releases
+          # Using the user-specified version with universal macOS binary
+          XCBEAUTIFY_VERSION="${{ inputs.xcbeautify-version }}"
+          XCBEAUTIFY_URL="https://github.com/cpisciotta/xcbeautify/releases/download/${XCBEAUTIFY_VERSION}/xcbeautify-${XCBEAUTIFY_VERSION}-universal-apple-macosx.zip"
+          
+          # Download and extract the binary
+          curl -L -o "$XCBEAUTIFY_DIR/xcbeautify.zip" "$XCBEAUTIFY_URL"
+          cd "$XCBEAUTIFY_DIR"
+          unzip -q xcbeautify.zip
+          
+          # The binary is in the release/xcbeautify directory after extraction
+          # Move it to the root of our installation directory
+          mv release/xcbeautify ./
+          rmdir release
+          
+          # Clean up the zip file to save space
+          rm xcbeautify.zip
+          
+          # Make the binary executable
+          chmod +x xcbeautify
+        fi
+        
+        # Verify the installation
+        "$XCBEAUTIFY_DIR/xcbeautify" --version
+        
+        # Add to PATH for this step and subsequent steps
+        echo "$XCBEAUTIFY_DIR" >> $GITHUB_PATH
 
     # Build Type Decision Logic:
     # The action chooses between two build approaches based on the 'type' parameter:
