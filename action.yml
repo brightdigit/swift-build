@@ -401,9 +401,10 @@ runs:
       run: |
         SWIFT_VERSION=$(swift --version | head -n 1 | cut -d ' ' -f 3)
         echo "SWIFT_VERSION=$SWIFT_VERSION" >> $GITHUB_ENV
-        # Get the actual Windows version instead of runner name
+        # Get the actual Windows product name and slugify it for cache key
         # This provides better cache isolation based on Windows version
-        WINDOWS_VERSION=$(powershell -Command "(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').ReleaseId")
+        # Examples: "Microsoft Windows Server 2022 Datacenter" -> "microsoft-windows-server-2022-datacenter"
+        WINDOWS_VERSION=$(powershell -Command "(Get-CimInstance -ClassName Win32_OperatingSystem).Caption -replace ' ', '-' -replace '[^a-zA-Z0-9\-]', '' | ForEach-Object { $_.ToLower() }")
         echo "WINDOWS_VERSION=$WINDOWS_VERSION" >> $GITHUB_ENV
 
     # Intelligent Caching Overview:
@@ -494,11 +495,11 @@ runs:
     # Similar to Ubuntu but with Windows-specific Swift toolchain considerations.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-windows-{WindowsVersion}-{SwiftVersion}-{PackageResolvedHash}
+    # - Pattern: spm-windows-{WindowsProductNameSlug}-{SwiftVersion}-{PackageResolvedHash}
     # - Windows version isolation ensures toolchain compatibility
     # - Swift version isolation prevents conflicts between different Windows Swift builds
     # - Uses Swift version from installed Windows toolchain
-    # - Uses actual Windows version (e.g., 2009, 22H2) for proper cache isolation
+    # - Uses slugified Windows product name (e.g., "microsoft-windows-server-2022-datacenter") for proper cache isolation
     #
     # Cached Directories Explained:
     # - .build: Compiled Swift modules and intermediate build artifacts
