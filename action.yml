@@ -336,17 +336,25 @@ runs:
         mkdir -p "$XCBEAUTIFY_DIR"
         
         # Download the latest xcbeautify binary from GitHub releases
-        # Using the latest release (2.30.1) with macOS binary
+        # Using the correct release (2.30.1) with universal macOS binary
         XCBEAUTIFY_VERSION="2.30.1"
-        XCBEAUTIFY_URL="https://github.com/cpisciotta/xcbeautify/releases/download/${XCBEAUTIFY_VERSION}/xcbeautify-${XCBEAUTIFY_VERSION}-macos.zip"
+        XCBEAUTIFY_URL="https://github.com/cpisciotta/xcbeautify/releases/download/${XCBEAUTIFY_VERSION}/xcbeautify-${XCBEAUTIFY_VERSION}-universal-apple-macosx.zip"
         
         # Download and extract the binary
         curl -L -o "$XCBEAUTIFY_DIR/xcbeautify.zip" "$XCBEAUTIFY_URL"
         cd "$XCBEAUTIFY_DIR"
         unzip -q xcbeautify.zip
         
+        # The binary is in the release/xcbeautify directory after extraction
+        # Move it to the root of our installation directory
+        mv release/xcbeautify ./
+        rmdir release
+        
         # Make the binary executable
         chmod +x xcbeautify
+        
+        # Verify the installation
+        ./xcbeautify --version
         
         # Add to PATH for this step and subsequent steps
         echo "$XCBEAUTIFY_DIR" >> $GITHUB_PATH
