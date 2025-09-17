@@ -322,7 +322,7 @@ runs:
     # - Better CI output formatting and error highlighting
     #
     # Installation Methods:
-    # - macOS: Uses Homebrew for fast installation
+    # - macOS: Downloads pre-built binary from GitHub releases
     #
     # Only installs when use-xcbeautify input is set to 'true' AND
     # when building Apple platforms (type parameter is specified)
@@ -331,8 +331,25 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        # Install xcbeautify via Homebrew
-        brew install xcbeautify
+        # Create local installation directory
+        XCBEAUTIFY_DIR="$RUNNER_TEMP/xcbeautify"
+        mkdir -p "$XCBEAUTIFY_DIR"
+        
+        # Download the latest xcbeautify binary from GitHub releases
+        # Using the latest release (2.30.1) with macOS binary
+        XCBEAUTIFY_VERSION="2.30.1"
+        XCBEAUTIFY_URL="https://github.com/cpisciotta/xcbeautify/releases/download/${XCBEAUTIFY_VERSION}/xcbeautify-${XCBEAUTIFY_VERSION}-macos.zip"
+        
+        # Download and extract the binary
+        curl -L -o "$XCBEAUTIFY_DIR/xcbeautify.zip" "$XCBEAUTIFY_URL"
+        cd "$XCBEAUTIFY_DIR"
+        unzip -q xcbeautify.zip
+        
+        # Make the binary executable
+        chmod +x xcbeautify
+        
+        # Add to PATH for this step and subsequent steps
+        echo "$XCBEAUTIFY_DIR" >> $GITHUB_PATH
 
     # Build Type Decision Logic:
     # The action chooses between two build approaches based on the 'type' parameter:
