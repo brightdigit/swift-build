@@ -106,6 +106,27 @@ inputs:
     description: 'Swift build identifier for Windows Swift toolchain installation'
     required: false
 
+  # Enable xcbeautify for prettified xcodebuild output
+  # When enabled, installs and uses xcbeautify to format xcodebuild output
+  # Provides human-friendly, colored output and better CI integration
+  # Only applies to Apple platform builds (when type parameter is specified)
+  # Default: 'false' (disabled)
+  use-xcbeautify:
+    description: 'Enable xcbeautify for prettified xcodebuild output (Apple platforms only)'
+    required: false
+    default: 'false'
+
+  # xcbeautify renderer for CI integration
+  # Options: 'default', 'github-actions', 'teamcity', 'azure-devops-pipelines'
+  # 'github-actions': Highlights warnings/errors in GitHub Actions UI
+  # 'teamcity': Uses TeamCity service messages for better integration
+  # 'azure-devops-pipelines': Uses Azure DevOps logging commands
+  # Only used when use-xcbeautify is 'true' and type parameter is specified
+  xcbeautify-renderer:
+    description: 'xcbeautify renderer for CI integration (default, github-actions, teamcity, azure-devops-pipelines)'
+    required: false
+    default: 'default'
+
 runs:
   using: "composite"
   steps:
@@ -291,6 +312,27 @@ runs:
       with:
         swift-version: ${{ inputs.windows-swift-version }}
         swift-build: ${{ inputs.windows-swift-build }}
+
+    # xcbeautify Installation
+    # Installs xcbeautify tool for prettified xcodebuild output when enabled.
+    # xcbeautify is a Swift-based alternative to xcpretty that provides:
+    # - Human-friendly and colored output for xcodebuild commands
+    # - Support for new build system output and parallel testing
+    # - GitHub Actions, TeamCity, and Azure DevOps integration
+    # - Better CI output formatting and error highlighting
+    #
+    # Installation Methods:
+    # - macOS: Uses Homebrew for fast installation
+    #
+    # Only installs when use-xcbeautify input is set to 'true' AND
+    # when building Apple platforms (type parameter is specified)
+    - name: Install xcbeautify
+      if: steps.detect-os.outputs.os == 'macos' && inputs.use-xcbeautify == 'true' && inputs.type
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        # Install xcbeautify via Homebrew
+        brew install xcbeautify
 
     # Build Type Decision Logic:
     # The action chooses between two build approaches based on the 'type' parameter:
@@ -550,18 +592,37 @@ runs:
         # Fix for iOS simulator connection issue (https://github.com/actions/runner-images/issues/12862)
         # Establish simulator connection before running xcodebuild
         xcrun simctl list > /dev/null
+        
+        # Build destination string based on platform type
         if [ "${{ inputs.type }}" = "macos" ]; then
-          xcodebuild test \
-            -scheme ${{ inputs.scheme }} \
-            -sdk ${{ env.SDK }} \
-            -destination 'platform=macOS' \
-            -enableCodeCoverage YES \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}
+          DESTINATION="platform=macOS"
         else
-          xcodebuild test \
-            -scheme ${{ inputs.scheme }} \
-            -sdk ${{ env.SDK }} \
-            -destination 'platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}' \
-            -enableCodeCoverage YES \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}
+          DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
+        fi
+        
+        # Build xcodebuild command
+        XCODEBUILD_CMD="xcodebuild test \
+          -scheme ${{ inputs.scheme }} \
+          -sdk ${{ env.SDK }} \
+          -destination '$DESTINATION' \
+          -enableCodeCoverage YES \
+          -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
+        
+        # Execute with or without xcbeautify
+        if [ "${{ inputs.use-xcbeautify }}" = "true" ]; then
+          # Set up unbuffered I/O for better xcbeautify output
+          export NSUnbufferedIO=YES
+          
+          # Build xcbeautify command
+          if [ "${{ inputs.xcbeautify-renderer }}" != "default" ]; then
+            XCBEAUTIFY_CMD="xcbeautify --renderer ${{ inputs.xcbeautify-renderer }}"
+          else
+            XCBEAUTIFY_CMD="xcbeautify"
+          fi
+          
+          # Execute with xcbeautify
+          eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
+        else
+          # Execute without xcbeautify
+          eval "$XCODEBUILD_CMD"
         fi
