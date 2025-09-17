@@ -401,10 +401,12 @@ runs:
       run: |
         SWIFT_VERSION=$(swift --version | head -n 1 | cut -d ' ' -f 3)
         echo "SWIFT_VERSION=$SWIFT_VERSION" >> $GITHUB_ENV
-        # Get the actual Windows product name and slugify it for cache key
-        # This provides better cache isolation based on Windows version
-        # Examples: "Microsoft Windows Server 2022 Datacenter" -> "microsoft-windows-server-2022-datacenter"
-        WINDOWS_VERSION=$(powershell -Command "(Get-CimInstance -ClassName Win32_OperatingSystem).Caption -replace ' ', '-' -replace '[^a-zA-Z0-9\-]', '' | ForEach-Object { $_.ToLower() }")
+        # Get Windows version and build number for cache key using simple registry lookup
+        # This provides better cache isolation based on Windows version and build
+        # Examples: "Windows Server 2022" + "20348" -> "windows-server-2022-20348"
+        WINDOWS_PRODUCT=$(powershell -Command "(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').ProductName -replace ' ', '-'" | tr '[:upper:]' '[:lower:]')
+        WINDOWS_BUILD=$(powershell -Command "(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild")
+        WINDOWS_VERSION="${WINDOWS_PRODUCT}-${WINDOWS_BUILD}"
         echo "WINDOWS_VERSION=$WINDOWS_VERSION" >> $GITHUB_ENV
 
     # Intelligent Caching Overview:
@@ -495,11 +497,11 @@ runs:
     # Similar to Ubuntu but with Windows-specific Swift toolchain considerations.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-windows-{WindowsProductNameSlug}-{SwiftVersion}-{PackageResolvedHash}
-    # - Windows version isolation ensures toolchain compatibility
+    # - Pattern: spm-windows-{WindowsProductNameSlug}-{BuildNumber}-{SwiftVersion}-{PackageResolvedHash}
+    # - Windows version and build isolation ensures toolchain compatibility
     # - Swift version isolation prevents conflicts between different Windows Swift builds
     # - Uses Swift version from installed Windows toolchain
-    # - Uses slugified Windows product name (e.g., "microsoft-windows-server-2022-datacenter") for proper cache isolation
+    # - Uses slugified Windows product name + build number (e.g., "windows-server-2022-20348") for proper cache isolation
     #
     # Cached Directories Explained:
     # - .build: Compiled Swift modules and intermediate build artifacts
