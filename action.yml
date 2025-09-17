@@ -608,7 +608,7 @@ runs:
         XCODEBUILD_CMD="xcodebuild test \
           -scheme ${{ inputs.scheme }} \
           -sdk ${{ env.SDK }} \
-          -destination '$DESTINATION' \
+          -destination \"$DESTINATION\" \
           -enableCodeCoverage YES \
           -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
         
@@ -624,8 +624,16 @@ runs:
             XCBEAUTIFY_CMD="xcbeautify"
           fi
           
-          # Execute with xcbeautify
+          # Execute with xcbeautify and proper pipe failure handling
+          # Use set -o pipefail to ensure xcodebuild failures are not masked by xcbeautify success
+          set -o pipefail
           eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
+          # Capture exit code to ensure build failures are properly reported
+          BUILD_EXIT_CODE=$?
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "Build failed with exit code: $BUILD_EXIT_CODE" >&2
+            exit $BUILD_EXIT_CODE
+          fi
         else
           # Execute without xcbeautify
           eval "$XCODEBUILD_CMD"
