@@ -89,6 +89,8 @@ jobs:
           deviceName: ${{ matrix.deviceName }}
           osVersion: ${{ matrix.osVersion }}
           download-platform: ${{ matrix['download-platform'] || 'false' }}
+          use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
+          xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -171,6 +173,8 @@ jobs:
           deviceName: ${{ matrix.deviceName }}
           osVersion: ${{ matrix.osVersion }}
           download-platform: ${{ matrix['download-platform'] || 'false' }}
+          use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
+          xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
