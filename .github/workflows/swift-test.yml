@@ -13,11 +13,13 @@ jobs:
           # SPM Build Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
 
           # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
 
           # iOS Build Matrix
           - type: ios
@@ -31,6 +33,7 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
+            use-xcbeautify: "true"
 
           - type: ios
             runs-on: macos-15
@@ -38,6 +41,8 @@ jobs:
             deviceName: "iPhone 17 Pro"
             osVersion: "26.0"
             download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "azure-devops-pipelines"
 
           - type: watchos
             runs-on: macos-15
@@ -51,6 +56,8 @@ jobs:
             deviceName: "Apple Watch Ultra 3 (49mm)"
             osVersion: "26.0"
             download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "github-actions"
 
           - type: visionos
             runs-on: macos-15
@@ -70,6 +77,7 @@ jobs:
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "26.0"
             download-platform: "true"
+            use-xcbeautify: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -91,11 +99,14 @@ jobs:
           # SPM Build Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "github-actions"
 
           # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"  
 
           # iOS Build Matrix
           - type: ios
@@ -103,6 +114,8 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
+            use-xcbeautify: "true" 
+            xcbeautify-renderer: "github-actions"
 
           - type: ios
             runs-on: macos-15
@@ -110,6 +123,8 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             download-platform: "true"
+            use-xcbeautify: "true" 
+            xcbeautify-renderer: "azure-devops-pipelines"
 
           - type: watchos
             runs-on: macos-15
@@ -123,6 +138,8 @@ jobs:
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
             download-platform: "true"
+            use-xcbeautify: "true" 
+            xcbeautify-renderer: "github-actions"
 
           - type: visionos
             runs-on: macos-15
@@ -142,6 +159,7 @@ jobs:
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "26.0"
             download-platform: "true"
+            use-xcbeautify: "true" 
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -191,6 +209,7 @@ jobs:
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
+          use-xcbeautify: "true" 
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -229,6 +248,7 @@ jobs:
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage
+          xcbeautify-renderer: "github-actions"
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -249,6 +269,7 @@ jobs:
           scheme: SingleTargetPackage
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
+          use-xcbeautify: "true" 
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
@@ -270,3 +291,4 @@ jobs:
           scheme: MultiTargetPackage-Package
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
+          use-xcbeautify: "true" 
