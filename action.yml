@@ -193,7 +193,7 @@ runs:
           echo "XCODE_NAME=$EXTRACTED_VERSION" >> $GITHUB_ENV
         else
           # Fallback to xcodebuild version for cache isolation
-          FALLBACK_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
+          FALLBACK_VERSION=$(xcodebuild -version 2>/dev/null | head -1 | cut -d' ' -f2)
           echo "XCODE_NAME=${FALLBACK_VERSION:-default}" >> $GITHUB_ENV
         fi
 
@@ -205,7 +205,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         # Use system default Xcode version for cache isolation
-        DEFAULT_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
+        DEFAULT_VERSION=$(xcodebuild -version 2>/dev/null | head -1 | cut -d' ' -f2)
         echo "XCODE_NAME=${DEFAULT_VERSION:-system}" >> $GITHUB_ENV
 
     # Configure the Xcode developer directory for the build environment
