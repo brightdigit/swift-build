@@ -196,8 +196,27 @@ runs:
         # Get Xcode version from the actual installation
         # This works for both custom Xcode paths and system default
         # DEVELOPER_DIR is set above if a custom Xcode path was provided
-        XCODE_VERSION=$(xcodebuild -version 2>/dev/null | head -1 | cut -d' ' -f2)
-        echo "XCODE_NAME=${XCODE_VERSION:-unknown}" >> $GITHUB_ENV
+        
+        # Debug: Show environment and Xcode info
+        echo "=== Xcode Version Debug ==="
+        echo "DEVELOPER_DIR: $DEVELOPER_DIR"
+        echo "RUNNER_OS: $RUNNER_OS"
+        echo "Current directory: $(pwd)"
+        echo "Xcode path: $(which xcodebuild)"
+        echo "Shell: $SHELL"
+        echo "Pipefail status: $(set -o | grep pipefail || echo 'pipefail not set')"
+        echo "Xcode version raw output:"
+        xcodebuild -version || echo "xcodebuild failed with exit code $?"
+        echo "=== End Debug ==="
+        
+        # Get version with error handling
+        if XCODE_VERSION=$(xcodebuild -version 2>&1 | head -1 | cut -d' ' -f2); then
+          echo "Successfully extracted version: $XCODE_VERSION"
+          echo "XCODE_NAME=${XCODE_VERSION:-unknown}" >> $GITHUB_ENV
+        else
+          echo "Failed to get Xcode version, using fallback"
+          echo "XCODE_NAME=unknown" >> $GITHUB_ENV
+        fi
 
     # Map platform type parameter to Xcode SDK and platform destination strings
     # This critical step translates user-friendly type inputs into the specific
