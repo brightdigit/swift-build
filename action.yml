@@ -196,8 +196,84 @@ runs:
         # Get Xcode version from the actual installation
         # This works for both custom Xcode paths and system default
         # DEVELOPER_DIR is set above if a custom Xcode path was provided
-        XCODE_VERSION=$(xcodebuild -version 2>&1 | head -1 | cut -d' ' -f2)
-        echo "XCODE_NAME=${XCODE_VERSION:-unknown}" >> $GITHUB_ENV
+        
+        # Debug environment information for self-hosted runners
+        echo "=== Self-Hosted Runner Debug Information ==="
+        echo "DEVELOPER_DIR: ${DEVELOPER_DIR:-not set}"
+        echo "XCODE_PATH: ${{ inputs.xcode }}"
+        echo "Current working directory: $(pwd)"
+        echo "User: $(whoami)"
+        echo "Groups: $(groups)"
+        echo "PATH: $PATH"
+        echo "Runner OS: $RUNNER_OS"
+        echo "=========================================="
+        
+        # Check if xcodebuild exists and is accessible
+        if ! command -v xcodebuild >/dev/null 2>&1; then
+          echo "Error: xcodebuild command not found in PATH" >&2
+          echo "Available in /Applications/Xcode.app/Contents/Developer/usr/bin/?" >&2
+          ls -la /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild 2>/dev/null || echo "No xcodebuild found in expected location" >&2
+          echo "XCODE_NAME=unknown" >> $GITHUB_ENV
+          exit 0
+        fi
+        
+        # Check Xcode installation permissions
+        echo "Checking Xcode installation access..."
+        if [ -n "${{ inputs.xcode }}" ] && [ -d "${{ inputs.xcode }}" ]; then
+          echo "Xcode directory exists: ${{ inputs.xcode }}"
+          echo "Directory permissions: $(ls -ld "${{ inputs.xcode }}")"
+          echo "Contents/Developer permissions: $(ls -ld "${{ inputs.xcode }}/Contents/Developer" 2>/dev/null || echo 'Contents/Developer not accessible')"
+        fi
+        
+        # Try multiple approaches to get Xcode version
+        echo "Attempting to get Xcode version..."
+        
+        # Method 1: Try xcodebuild command
+        if XCODE_VERSION=$(timeout 30 xcodebuild -version 2>&1 | head -1 | cut -d' ' -f2); then
+          echo "Successfully got Xcode version via xcodebuild: $XCODE_VERSION"
+          echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+        else
+          echo "xcodebuild failed (exit code: $?), trying alternative methods..." >&2
+          
+          # Method 2: Try to read from Xcode Info.plist
+          if [ -n "${{ inputs.xcode }}" ] && [ -f "${{ inputs.xcode }}/Contents/Info.plist" ]; then
+            echo "Trying to read version from Xcode Info.plist..."
+            if XCODE_VERSION=$(defaults read "${{ inputs.xcode }}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null); then
+              echo "Successfully got Xcode version from Info.plist: $XCODE_VERSION"
+              echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+            else
+              echo "Failed to read from Info.plist" >&2
+              XCODE_VERSION="unknown"
+            fi
+          else
+            # Method 3: Try system default Xcode
+            if [ -f "/Applications/Xcode.app/Contents/Info.plist" ]; then
+              echo "Trying system default Xcode Info.plist..."
+              if XCODE_VERSION=$(defaults read "/Applications/Xcode.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null); then
+                echo "Successfully got Xcode version from system default: $XCODE_VERSION"
+                echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+              else
+                echo "Failed to read from system default Xcode" >&2
+                XCODE_VERSION="unknown"
+              fi
+            else
+              echo "No Xcode installation found" >&2
+              XCODE_VERSION="unknown"
+            fi
+          fi
+          
+          # If all methods failed, use unknown
+          if [ "$XCODE_VERSION" = "unknown" ]; then
+            echo "Warning: All methods failed to get Xcode version" >&2
+            echo "This may be due to self-hosted runner configuration issues:" >&2
+            echo "  - Runner user may not have access to Xcode installation" >&2
+            echo "  - Xcode may need to be launched once to accept license" >&2
+            echo "  - DEVELOPER_DIR may not be set correctly" >&2
+            echo "  - Xcode installation may be corrupted or incomplete" >&2
+            echo "Continuing with 'unknown' version for cache key" >&2
+            echo "XCODE_NAME=unknown" >> $GITHUB_ENV
+          fi
+        fi
 
     # Map platform type parameter to Xcode SDK and platform destination strings
     # This critical step translates user-friendly type inputs into the specific
