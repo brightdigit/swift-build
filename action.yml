@@ -174,40 +174,6 @@ runs:
     # They configure the Xcode toolchain, map platform types to SDK/simulator names,
     # and optionally download missing Apple platforms.
 
-    # Extract Xcode version name from the provided Xcode path with robust fallback
-    # Example: '/Applications/Xcode_15.1.app' → 'XCODE_NAME=15.1'
-    # This version identifier is used for cache key generation to ensure
-    # build artifacts are isolated between different Xcode versions
-    # Falls back to xcodebuild -version if parsing fails or path is generic
-    - name: Set Xcode Name
-      if: steps.detect-os.outputs.os == 'macos' && inputs.xcode
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        # Extract version from path, handling edge cases and version suffixes
-        XCODE_BASENAME=$(basename -- "${{ inputs.xcode }}")
-        EXTRACTED_VERSION=$(echo "$XCODE_BASENAME" | sed -e 's/\.app$//' -e 's/^Xcode_//' -e 's/_.*$//')
-
-        # Check if extraction was successful and not empty
-        if [[ -n "$EXTRACTED_VERSION" && "$EXTRACTED_VERSION" != "$XCODE_BASENAME" && "$EXTRACTED_VERSION" != "Xcode" ]]; then
-          echo "XCODE_NAME=$EXTRACTED_VERSION" >> $GITHUB_ENV
-        else
-          # Fallback to xcodebuild version for cache isolation
-          FALLBACK_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
-          echo "XCODE_NAME=${FALLBACK_VERSION:-default}" >> $GITHUB_ENV
-        fi
-
-    # Set default Xcode Name when no specific Xcode path is provided
-    # Uses the system default Xcode version for cache key generation
-    - name: Set Default Xcode Name
-      if: steps.detect-os.outputs.os == 'macos' && !inputs.xcode
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        # Use system default Xcode version for cache isolation
-        DEFAULT_VERSION=$(xcodebuild -version | head -1 | cut -d' ' -f2)
-        echo "XCODE_NAME=${DEFAULT_VERSION:-system}" >> $GITHUB_ENV
-
     # Configure the Xcode developer directory for the build environment
     # Sets DEVELOPER_DIR to point to the specific Xcode installation's Developer directory
     # This ensures all Xcode tools (xcodebuild, xcrun, etc.) use the correct toolchain
@@ -217,6 +183,44 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: echo "DEVELOPER_DIR=${{ inputs.xcode }}/Contents/Developer" >> $GITHUB_ENV
+
+    # Get Xcode version from the actual Xcode installation being used
+    # This ensures accurate version detection regardless of path format
+    # Uses DEVELOPER_DIR when available, falls back to system default
+    # The DEVELOPER_DIR environment variable ensures xcodebuild uses the correct Xcode
+    - name: Set Xcode Version
+      if: steps.detect-os.outputs.os == 'macos'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        # Get Xcode version from the actual installation
+        # This works for both custom Xcode paths and system default
+        # DEVELOPER_DIR is set above if a custom Xcode path was provided
+        
+        # Check if xcodebuild exists and is accessible
+        if ! command -v xcodebuild >/dev/null 2>&1; then
+          echo "Error: xcodebuild command not found in PATH" >&2
+          exit 0
+        fi
+        
+        # Method 1: Try xcodebuild command
+        if XCODE_VERSION=$(timeout 30 xcodebuild -version 2>&1 | head -1 | cut -d' ' -f2); then
+          echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+        else
+          # Method 2: Try to read from Xcode Info.plist
+          if [ -n "${{ inputs.xcode }}" ] && [ -f "${{ inputs.xcode }}/Contents/Info.plist" ]; then
+            if XCODE_VERSION=$(defaults read "${{ inputs.xcode }}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null); then
+              echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+            fi
+          else
+            # Method 3: Try system default Xcode
+            if [ -f "/Applications/Xcode.app/Contents/Info.plist" ]; then
+              if XCODE_VERSION=$(defaults read "/Applications/Xcode.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null); then
+                echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+              fi
+            fi
+          fi
+        fi
 
     # Map platform type parameter to Xcode SDK and platform destination strings
     # This critical step translates user-friendly type inputs into the specific
