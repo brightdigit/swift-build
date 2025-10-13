@@ -304,7 +304,7 @@ jobs:
           skip-package-resolved: "true"
 
   test-dependency-package-swift6:
-    name: Test Dependency Package (Swift 6.0+)
+    name: Test Dependency Package (Ubuntu, Swift 6.0+)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -336,9 +336,8 @@ jobs:
           use-xcbeautify: "true"
 
   test-dependency-package-swift5-strict:
-    name: Test Dependency Package (Swift 5.x strict - EXPECTED TO FAIL)
+    name: Test Dependency Package (Ubuntu, Swift 5.x strict - EXPECTED TO FAIL)
     runs-on: ubuntu-latest
-    continue-on-error: true
     strategy:
       matrix:
         swift:
@@ -351,14 +350,22 @@ jobs:
       image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./
+      - name: Test strict mode (expect failure)
+        id: strict-test
+        continue-on-error: true
+        uses: ./
         with:
           working-directory: test/DependencyPackage
           scheme: DependencyPackage
           use-xcbeautify: "true"
+      - name: Verify expected failure
+        if: steps.strict-test.outcome == 'success'
+        run: |
+          echo "ERROR: Expected strict mode to fail with Swift 5.x and Package.resolved v3, but it succeeded"
+          exit 1
 
   test-dependency-package-swift5-floating:
-    name: Test Dependency Package (Swift 5.x floating)
+    name: Test Dependency Package (Ubuntu, Swift 5.x floating)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -412,5 +419,57 @@ jobs:
           working-directory: test/DependencyPackage
           scheme: DependencyPackage
           xcode: "/Applications/Xcode_16.4.app"
-          use-xcbeautify: "true" 
+          use-xcbeautify: "true"
           skip-package-resolved: "false"
+
+  test-cache-behavior-strict:
+    name: Test Cache Behavior (strict mode)
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.1-jammy
+    steps:
+      - uses: actions/checkout@v4
+
+      # First build with Package.resolved (strict mode)
+      - name: First build (strict mode)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "false"
+
+      # Second build should hit cache
+      - name: Second build (should hit cache)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "false"
+
+  test-cache-behavior-floating:
+    name: Test Cache Behavior (floating mode)
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.1-jammy
+    steps:
+      - uses: actions/checkout@v4
+
+      # Remove Package.resolved for floating dependencies test
+      - name: Remove Package.resolved
+        run: rm -f test/DependencyPackage/Package.resolved
+
+      # First build without Package.resolved (floating mode)
+      - name: First build (floating mode)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "true"
+
+      # Second build should hit cache with 'no-resolved' key
+      - name: Second build (should hit cache)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "true"

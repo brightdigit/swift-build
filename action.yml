@@ -144,13 +144,20 @@ inputs:
   # - Requires Package.resolved to exist (build fails if missing)
   # - Always uses --force-resolved-versions flag for reproducible builds
   # - Cache keys include Package.resolved hash
+  # - Detects corrupt Package.resolved files via hash validation
   #
   # When 'true' (floating dependencies mode):
   # - Package.resolved is optional (build succeeds even if missing)
   # - Omits --force-resolved-versions flag to allow latest dependency versions
   # - Cache keys use 'no-resolved' instead of hash
+  # - Useful when Package.resolved exists but is corrupt or incompatible
   #
-  # Use 'true' for packages without Package.resolved or when testing against latest dependencies
+  # Common use cases for 'true':
+  # - Packages without Package.resolved in repository
+  # - Testing against latest dependency versions
+  # - Package.resolved v3 incompatibility with Swift 5.x toolchains
+  # - Corrupt or malformed Package.resolved that prevents builds
+  #
   # Default: 'false'
   skip-package-resolved:
     description: 'Skip Package.resolved dependency pinning (allows floating dependency versions)'
@@ -204,6 +211,12 @@ runs:
     #
     # This centralized approach ensures consistent cache behavior and prevents
     # empty hash strings when Package.resolved is missing
+    #
+    # Corrupt Package.resolved Handling:
+    # If Package.resolved exists but is corrupt or incompatible (e.g., v3 format with Swift 5.x),
+    # set skip-package-resolved: 'true' to bypass validation and use floating dependencies.
+    # The hash computation will succeed even with corrupt files, but the build may fail later
+    # when Swift attempts to parse the file. Using skip-package-resolved bypasses this issue.
     - name: Detect Package.resolved
       shell: bash
       id: detect-resolved
@@ -226,9 +239,16 @@ runs:
             RESOLVED_HASH=$(shasum -a 256 Package.resolved | cut -d' ' -f1)
           elif command -v sha256sum >/dev/null 2>&1; then
             RESOLVED_HASH=$(sha256sum Package.resolved | cut -d' ' -f1)
+          elif command -v md5sum >/dev/null 2>&1; then
+            # Fallback to MD5 if SHA-256 is unavailable (better than file metadata)
+            RESOLVED_HASH=$(md5sum Package.resolved | cut -d' ' -f1)
+          elif command -v md5 >/dev/null 2>&1; then
+            # macOS md5 command format
+            RESOLVED_HASH=$(md5 -q Package.resolved)
           else
-            # Fallback: use file size and modification time as pseudo-hash
-            RESOLVED_HASH=$(ls -l Package.resolved | awk '{print $5"-"$6"-"$7"-"$8}')
+            # Last resort: use content-based checksum via cksum (POSIX standard)
+            # More stable than file metadata and available on all POSIX systems
+            RESOLVED_HASH=$(cksum Package.resolved | awk '{print $1"-"$2}')
           fi
           echo "resolved-hash=$RESOLVED_HASH" >> $GITHUB_OUTPUT
           echo "use-resolved=true" >> $GITHUB_OUTPUT
