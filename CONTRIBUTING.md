@@ -135,6 +135,7 @@ swift-build/
 - `xcode`: Optional - custom Xcode version path
 - `deviceName`/`osVersion`: Optional (required when using type for simulator testing; deviceName and osVersion must be provided together)
 - `download-platform`: Optional - auto-download missing platforms (default: false)
+- `build-only`: Optional - build without running tests (default: false)
 
 ## 🧪 Testing Your Changes
 

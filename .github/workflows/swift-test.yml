@@ -4,6 +4,12 @@ on:
   push
 
 jobs:
+  # Matrix Strategy Note:
+  # - macOS tests use explicit include entries due to complex platform configurations
+  #   (SPM, macos, ios, watchos, tvos, visionos) with varying parameters
+  # - Ubuntu and Windows tests use matrix dimensions for their uniform configurations
+  # This intentional difference optimizes readability and maintainability for each platform
+
   test-single-target-macos:
     name: Test Single Target Package (macOS)
     runs-on: ${{ matrix.runs-on }}
@@ -15,11 +21,24 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
 
+          # SPM Build-Only Matrix
+          - runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
+            build-only: "true"
+
           # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
+
+          # macOS Build-Only Matrix
+          - type: macos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
+            build-only: "true"
 
           # iOS Build Matrix
           - type: ios
@@ -27,6 +46,14 @@ jobs:
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
             osVersion: "17.5"
+
+          # iOS Build-Only Matrix
+          - type: ios
+            runs-on: macos-14
+            xcode: "/Applications/Xcode_15.4.app"
+            deviceName: "iPhone 15"
+            osVersion: "17.5"
+            build-only: "true"
 
           - type: ios
             runs-on: macos-15
@@ -91,6 +118,39 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
+          skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == 'true'
+        working-directory: test/SingleTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # For SPM builds (when type is not specified)
+          if [ -z "${{ matrix.type }}" ]; then
+            # Check for test executables in .build directory
+            if [ -d ".build" ]; then
+              # Look for test binaries (typically end with "PackageTests" or "Tests")
+              if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
+                echo "ERROR: Test binaries found in .build directory in build-only mode"
+                find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
+                exit 1
+              fi
+            fi
+            echo "✓ Verified: No SPM test binaries created in build-only mode"
+          else
+            # For Xcode builds (when type is specified)
+            # Check for .xctest bundles which indicate tests were built/run
+            if find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null | grep -q .; then
+              echo "ERROR: .xctest bundles found in derived data in build-only mode"
+              find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null
+              exit 1
+            fi
+            echo "✓ Verified: No .xctest bundles created in build-only mode"
+          fi
+
+          echo "✓ Build-only mode verification passed"
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -104,11 +164,17 @@ jobs:
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
 
+          # SPM Build-Only Matrix
+          - runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
+            build-only: "true"
+
           # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
-            use-xcbeautify: "true"  
+            use-xcbeautify: "true"
 
           # iOS Build Matrix
           - type: ios
@@ -116,7 +182,7 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
 
           - type: ios
@@ -125,7 +191,7 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             download-platform: "true"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
             xcbeautify-renderer: "azure-devops-pipelines"
 
           - type: watchos
@@ -140,7 +206,7 @@ jobs:
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
             download-platform: "true"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
 
           - type: visionos
@@ -161,7 +227,7 @@ jobs:
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "26.0"
             download-platform: "true"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -175,6 +241,39 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
+          skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == 'true'
+        working-directory: test/MultiTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # For SPM builds (when type is not specified)
+          if [ -z "${{ matrix.type }}" ]; then
+            # Check for test executables in .build directory
+            if [ -d ".build" ]; then
+              # Look for test binaries (typically end with "PackageTests" or "Tests")
+              if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
+                echo "ERROR: Test binaries found in .build directory in build-only mode"
+                find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
+                exit 1
+              fi
+            fi
+            echo "✓ Verified: No SPM test binaries created in build-only mode"
+          else
+            # For Xcode builds (when type is specified)
+            # Check for .xctest bundles which indicate tests were built/run
+            if find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null | grep -q .; then
+              echo "ERROR: .xctest bundles found in derived data in build-only mode"
+              find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null
+              exit 1
+            fi
+            echo "✓ Verified: No .xctest bundles created in build-only mode"
+          fi
+
+          echo "✓ Build-only mode verification passed"
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -194,6 +293,9 @@ jobs:
         nightly:
           - false
           - true
+        build-only:
+          - false
+          - true
         exclude:
           - swift: 5.9
             ubuntu: noble
@@ -205,6 +307,15 @@ jobs:
             nightly: true
           - swift: 6.2
             nightly: false
+          # Only test build-only for one swift version per ubuntu to reduce test matrix
+          - swift: 5.9
+            build-only: true
+          - swift: 5.10
+            build-only: true
+          - swift: 6.0
+            build-only: true
+          - swift: 6.2
+            build-only: true
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
@@ -213,7 +324,28 @@ jobs:
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
-          use-xcbeautify: "true" 
+          use-xcbeautify: "true"
+          skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == true
+        working-directory: test/SingleTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # Check for test executables in .build directory
+          if [ -d ".build" ]; then
+            # Look for test binaries (typically end with "PackageTests" or "Tests")
+            if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
+              echo "ERROR: Test binaries found in .build directory in build-only mode"
+              find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
+              exit 1
+            fi
+          fi
+
+          echo "✓ Verified: No test binaries created in build-only mode"
+          echo "✓ Build-only mode verification passed" 
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -233,6 +365,9 @@ jobs:
         nightly:
           - false
           - true
+        build-only:
+          - false
+          - true
         exclude:
           - swift: 5.9
             ubuntu: noble
@@ -244,6 +379,15 @@ jobs:
             nightly: true
           - swift: 6.2
             nightly: false
+          # Only test build-only for one swift version per ubuntu to reduce test matrix
+          - swift: 5.9
+            build-only: true
+          - swift: 5.10
+            build-only: true
+          - swift: 6.0
+            build-only: true
+          - swift: 6.2
+            build-only: true
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
@@ -253,6 +397,27 @@ jobs:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage
           xcbeautify-renderer: "github-actions"
+          skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == true
+        working-directory: test/MultiTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # Check for test executables in .build directory
+          if [ -d ".build" ]; then
+            # Look for test binaries (typically end with "PackageTests" or "Tests")
+            if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
+              echo "ERROR: Test binaries found in .build directory in build-only mode"
+              find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
+              exit 1
+            fi
+          fi
+
+          echo "✓ Verified: No test binaries created in build-only mode"
+          echo "✓ Build-only mode verification passed"
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -260,6 +425,7 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [windows-2022, windows-2025]
+        build-only: [false, true]
         include:
           - swift-version: swift-6.2-branch
             swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
@@ -273,10 +439,178 @@ jobs:
           scheme: SingleTargetPackage
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
-          use-xcbeautify: "true" 
+          use-xcbeautify: "true"
+          skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == true
+        working-directory: test/SingleTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # Check for test executables in .build directory
+          if [ -d ".build" ]; then
+            # Look for test binaries (typically end with "PackageTests" or "Tests")
+            # On Windows, executables have .exe extension
+            if find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null | grep -q .; then
+              echo "ERROR: Test binaries found in .build directory in build-only mode"
+              find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null
+              exit 1
+            fi
+          fi
+
+          echo "✓ Verified: No test binaries created in build-only mode"
+          echo "✓ Build-only mode verification passed" 
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [windows-2022, windows-2025]
+        build-only: [false, true]
+        include:
+          - swift-version: swift-6.2-branch
+            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          - swift-version: swift-6.1-release
+            swift-build: 6.1-RELEASE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage-Package
+          windows-swift-version: ${{ matrix.swift-version }}
+          windows-swift-build: ${{ matrix.swift-build }}
+          use-xcbeautify: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
+          skip-package-resolved: "true"
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == true
+        working-directory: test/MultiTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # Check for test executables in .build directory
+          if [ -d ".build" ]; then
+            # Look for test binaries (typically end with "PackageTests" or "Tests")
+            # On Windows, executables have .exe extension
+            if find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null | grep -q .; then
+              echo "ERROR: Test binaries found in .build directory in build-only mode"
+              find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null
+              exit 1
+            fi
+          fi
+
+          echo "✓ Verified: No test binaries created in build-only mode"
+          echo "✓ Build-only mode verification passed"
+
+  test-dependency-package-resolved-v3-success:
+    name: Test Dependency Package (Ubuntu, Swift 5.10+)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.10"
+          - "6.0"
+          - "6.1"
+          - "6.2"
+        ubuntu:
+          - jammy
+          - focal
+          - noble
+        nightly:
+          - false
+          - true
+        exclude:
+          # Swift 5.10 not available on noble
+          - swift: "5.10"
+            ubuntu: noble
+          # No nightly builds for older versions
+          - swift: "5.10"
+            nightly: true
+          - swift: 6.0
+            nightly: true
+          - swift: 6.1
+            nightly: true
+          # Only 6.2 has nightly
+          - swift: 6.2
+            nightly: false
+    container:
+      image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+
+  test-dependency-package-resolved-v3-failure:
+    name: Test Dependency Package (Ubuntu, Swift 5.9 strict - EXPECTED TO FAIL)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test strict mode (expect failure)
+        id: strict-test
+        continue-on-error: true
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+      - name: Verify test failed as expected
+        if: always() && steps.strict-test.outcome == 'failure'
+        run: |
+          echo "Test failed as expected with Swift 5.9 and Package.resolved v3 incompatibility ✓"
+      - name: Verify expected failure (not success)
+        if: always() && steps.strict-test.outcome == 'success'
+        run: |
+          echo "ERROR: Expected strict mode to fail with Swift 5.9 and Package.resolved v3, but it succeeded"
+          exit 1
+      - name: Handle unexpected outcome
+        if: always() && steps.strict-test.outcome != 'success' && steps.strict-test.outcome != 'failure'
+        run: |
+          echo "ERROR: Unexpected test outcome: ${{ steps.strict-test.outcome }}"
+          exit 1
+
+  test-dependency-package-resolved-v3-floating:
+    name: Test Dependency Package (Ubuntu, Swift 5.x floating)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+          - "5.10"
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test floating mode (expect success)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+          skip-package-resolved: "true"
+
+  test-dependency-package-windows:
+    name: Test Dependency Package (Windows)
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -291,8 +625,74 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./
         with:
-          working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage-Package
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage-Package
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
-          use-xcbeautify: "true" 
+          use-xcbeautify: "true"
+          skip-package-resolved: "false"
+
+  test-dependency-package-macos:
+    name: Test Dependency Package (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          xcode: "/Applications/Xcode_16.4.app"
+          use-xcbeautify: "true"
+          skip-package-resolved: "false"
+
+  test-cache-behavior-strict:
+    name: Test Cache Behavior (strict mode)
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.1-jammy
+    steps:
+      - uses: actions/checkout@v4
+
+      # First build with Package.resolved (strict mode)
+      - name: First build (strict mode)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "false"
+
+      # Second build should hit cache
+      - name: Second build (should hit cache)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "false"
+
+  test-cache-behavior-floating:
+    name: Test Cache Behavior (floating mode)
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.1-jammy
+    steps:
+      - uses: actions/checkout@v4
+
+      # Remove Package.resolved for floating dependencies test
+      - name: Remove Package.resolved
+        run: rm -f test/DependencyPackage/Package.resolved
+
+      # First build without Package.resolved (floating mode)
+      - name: First build (floating mode)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "true"
+
+      # Second build should hit cache with 'no-resolved' key
+      - name: Second build (should hit cache)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "true"

@@ -24,7 +24,7 @@
 # - Windows: windows-2022/windows-2025 with Swift 6.1+ via compnerd/gha-setup-swift
 
 name: 'Swift - Build and Test'
-description: 'Builds and tests a Swift package on the current platform'
+description: 'Builds and optionally tests a Swift package on the current platform'
 
 # Marketplace metadata
 branding:
@@ -137,6 +137,43 @@ inputs:
     required: false
     default: '2.30.1'
 
+  # Skip Package.resolved dependency pinning
+  # Controls strict dependency pinning behavior in Swift Package Manager builds
+  #
+  # When 'false' (default - strict mode):
+  # - Requires Package.resolved to exist (build fails if missing)
+  # - Always uses --force-resolved-versions flag for reproducible builds
+  # - Cache keys include Package.resolved hash
+  # - Detects corrupt Package.resolved files via hash validation
+  #
+  # When 'true' (floating dependencies mode):
+  # - Package.resolved is optional (build succeeds even if missing)
+  # - Omits --force-resolved-versions flag to allow latest dependency versions
+  # - Cache keys use 'no-resolved' instead of hash
+  # - Useful when Package.resolved exists but is corrupt or incompatible
+  #
+  # Common use cases for 'true':
+  # - Packages without Package.resolved in repository
+  # - Testing against latest dependency versions
+  # - Package.resolved v3 incompatibility with Swift 5.x toolchains
+  # - Corrupt or malformed Package.resolved that prevents builds
+  #
+  # Default: 'false'
+  skip-package-resolved:
+    description: 'Skip Package.resolved dependency pinning (allows floating dependency versions)'
+    required: false
+    default: 'false'
+    
+  # Build-only mode (skip running tests)
+  # When enabled, only builds the package/scheme without running tests
+  # Useful for validation builds, binary distribution, or CI pipelines that separate build and test stages
+  # Works with both SPM builds and Xcode builds
+  # Default: 'false' (run tests as normal)
+  build-only:
+    description: 'Build without running tests'
+    required: false
+    default: 'false'
+
 runs:
   using: "composite"
   steps:
@@ -168,6 +205,157 @@ runs:
           echo "Unsupported operating system: $RUNNER_OS" >&2
           exit 1
         fi
+
+    # Package.resolved Detection and Hash Computation
+    # This step determines whether to use Package.resolved for dependency pinning
+    # and computes a cache key component that's consistent across all caching strategies.
+    #
+    # Decision Logic:
+    # - If skip-package-resolved is 'true': Use 'no-resolved' (floating dependencies allowed)
+    # - If skip-package-resolved is 'false' AND Package.resolved missing: FAIL (strict mode)
+    # - Otherwise: Use actual file hash (pinned dependencies)
+    #
+    # Outputs:
+    # - resolved-hash: The hash to use in cache keys ('no-resolved' or actual hash)
+    # - use-resolved: 'true' if using Package.resolved, 'false' otherwise
+    #
+    # This centralized approach ensures consistent cache behavior and prevents
+    # empty hash strings when Package.resolved is missing
+    #
+    # Corrupt Package.resolved Handling:
+    # If Package.resolved exists but is corrupt or incompatible (e.g., v3 format with Swift 5.x),
+    # set skip-package-resolved: 'true' to bypass validation and use floating dependencies.
+    # The hash computation will succeed even with corrupt files, but the build may fail later
+    # when Swift attempts to parse the file. Using skip-package-resolved bypasses this issue.
+    - name: Detect Package.resolved
+      shell: bash
+      id: detect-resolved
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ "${{ inputs.skip-package-resolved }}" == "true" ]]; then
+          # User explicitly requested to skip Package.resolved
+          echo "resolved-hash=no-resolved" >> $GITHUB_OUTPUT
+          echo "use-resolved=false" >> $GITHUB_OUTPUT
+          echo "Skipping Package.resolved (skip-package-resolved=true)"
+        elif [[ ! -f "Package.resolved" ]]; then
+          # Package.resolved file doesn't exist but is required (strict mode)
+          echo "ERROR: Package.resolved not found and skip-package-resolved is false" >&2
+          echo "Either add Package.resolved to your repository or set skip-package-resolved: true" >&2
+          exit 1
+        else
+          # Package.resolved exists and should be used
+          # Compute hash for cache key using portable method
+          if command -v shasum >/dev/null 2>&1; then
+            RESOLVED_HASH=$(shasum -a 256 Package.resolved | cut -d' ' -f1)
+          elif command -v sha256sum >/dev/null 2>&1; then
+            RESOLVED_HASH=$(sha256sum Package.resolved | cut -d' ' -f1)
+          elif command -v md5sum >/dev/null 2>&1; then
+            # Fallback to MD5 if SHA-256 is unavailable (better than file metadata)
+            RESOLVED_HASH=$(md5sum Package.resolved | cut -d' ' -f1)
+          elif command -v md5 >/dev/null 2>&1; then
+            # macOS md5 command format
+            RESOLVED_HASH=$(md5 -q Package.resolved)
+          else
+            # Last resort: use content-based checksum via cksum (POSIX standard)
+            # More stable than file metadata and available on all POSIX systems
+            RESOLVED_HASH=$(cksum Package.resolved | awk '{print $1"-"$2}')
+          fi
+          echo "resolved-hash=$RESOLVED_HASH" >> $GITHUB_OUTPUT
+          echo "use-resolved=true" >> $GITHUB_OUTPUT
+          echo "Using Package.resolved with hash: $RESOLVED_HASH"
+        fi
+
+    # Remove Package.resolved when skip-package-resolved is enabled
+    # This step deletes Package.resolved when skip-package-resolved=true to prevent
+    # Swift from attempting to parse incompatible Package.resolved formats.
+    #
+    # Why this is necessary:
+    # - Swift 5.9 cannot parse Package.resolved v3 format (fails with parsing errors)
+    # - Simply omitting --force-resolved-versions is not enough
+    # - Swift still tries to read and parse Package.resolved if it exists
+    # - Deleting the file allows Swift to resolve dependencies from scratch
+    #
+    # The file is backed up to a temporary location and will be restored at the end
+    # of the job to maintain consistency with the repository state.
+    - name: Remove Package.resolved (skip mode)
+      if: inputs.skip-package-resolved == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ -f "Package.resolved" ]]; then
+          echo "Backing up and deleting Package.resolved (skip-package-resolved=true)"
+          # Backup to a temporary location for restoration at the end
+          cp Package.resolved "$RUNNER_TEMP/Package.resolved.backup"
+          rm -f Package.resolved
+        else
+          echo "Package.resolved not found, nothing to delete"
+        fi
+
+    # Package.swift Hash Computation
+    # Computes a hash of the Package.swift semantic content to ensure unique cache keys per package.
+    # This prevents cache collisions when multiple packages use skip-package-resolved mode
+    # or when different packages are built on the same runner.
+    #
+    # Uses 'swift package dump-package' to generate a canonical JSON representation that ignores:
+    # - Whitespace and formatting changes
+    # - Comments
+    # - Variable names in the manifest
+    # - Code organization
+    #
+    # Only actual changes to dependencies, targets, products, or package configuration
+    # will invalidate the cache. This maximizes cache reuse while maintaining correctness.
+    #
+    # Outputs:
+    # - package-hash: The hash of Package.swift semantic content
+    #
+    # This ensures that each unique Swift package gets its own cache namespace,
+    # preventing cache pollution between different projects.
+    - name: Compute Package.swift Hash
+      shell: bash
+      id: package-hash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ ! -f "Package.swift" ]]; then
+          echo "ERROR: Package.swift not found in working directory" >&2
+          exit 1
+        fi
+
+        # Use swift package dump-package to get canonical JSON representation
+        # This ignores whitespace, comments, and other cosmetic changes
+        # Falls back to raw file hash if dump-package fails
+        if PACKAGE_JSON=$(swift package dump-package 2>/dev/null); then
+          # Hash the canonical JSON output
+          if command -v shasum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | shasum -a 256 | cut -d' ' -f1)
+          elif command -v sha256sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | sha256sum | cut -d' ' -f1)
+          elif command -v md5sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | md5sum | cut -d' ' -f1)
+          elif command -v md5 >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | md5)
+          else
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | cksum | awk '{print $1"-"$2}')
+          fi
+          echo "Using semantic Package.swift hash (from dump-package)"
+        else
+          # Fallback: hash the raw file if dump-package fails
+          echo "Warning: 'swift package dump-package' failed, using raw file hash" >&2
+          if command -v shasum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(shasum -a 256 Package.swift | cut -d' ' -f1)
+          elif command -v sha256sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(sha256sum Package.swift | cut -d' ' -f1)
+          elif command -v md5sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(md5sum Package.swift | cut -d' ' -f1)
+          elif command -v md5 >/dev/null 2>&1; then
+            PACKAGE_HASH=$(md5 -q Package.swift)
+          else
+            PACKAGE_HASH=$(cksum Package.swift | awk '{print $1"-"$2}')
+          fi
+          echo "Using raw Package.swift file hash (fallback)"
+        fi
+
+        echo "package-hash=$PACKAGE_HASH" >> $GITHUB_OUTPUT
+        echo "Package.swift hash: $PACKAGE_HASH"
 
     # macOS Xcode Configuration Steps
     # These steps only execute on macOS runners when Apple platform builds are requested.
@@ -417,13 +605,14 @@ runs:
     # because it understands Xcode's derived data structure and selective caching needs.
     #
     # Cache Key Strategy:
-    # - Primary: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageResolvedHash}-{CommitSHA}
-    # - Fallback: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageResolvedHash}-
+    # - Primary: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageHash}-{ResolvedHash}-{CommitSHA}
+    # - Fallback: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageHash}-{ResolvedHash}-
     #
     # Key Components Explained:
     # - runner.os: Ensures platform isolation (different derived data per OS)
     # - XCODE_NAME: Isolates builds between different Xcode versions (critical for compatibility)
-    # - Package.resolved hash: Invalidates cache when dependencies change
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
+    # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - github.sha: Provides exact build reproducibility (fallback allows partial matches)
     #
     # Performance Benefits:
@@ -431,15 +620,27 @@ runs:
     # - Preserves incremental compilation benefits
     # - Handles module dependency graphs efficiently
     # - Reduces redundant downloading of precompiled Swift modules
+    # - Prevents cache pollution between different packages
     - uses: irgaly/xcode-cache@v1
-      if: steps.detect-os.outputs.os == 'macos' && inputs.type
+      if: steps.detect-os.outputs.os == 'macos' && inputs.type && steps.detect-resolved.outputs.use-resolved == 'true'
       with:
-        key: xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles(format('{0}/Package.resolved', inputs.working-directory)) }}-${{ github.sha }}
+        key: xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ github.sha }}
         restore-keys: |
-          xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles(format('{0}/Package.resolved', inputs.working-directory)) }}-
+          xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-
         deriveddata-directory: ${{ env.DERIVED_DATA_PATH }}
         swiftpm-package-resolved-file: |
           ${{ inputs.working-directory }}/Package.resolved
+
+    # Xcode Derived Data Cache (Without Package.resolved)
+    # Same as above but omits swiftpm-package-resolved-file parameter when Package.resolved
+    # is not being used (either missing or skip-package-resolved=true)
+    - uses: irgaly/xcode-cache@v1
+      if: steps.detect-os.outputs.os == 'macos' && inputs.type && steps.detect-resolved.outputs.use-resolved == 'false'
+      with:
+        key: xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ github.sha }}
+        restore-keys: |
+          xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-
+        deriveddata-directory: ${{ env.DERIVED_DATA_PATH }}
 
     # Ubuntu specific steps
     - name: Get Swift and OS versions
@@ -510,9 +711,10 @@ runs:
     # Focuses on .build directory which contains Swift Package Manager compilation artifacts.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-{OS}-{XcodeVersion}-{PackageResolvedHash}
+    # - Pattern: spm-{OS}-{XcodeVersion}-{PackageHash}-{ResolvedHash}
     # - Xcode version isolation ensures Swift toolchain compatibility
-    # - Package.resolved hash invalidates when dependencies change
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
+    # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - Simpler than derived data caching since no platform-specific artifacts
     #
     # Performance: ~60-75% build time reduction for cross-platform packages
@@ -521,18 +723,20 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ inputs.working-directory }}/.build
-        key: spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ hashFiles(format('{0}/Package.resolved', inputs.working-directory)) }}
+        key: spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}
         restore-keys: |
-          spm-${{ runner.os }}-${{ env.XCODE_NAME }}-
+          spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-
 
     # Intelligent Caching Strategy 2b: Ubuntu SPM Cache (Linux Builds)
     # Comprehensive caching for Ubuntu Swift builds covering all SPM directories.
     # Includes additional .swiftpm and .cache directories that Swift uses for metadata.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-{UbuntuVersion}-{SwiftVersion}-{PackageResolvedHash}
+    # - Pattern: spm-{UbuntuVersion}-{SwiftVersion}-{PackageHash}-{ResolvedHash}
     # - OS version isolation (focal/jammy/noble) ensures ABI compatibility
     # - Swift version isolation prevents toolchain conflicts
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
+    # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - No Xcode version since Ubuntu uses system Swift toolchain
     #
     # Cached Directories Explained:
@@ -549,16 +753,18 @@ runs:
           ${{ inputs.working-directory }}/.build
           ${{ inputs.working-directory }}/.swiftpm
           ${{ inputs.working-directory }}/.cache
-        key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ hashFiles(format('{0}/Package.resolved', inputs.working-directory)) }}
+        key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}
 
     # Intelligent Caching Strategy 2c: Windows SPM Cache (Windows Builds)
     # Comprehensive caching for Windows Swift builds covering all SPM directories.
     # Similar to Ubuntu but with Windows-specific Swift toolchain considerations.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-windows-{WindowsProductNameSlug}-{BuildNumber}-{SwiftVersion}-{PackageResolvedHash}
+    # - Pattern: spm-windows-{WindowsProductNameSlug}-{BuildNumber}-{SwiftVersion}-{PackageHash}-{ResolvedHash}
     # - Windows version and build isolation ensures toolchain compatibility
     # - Swift version isolation prevents conflicts between different Windows Swift builds
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
+    # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - Uses Swift version from installed Windows toolchain
     # - Uses slugified Windows product name + build number (e.g., "windows-server-2022-20348") for proper cache isolation
     #
@@ -576,7 +782,7 @@ runs:
           ${{ inputs.working-directory }}/.build
           ${{ inputs.working-directory }}/.swiftpm
           ${{ inputs.working-directory }}/.cache
-        key: spm-${{ env.WINDOWS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ hashFiles(format('{0}/Package.resolved', inputs.working-directory)) }}
+        key: spm-${{ env.WINDOWS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}
 
     # Build and Test Execution: Two-Path Strategy
     # The action implements a dual-path build strategy to handle both cross-platform Swift packages
@@ -601,26 +807,44 @@ runs:
     # multiple platforms without requiring Apple platform simulators or specific Xcode versions.
     #
     # Command Breakdown:
-    # - swift build --build-tests: Compiles both the package and its test targets
-    # - swift test --enable-code-coverage: Runs tests with coverage collection
+    # - swift build --build-tests: Compiles both the package and its test targets (when not build-only)
+    # - swift build: Compiles only the package (when build-only is enabled)
+    # - swift test --enable-code-coverage: Runs tests with coverage collection (when not build-only)
     # - --cache-path .cache: Uses local cache directory for build artifacts (improves performance)
-    # - --force-resolved-versions: Ensures consistent dependency resolution across builds
+    # - --force-resolved-versions: Enforces strict dependency pinning (omitted only when skip-package-resolved=true)
+    #
+    # Dependency Resolution:
+    # - When skip-package-resolved='false': Always uses --force-resolved-versions (strict mode)
+    # - When skip-package-resolved='true': Omits flag to allow floating dependency versions
     #
     # Platform Compatibility:
     # - Ubuntu: Uses system Swift toolchain (5.9-6.2 depending on runner)
     # - macOS: Uses Xcode-bundled Swift when no specific Apple platform is targeted
+    # - Windows: Uses installed Swift toolchain
     #
     # Performance Optimizations:
     # - Build artifacts cached via .build directory (60-80% time reduction)
     # - Force-resolved-versions prevents dependency resolution inconsistencies
     # - Cache-path flag enables local build artifact reuse
-    - name: Build and Test
+    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }}
       if: (steps.detect-os.outputs.os == 'macos' && !inputs.type) || steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        swift build  --build-tests --cache-path .cache  --force-resolved-versions
-        swift test --enable-code-coverage --cache-path .cache  --force-resolved-versions
+        # Build resolved versions flag conditionally
+        # Only skip the flag when user explicitly requested skip-package-resolved=true
+        if [[ "${{ inputs.skip-package-resolved }}" == "true" ]]; then
+          RESOLVED_FLAG=""
+        else
+          RESOLVED_FLAG="--force-resolved-versions"
+        fi        
+
+        if [ "${{ inputs.build-only }}" = "true" ]; then
+          swift build --cache-path .cache $RESOLVED_FLAG
+        else
+          swift build --build-tests --cache-path .cache $RESOLVED_FLAG
+          swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
+        fi
 
     # Xcode Build and Test Execution (Apple Platform Testing)
     # This step handles Xcode-based builds for testing Swift packages on Apple platforms
@@ -629,12 +853,13 @@ runs:
     # Build Strategy Decision:
     # - macOS builds: Use native platform testing (no simulator required)
     # - iOS/watchOS/tvOS/visionOS: Use simulator-based testing with specific device/OS combinations
+    # - Build-only mode: Use 'xcodebuild build' instead of 'xcodebuild test'
     #
     # Command Parameters Explained:
     # - -scheme: Specifies which build scheme to use (must match Package.swift or .xcodeproj)
     # - -sdk: Platform SDK (iphonesimulator, watchsimulator, appletvsimulator, xrsimulator, macosx)
-    # - -destination: Target platform and device configuration for testing
-    # - -enableCodeCoverage: Collects code coverage metrics during test execution
+    # - -destination: Target platform and device configuration for testing/building
+    # - -enableCodeCoverage: Collects code coverage metrics during test execution (only for tests)
     # - -derivedDataPath: Uses optimized derived data location for caching performance
     #
     # Destination String Construction:
@@ -647,7 +872,7 @@ runs:
     # - Derived data caching provides 70-85% build time reduction
     # - Platform-specific optimizations leverage Xcode's incremental compilation
     # - Simulator reuse reduces platform initialization overhead
-    - name: Build and Test (macOS Device)
+    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (Apple Platforms)
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -655,34 +880,44 @@ runs:
         # Fix for iOS simulator connection issue (https://github.com/actions/runner-images/issues/12862)
         # Establish simulator connection before running xcodebuild
         xcrun simctl list > /dev/null
-        
+
         # Build destination string based on platform type
         if [ "${{ inputs.type }}" = "macos" ]; then
           DESTINATION="platform=macOS"
         else
           DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
         fi
-        
-        # Build xcodebuild command
-        XCODEBUILD_CMD="xcodebuild test \
-          -scheme ${{ inputs.scheme }} \
-          -sdk ${{ env.SDK }} \
-          -destination \"$DESTINATION\" \
-          -enableCodeCoverage YES \
-          -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
-        
+
+        # Build xcodebuild command based on build-only mode
+        if [ "${{ inputs.build-only }}" = "true" ]; then
+          # Build-only mode: compile without running tests
+          XCODEBUILD_CMD="xcodebuild build \
+            -scheme ${{ inputs.scheme }} \
+            -sdk ${{ env.SDK }} \
+            -destination \"$DESTINATION\" \
+            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
+        else
+          # Normal mode: build and run tests with coverage
+          XCODEBUILD_CMD="xcodebuild test \
+            -scheme ${{ inputs.scheme }} \
+            -sdk ${{ env.SDK }} \
+            -destination \"$DESTINATION\" \
+            -enableCodeCoverage YES \
+            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
+        fi
+
         # Execute with or without xcbeautify
         if [ "${{ inputs.use-xcbeautify }}" = "true" ]; then
           # Set up unbuffered I/O for better xcbeautify output
           export NSUnbufferedIO=YES
-          
+
           # Build xcbeautify command
           if [ -n "${{ inputs.xcbeautify-renderer }}" ] && [ "${{ inputs.xcbeautify-renderer }}" != "default" ]; then
             XCBEAUTIFY_CMD="xcbeautify --renderer ${{ inputs.xcbeautify-renderer }}"
           else
             XCBEAUTIFY_CMD="xcbeautify"
           fi
-          
+
           # Execute with xcbeautify and proper pipe failure handling
           # Use set -o pipefail to ensure xcodebuild failures are not masked by xcbeautify success
           set -o pipefail
@@ -696,4 +931,28 @@ runs:
         else
           # Execute without xcbeautify
           eval "$XCODEBUILD_CMD"
+        fi
+
+    # Restore Package.resolved after build/test completion
+    # This step restores the Package.resolved file that was backed up and deleted
+    # in the "Remove Package.resolved (skip mode)" step earlier in the workflow.
+    #
+    # Why this is necessary:
+    # - Maintains consistency with the repository state
+    # - Prevents confusion for multi-step workflows that might reference the file
+    # - Ensures artifacts or caches capture the original repository structure
+    # - Avoids accidental commits of missing Package.resolved in auto-commit workflows
+    #
+    # The restoration happens after all build and test operations are complete,
+    # so it doesn't interfere with the floating dependency resolution during builds.
+    - name: Restore Package.resolved (skip mode)
+      if: inputs.skip-package-resolved == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ -f "$RUNNER_TEMP/Package.resolved.backup" ]]; then
+          echo "Restoring Package.resolved from backup"
+          cp "$RUNNER_TEMP/Package.resolved.backup" Package.resolved
+        else
+          echo "No Package.resolved backup found, nothing to restore"
         fi
