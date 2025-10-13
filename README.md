@@ -52,6 +52,7 @@
 | `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` | **Xcode builds only** - iOS, watchOS, tvOS, visionOS simulator testing |
+| `build-only` | Build without running tests | `false` | `true` | `true`, `false` | **All platforms** - SPM (Ubuntu/macOS/Windows) and Xcode builds |
 | `windows-swift-version` | Swift version for Windows toolchain | `null` | `swift-6.1-release` | `swift-6.0-release`, `swift-6.1-release`, `swift-6.2-branch` | **Windows builds only** - Maps to `swift-version` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 | `windows-swift-build` | Swift build identifier for Windows | `null` | `6.1-RELEASE` | `6.1-RELEASE`, `6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a` | **Windows builds only** - Maps to `swift-build` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
@@ -80,6 +81,17 @@
 
 - **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SPM builds)
 - **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
+
+### Build-Only Mode
+
+When `build-only: true` is specified:
+
+- **SPM builds**: Uses `swift build` instead of `swift build --build-tests` + `swift test`
+- **Xcode builds**: Uses `xcodebuild build` instead of `xcodebuild test`
+- **Code coverage**: Not collected (coverage is only generated when tests are run)
+- **Test compilation**: Test targets are not compiled in build-only mode
+- **Performance**: Faster execution since tests are skipped
+- **Use cases**: Build validation, binary distribution, CI pipelines that separate build and test stages
 
 ### xcbeautify Integration
 
@@ -213,6 +225,23 @@ jobs:
         with:
           windows-swift-version: swift-6.1-release
           windows-swift-build: 6.1-RELEASE
+```
+
+#### Build-Only Mode (Skip Tests)
+```yaml
+name: Build Validation
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.4
+        with:
+          scheme: MyPackage
+          build-only: true  # Only build, don't run tests
 ```
 
 ### iOS Simulator Testing
@@ -905,6 +934,24 @@ jobs:
     deviceName: Apple Vision Pro
     osVersion: '26.0'
     download-platform: true
+```
+
+### Build-Only Mode
+```yaml
+# SPM build without running tests
+- uses: brightdigit/swift-build@v1.3.4
+  with:
+    scheme: MyPackage
+    build-only: true
+
+# iOS build without running tests
+- uses: brightdigit/swift-build@v1.3.4
+  with:
+    scheme: MyApp
+    type: ios
+    deviceName: iPhone 15 Pro
+    osVersion: '17.5'
+    build-only: true
 ```
 
 ## 🌍 Platform Support
