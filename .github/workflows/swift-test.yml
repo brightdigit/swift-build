@@ -15,11 +15,24 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
 
+          # SPM Build-Only Matrix
+          - runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
+            build-only: "true"
+
           # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
+
+          # macOS Build-Only Matrix
+          - type: macos
+            runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
+            build-only: "true"
 
           # iOS Build Matrix
           - type: ios
@@ -27,6 +40,14 @@ jobs:
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
             osVersion: "17.5"
+
+          # iOS Build-Only Matrix
+          - type: ios
+            runs-on: macos-14
+            xcode: "/Applications/Xcode_15.4.app"
+            deviceName: "iPhone 15"
+            osVersion: "17.5"
+            build-only: "true"
 
           - type: ios
             runs-on: macos-15
@@ -92,6 +113,7 @@ jobs:
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
           skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -104,6 +126,12 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
+
+          # SPM Build-Only Matrix
+          - runs-on: macos-15
+            xcode: "/Applications/Xcode_16.4.app"
+            use-xcbeautify: "true"
+            build-only: "true"
 
           # macOS Build Matrix
           - type: macos
@@ -177,6 +205,7 @@ jobs:
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
           skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -196,6 +225,9 @@ jobs:
         nightly:
           - false
           - true
+        build-only:
+          - false
+          - true
         exclude:
           - swift: 5.9
             ubuntu: noble
@@ -207,6 +239,15 @@ jobs:
             nightly: true
           - swift: 6.2
             nightly: false
+          # Only test build-only for one swift version per ubuntu to reduce test matrix
+          - swift: 5.9
+            build-only: true
+          - swift: 5.10
+            build-only: true
+          - swift: 6.0
+            build-only: true
+          - swift: 6.2
+            build-only: true
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
@@ -217,6 +258,7 @@ jobs:
           scheme: SingleTargetPackage
           use-xcbeautify: "true"
           skip-package-resolved: "true" 
+          build-only: ${{ matrix['build-only'] || 'false' }} 
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -236,6 +278,9 @@ jobs:
         nightly:
           - false
           - true
+        build-only:
+          - false
+          - true
         exclude:
           - swift: 5.9
             ubuntu: noble
@@ -247,6 +292,15 @@ jobs:
             nightly: true
           - swift: 6.2
             nightly: false
+          # Only test build-only for one swift version per ubuntu to reduce test matrix
+          - swift: 5.9
+            build-only: true
+          - swift: 5.10
+            build-only: true
+          - swift: 6.0
+            build-only: true
+          - swift: 6.2
+            build-only: true
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
@@ -257,6 +311,7 @@ jobs:
           scheme: MultiTargetPackage
           xcbeautify-renderer: "github-actions"
           skip-package-resolved: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }}
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -264,6 +319,7 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [windows-2022, windows-2025]
+        build-only: [false, true]
         include:
           - swift-version: swift-6.2-branch
             swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
@@ -279,6 +335,7 @@ jobs:
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
           skip-package-resolved: "true" 
+          build-only: ${{ matrix['build-only'] || 'false' }} 
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
@@ -287,6 +344,7 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [windows-2022, windows-2025]
+        build-only: [false, true]
         include:
           - swift-version: swift-6.2-branch
             swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
@@ -301,6 +359,7 @@ jobs:
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
+          build-only: ${{ matrix['build-only'] || 'false' }} 
           skip-package-resolved: "true"
 
   test-dependency-package-swift6:

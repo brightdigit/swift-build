@@ -24,7 +24,7 @@
 # - Windows: windows-2022/windows-2025 with Swift 6.1+ via compnerd/gha-setup-swift
 
 name: 'Swift - Build and Test'
-description: 'Builds and tests a Swift package on the current platform'
+description: 'Builds and optionally tests a Swift package on the current platform'
 
 # Marketplace metadata
 branding:
@@ -161,6 +161,16 @@ inputs:
   # Default: 'false'
   skip-package-resolved:
     description: 'Skip Package.resolved dependency pinning (allows floating dependency versions)'
+    required: false
+    default: 'false'
+    
+  # Build-only mode (skip running tests)
+  # When enabled, only builds the package/scheme without running tests
+  # Useful for validation builds, binary distribution, or CI pipelines that separate build and test stages
+  # Works with both SPM builds and Xcode builds
+  # Default: 'false' (run tests as normal)
+  build-only:
+    description: 'Build without running tests'
     required: false
     default: 'false'
 
@@ -771,8 +781,9 @@ runs:
     # multiple platforms without requiring Apple platform simulators or specific Xcode versions.
     #
     # Command Breakdown:
-    # - swift build --build-tests: Compiles both the package and its test targets
-    # - swift test --enable-code-coverage: Runs tests with coverage collection
+    # - swift build --build-tests: Compiles both the package and its test targets (when not build-only)
+    # - swift build: Compiles only the package (when build-only is enabled)
+    # - swift test --enable-code-coverage: Runs tests with coverage collection (when not build-only)
     # - --cache-path .cache: Uses local cache directory for build artifacts (improves performance)
     # - --force-resolved-versions: Enforces strict dependency pinning (omitted only when skip-package-resolved=true)
     #
@@ -789,7 +800,7 @@ runs:
     # - Build artifacts cached via .build directory (60-80% time reduction)
     # - Force-resolved-versions prevents dependency resolution inconsistencies
     # - Cache-path flag enables local build artifact reuse
-    - name: Build and Test
+    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }}
       if: (steps.detect-os.outputs.os == 'macos' && !inputs.type) || steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -800,10 +811,14 @@ runs:
           RESOLVED_FLAG=""
         else
           RESOLVED_FLAG="--force-resolved-versions"
-        fi
+        fi        
 
-        swift build --build-tests --cache-path .cache $RESOLVED_FLAG
-        swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
+        if [ "${{ inputs.build-only }}" = "true" ]; then
+          swift build --cache-path .cache $RESOLVED_FLAG
+        else
+          swift build --build-tests --cache-path .cache $RESOLVED_FLAG
+          swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
+        fi
 
     # Xcode Build and Test Execution (Apple Platform Testing)
     # This step handles Xcode-based builds for testing Swift packages on Apple platforms
@@ -812,12 +827,13 @@ runs:
     # Build Strategy Decision:
     # - macOS builds: Use native platform testing (no simulator required)
     # - iOS/watchOS/tvOS/visionOS: Use simulator-based testing with specific device/OS combinations
+    # - Build-only mode: Use 'xcodebuild build' instead of 'xcodebuild test'
     #
     # Command Parameters Explained:
     # - -scheme: Specifies which build scheme to use (must match Package.swift or .xcodeproj)
     # - -sdk: Platform SDK (iphonesimulator, watchsimulator, appletvsimulator, xrsimulator, macosx)
-    # - -destination: Target platform and device configuration for testing
-    # - -enableCodeCoverage: Collects code coverage metrics during test execution
+    # - -destination: Target platform and device configuration for testing/building
+    # - -enableCodeCoverage: Collects code coverage metrics during test execution (only for tests)
     # - -derivedDataPath: Uses optimized derived data location for caching performance
     #
     # Destination String Construction:
@@ -830,7 +846,7 @@ runs:
     # - Derived data caching provides 70-85% build time reduction
     # - Platform-specific optimizations leverage Xcode's incremental compilation
     # - Simulator reuse reduces platform initialization overhead
-    - name: Build and Test (macOS Device)
+    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (Apple Platforms)
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -838,34 +854,44 @@ runs:
         # Fix for iOS simulator connection issue (https://github.com/actions/runner-images/issues/12862)
         # Establish simulator connection before running xcodebuild
         xcrun simctl list > /dev/null
-        
+
         # Build destination string based on platform type
         if [ "${{ inputs.type }}" = "macos" ]; then
           DESTINATION="platform=macOS"
         else
           DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
         fi
-        
-        # Build xcodebuild command
-        XCODEBUILD_CMD="xcodebuild test \
-          -scheme ${{ inputs.scheme }} \
-          -sdk ${{ env.SDK }} \
-          -destination \"$DESTINATION\" \
-          -enableCodeCoverage YES \
-          -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
-        
+
+        # Build xcodebuild command based on build-only mode
+        if [ "${{ inputs.build-only }}" = "true" ]; then
+          # Build-only mode: compile without running tests
+          XCODEBUILD_CMD="xcodebuild build \
+            -scheme ${{ inputs.scheme }} \
+            -sdk ${{ env.SDK }} \
+            -destination \"$DESTINATION\" \
+            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
+        else
+          # Normal mode: build and run tests with coverage
+          XCODEBUILD_CMD="xcodebuild test \
+            -scheme ${{ inputs.scheme }} \
+            -sdk ${{ env.SDK }} \
+            -destination \"$DESTINATION\" \
+            -enableCodeCoverage YES \
+            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
+        fi
+
         # Execute with or without xcbeautify
         if [ "${{ inputs.use-xcbeautify }}" = "true" ]; then
           # Set up unbuffered I/O for better xcbeautify output
           export NSUnbufferedIO=YES
-          
+
           # Build xcbeautify command
           if [ -n "${{ inputs.xcbeautify-renderer }}" ] && [ "${{ inputs.xcbeautify-renderer }}" != "default" ]; then
             XCBEAUTIFY_CMD="xcbeautify --renderer ${{ inputs.xcbeautify-renderer }}"
           else
             XCBEAUTIFY_CMD="xcbeautify"
           fi
-          
+
           # Execute with xcbeautify and proper pipe failure handling
           # Use set -o pipefail to ensure xcodebuild failures are not masked by xcbeautify success
           set -o pipefail
