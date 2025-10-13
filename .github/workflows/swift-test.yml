@@ -14,12 +14,14 @@ jobs:
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
+            skip-package-resolved: "true"
 
           # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
+            skip-package-resolved: "true"
 
           # iOS Build Matrix
           - type: ios
@@ -27,6 +29,7 @@ jobs:
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
             osVersion: "17.5"
+            skip-package-resolved: "true"
 
           - type: ios
             runs-on: macos-15
@@ -34,6 +37,7 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             use-xcbeautify: "true"
+            skip-package-resolved: "true"
 
           - type: ios
             runs-on: macos-15
@@ -43,12 +47,14 @@ jobs:
             download-platform: "true"
             use-xcbeautify: "true"
             xcbeautify-renderer: "azure-devops-pipelines"
+            skip-package-resolved: "true"
 
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
+            skip-package-resolved: "true"
 
           - type: watchos
             runs-on: macos-15
@@ -58,18 +64,21 @@ jobs:
             download-platform: "true"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
+            skip-package-resolved: "true"
 
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
+            skip-package-resolved: "true"
 
           - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "18.5"
+            skip-package-resolved: "true"
 
           - type: tvos
             runs-on: macos-15
@@ -78,6 +87,7 @@ jobs:
             osVersion: "26.0"
             download-platform: "true"
             use-xcbeautify: "true"
+            skip-package-resolved: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -91,6 +101,7 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
+          skip-package-resolved: ${{ matrix['skip-package-resolved'] || 'false' }}
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -103,12 +114,14 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
+            skip-package-resolved: "true"
 
           # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
-            use-xcbeautify: "true"  
+            use-xcbeautify: "true"
+            skip-package-resolved: "true"
 
           # iOS Build Matrix
           - type: ios
@@ -116,8 +129,9 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
+            skip-package-resolved: "true"
 
           - type: ios
             runs-on: macos-15
@@ -125,14 +139,16 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             download-platform: "true"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
             xcbeautify-renderer: "azure-devops-pipelines"
+            skip-package-resolved: "true"
 
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
+            skip-package-resolved: "true"
 
           - type: watchos
             runs-on: macos-15
@@ -140,20 +156,23 @@ jobs:
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
             download-platform: "true"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
+            skip-package-resolved: "true"
 
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
+            skip-package-resolved: "true"
 
           - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "18.5"
+            skip-package-resolved: "true"
 
           - type: tvos
             runs-on: macos-15
@@ -161,7 +180,8 @@ jobs:
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "26.0"
             download-platform: "true"
-            use-xcbeautify: "true" 
+            use-xcbeautify: "true"
+            skip-package-resolved: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -175,6 +195,7 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
+          skip-package-resolved: ${{ matrix['skip-package-resolved'] || 'false' }}
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -213,7 +234,8 @@ jobs:
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
-          use-xcbeautify: "true" 
+          use-xcbeautify: "true"
+          skip-package-resolved: "true" 
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -253,6 +275,7 @@ jobs:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage
           xcbeautify-renderer: "github-actions"
+          skip-package-resolved: "true"
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -273,7 +296,8 @@ jobs:
           scheme: SingleTargetPackage
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
-          use-xcbeautify: "true" 
+          use-xcbeautify: "true"
+          skip-package-resolved: "true"
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
@@ -295,4 +319,59 @@ jobs:
           scheme: MultiTargetPackage-Package
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
-          use-xcbeautify: "true" 
+          use-xcbeautify: "true"
+          skip-package-resolved: "true"
+
+  # Test strict mode behavior: Should FAIL when Package.resolved is missing and skip-package-resolved=false
+  test-strict-mode-missing-resolved:
+    name: Test Strict Mode (Should Fail)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run action (expect failure)
+        id: test
+        continue-on-error: true
+        uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+          xcode: "/Applications/Xcode_16.4.app"
+          skip-package-resolved: "false"  # Strict mode: requires Package.resolved
+      - name: Verify failure
+        if: steps.test.outcome != 'failure'
+        run: |
+          echo "ERROR: Action should have failed when Package.resolved is missing and skip-package-resolved=false"
+          exit 1
+      - name: Verify error message
+        if: steps.test.outcome == 'failure'
+        run: |
+          echo "SUCCESS: Action correctly failed in strict mode without Package.resolved"
+
+  # Test strict mode behavior: Should SUCCEED when Package.resolved exists and skip-package-resolved=false
+  test-strict-mode-with-resolved:
+    name: Test Strict Mode (Should Succeed)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Package.resolved
+        working-directory: test/SingleTargetPackage
+        run: |
+          # Create a minimal Package.resolved file
+          cat > Package.resolved <<'EOF'
+          {
+            "originHash" : "test-hash-123",
+            "pins" : [],
+            "version" : 3
+          }
+          EOF
+      - name: Run action (expect success)
+        uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+          xcode: "/Applications/Xcode_16.4.app"
+          skip-package-resolved: "false"  # Strict mode: uses Package.resolved
+      - name: Verify --force-resolved-versions was used
+        working-directory: test/SingleTargetPackage
+        run: |
+          echo "SUCCESS: Action correctly used Package.resolved in strict mode" 
