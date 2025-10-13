@@ -406,12 +406,38 @@ jobs:
       image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./
+      - name: Test floating mode (expect failure for 5.9, success for 5.10)
+        id: floating-test
+        continue-on-error: true
+        uses: ./
         with:
           working-directory: test/DependencyPackage
           scheme: DependencyPackage
           use-xcbeautify: "true"
           skip-package-resolved: "true"
+      - name: Verify Swift 5.9 failed as expected
+        if: always() && matrix.swift == '5.9' && steps.floating-test.outcome == 'failure'
+        run: |
+          echo "Test failed as expected with Swift 5.9 and Package.resolved v3 incompatibility ✓"
+      - name: Verify Swift 5.10 succeeded as expected
+        if: always() && matrix.swift == '5.10' && steps.floating-test.outcome == 'success'
+        run: |
+          echo "Test succeeded as expected with Swift 5.10 ✓"
+      - name: Verify Swift 5.9 expected failure (not success)
+        if: always() && matrix.swift == '5.9' && steps.floating-test.outcome == 'success'
+        run: |
+          echo "ERROR: Expected floating mode to fail with Swift 5.9 and Package.resolved v3, but it succeeded"
+          exit 1
+      - name: Verify Swift 5.10 expected success (not failure)
+        if: always() && matrix.swift == '5.10' && steps.floating-test.outcome == 'failure'
+        run: |
+          echo "ERROR: Expected floating mode to succeed with Swift 5.10, but it failed"
+          exit 1
+      - name: Handle unexpected outcome
+        if: always() && steps.floating-test.outcome != 'success' && steps.floating-test.outcome != 'failure'
+        run: |
+          echo "ERROR: Unexpected test outcome: ${{ steps.floating-test.outcome }}"
+          exit 1
 
   test-dependency-package-windows:
     name: Test Dependency Package (Windows)
