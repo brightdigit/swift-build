@@ -10,20 +10,19 @@ jobs:
     strategy:
       matrix:
         include:
-          # SPM Build Matrix
+          # SPM Build Matrix - Test with skip-package-resolved (floating deps)
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
             skip-package-resolved: "true"
 
-          # macOS Build Matrix
+          # macOS Build Matrix - Test default behavior (strict mode)
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
-            skip-package-resolved: "true"
 
-          # iOS Build Matrix
+          # iOS Build Matrix - Mix of strict and floating
           - type: ios
             runs-on: macos-14
             xcode: "/Applications/Xcode_15.1.app"
@@ -37,7 +36,6 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             use-xcbeautify: "true"
-            skip-package-resolved: "true"
 
           - type: ios
             runs-on: macos-15
@@ -49,12 +47,12 @@ jobs:
             xcbeautify-renderer: "azure-devops-pipelines"
             skip-package-resolved: "true"
 
+          # watchOS - Test default behavior
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
-            skip-package-resolved: "true"
 
           - type: watchos
             runs-on: macos-15
@@ -66,13 +64,14 @@ jobs:
             xcbeautify-renderer: "github-actions"
             skip-package-resolved: "true"
 
+          # visionOS - Test default behavior
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
-            skip-package-resolved: "true"
 
+          # tvOS - Mix of strict and floating
           - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -87,7 +86,6 @@ jobs:
             osVersion: "26.0"
             download-platform: "true"
             use-xcbeautify: "true"
-            skip-package-resolved: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -109,21 +107,20 @@ jobs:
     strategy:
       matrix:
         include:
-          # SPM Build Matrix
+          # SPM Build Matrix - Test default behavior (strict mode)
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
-            skip-package-resolved: "true"
 
-          # macOS Build Matrix
+          # macOS Build Matrix - Test with skip-package-resolved
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
             skip-package-resolved: "true"
 
-          # iOS Build Matrix
+          # iOS Build Matrix - Mix of strict and floating
           - type: ios
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -131,7 +128,6 @@ jobs:
             osVersion: "18.5"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
-            skip-package-resolved: "true"
 
           - type: ios
             runs-on: macos-15
@@ -143,12 +139,12 @@ jobs:
             xcbeautify-renderer: "azure-devops-pipelines"
             skip-package-resolved: "true"
 
+          # watchOS - Test default behavior
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
-            skip-package-resolved: "true"
 
           - type: watchos
             runs-on: macos-15
@@ -160,6 +156,7 @@ jobs:
             xcbeautify-renderer: "github-actions"
             skip-package-resolved: "true"
 
+          # visionOS - Test with skip-package-resolved
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -167,12 +164,12 @@ jobs:
             osVersion: "2.5"
             skip-package-resolved: "true"
 
+          # tvOS - Test default behavior
           - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "18.5"
-            skip-package-resolved: "true"
 
           - type: tvos
             runs-on: macos-15
@@ -235,7 +232,7 @@ jobs:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
           use-xcbeautify: "true"
-          skip-package-resolved: "true" 
+          # Test default behavior (strict mode with Package.resolved) 
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -275,7 +272,7 @@ jobs:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage
           xcbeautify-renderer: "github-actions"
-          skip-package-resolved: "true"
+          skip-package-resolved: "true"  # Test floating dependencies mode
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -297,7 +294,7 @@ jobs:
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
-          skip-package-resolved: "true"
+          # Test default behavior (strict mode with Package.resolved)
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
@@ -320,7 +317,7 @@ jobs:
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
-          skip-package-resolved: "true"
+          skip-package-resolved: "true"  # Test floating dependencies mode
 
   # Test strict mode behavior: Should FAIL when Package.resolved is missing and skip-package-resolved=false
   test-strict-mode-missing-resolved:
@@ -328,6 +325,9 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Remove Package.resolved to simulate missing file
+        working-directory: test/SingleTargetPackage
+        run: rm -f Package.resolved
       - name: Run action (expect failure)
         id: test
         continue-on-error: true
@@ -353,17 +353,7 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Create Package.resolved
-        working-directory: test/SingleTargetPackage
-        run: |
-          # Create a minimal Package.resolved file
-          cat > Package.resolved <<'EOF'
-          {
-            "originHash" : "test-hash-123",
-            "pins" : [],
-            "version" : 3
-          }
-          EOF
+      # Package.resolved already exists in the repo, so we just run the action
       - name: Run action (expect success)
         uses: ./
         with:
