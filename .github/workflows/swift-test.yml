@@ -112,6 +112,7 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
+          skip-package-resolved: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
 
   test-multi-target-macos:
@@ -203,6 +204,7 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
+          skip-package-resolved: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
 
   test-single-target-ubuntu:
@@ -255,6 +257,7 @@ jobs:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
           use-xcbeautify: "true"
+          skip-package-resolved: "true" 
           build-only: ${{ matrix['build-only'] || 'false' }} 
 
   test-multi-target-ubuntu:
@@ -307,6 +310,7 @@ jobs:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage
           xcbeautify-renderer: "github-actions"
+          skip-package-resolved: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
   test-single-target-windows:
     name: Test Single Target Package (Windows)
@@ -330,6 +334,7 @@ jobs:
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
+          skip-package-resolved: "true" 
           build-only: ${{ matrix['build-only'] || 'false' }} 
 
   test-multi-target-windows:
@@ -355,3 +360,203 @@ jobs:
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
           build-only: ${{ matrix['build-only'] || 'false' }} 
+          skip-package-resolved: "true"
+
+  test-dependency-package-swift6:
+    name: Test Dependency Package (Ubuntu, Swift 6.0+)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "6.0"
+          - "6.1"
+          - "6.2"
+        ubuntu:
+          - jammy
+          - noble
+        nightly:
+          - false
+          - true
+        exclude:
+          - swift: 6.0
+            nightly: true
+          - swift: 6.1
+            nightly: true
+          - swift: 6.2
+            nightly: false
+    container:
+      image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+
+  test-dependency-package-swift5-strict:
+    name: Test Dependency Package (Ubuntu, Swift 5.9 strict - EXPECTED TO FAIL)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test strict mode (expect failure)
+        id: strict-test
+        continue-on-error: true
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+      - name: Verify test failed as expected
+        if: always() && steps.strict-test.outcome == 'failure'
+        run: |
+          echo "Test failed as expected with Swift 5.9 and Package.resolved v3 incompatibility ✓"
+      - name: Verify expected failure (not success)
+        if: always() && steps.strict-test.outcome == 'success'
+        run: |
+          echo "ERROR: Expected strict mode to fail with Swift 5.9 and Package.resolved v3, but it succeeded"
+          exit 1
+      - name: Handle unexpected outcome
+        if: always() && steps.strict-test.outcome != 'success' && steps.strict-test.outcome != 'failure'
+        run: |
+          echo "ERROR: Unexpected test outcome: ${{ steps.strict-test.outcome }}"
+          exit 1
+
+  test-dependency-package-swift510-strict:
+    name: Test Dependency Package (Ubuntu, Swift 5.10 strict - EXPECTED TO SUCCEED)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:5.10-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test strict mode (expect success)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+
+  test-dependency-package-swift5-floating:
+    name: Test Dependency Package (Ubuntu, Swift 5.x floating)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+          - "5.10"
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test floating mode (expect success)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+          skip-package-resolved: "true"
+
+  test-dependency-package-windows:
+    name: Test Dependency Package (Windows)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [windows-2022, windows-2025]
+        include:
+          - swift-version: swift-6.2-branch
+            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          - swift-version: swift-6.1-release
+            swift-build: 6.1-RELEASE
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage-Package
+          windows-swift-version: ${{ matrix.swift-version }}
+          windows-swift-build: ${{ matrix.swift-build }}
+          use-xcbeautify: "true"
+          skip-package-resolved: "false"
+
+  test-dependency-package-macos:
+    name: Test Dependency Package (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          xcode: "/Applications/Xcode_16.4.app"
+          use-xcbeautify: "true"
+          skip-package-resolved: "false"
+
+  test-cache-behavior-strict:
+    name: Test Cache Behavior (strict mode)
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.1-jammy
+    steps:
+      - uses: actions/checkout@v4
+
+      # First build with Package.resolved (strict mode)
+      - name: First build (strict mode)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "false"
+
+      # Second build should hit cache
+      - name: Second build (should hit cache)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "false"
+
+  test-cache-behavior-floating:
+    name: Test Cache Behavior (floating mode)
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.1-jammy
+    steps:
+      - uses: actions/checkout@v4
+
+      # Remove Package.resolved for floating dependencies test
+      - name: Remove Package.resolved
+        run: rm -f test/DependencyPackage/Package.resolved
+
+      # First build without Package.resolved (floating mode)
+      - name: First build (floating mode)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "true"
+
+      # Second build should hit cache with 'no-resolved' key
+      - name: Second build (should hit cache)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          skip-package-resolved: "true"
