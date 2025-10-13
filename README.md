@@ -54,6 +54,7 @@
 | `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` | **Xcode builds only** - iOS, watchOS, tvOS, visionOS simulator testing |
 | `windows-swift-version` | Swift version for Windows toolchain | `null` | `swift-6.1-release` | `swift-6.0-release`, `swift-6.1-release`, `swift-6.2-branch` | **Windows builds only** - Maps to `swift-version` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 | `windows-swift-build` | Swift build identifier for Windows | `null` | `6.1-RELEASE` | `6.1-RELEASE`, `6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a` | **Windows builds only** - Maps to `swift-build` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
+| `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
 
@@ -1994,6 +1995,134 @@ jobs:
           # Increase build verbosity
           XCODE_XCCONFIG_FILE: ./build-configs/debug.xcconfig
 ```
+
+### Dependency Management and Package.resolved
+
+The `skip-package-resolved` parameter controls how Swift Package Manager handles dependency resolution:
+
+#### Strict Mode (Default)
+When `skip-package-resolved: false` (default), the action enforces exact dependency versions from Package.resolved:
+
+```yaml
+name: Strict Dependency Pinning
+on: [push, pull_request]
+
+jobs:
+  test-strict:
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.4
+        with:
+          scheme: MyPackage
+          # skip-package-resolved: false is the default (strict mode)
+          # This enforces exact versions from Package.resolved
+```
+
+**Benefits:**
+- Reproducible builds with exact dependency versions
+- Consistent behavior across all CI runs
+- Matches local development environment
+
+**Requirements:**
+- Package.resolved must exist in repository
+- Package.resolved format must be compatible with Swift version
+
+#### Floating Mode
+When `skip-package-resolved: true`, the action allows dynamic dependency resolution:
+
+```yaml
+name: Floating Dependency Resolution
+on: [push, pull_request]
+
+jobs:
+  test-floating:
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.4
+        with:
+          scheme: MyPackage
+          skip-package-resolved: true  # Enable floating mode
+```
+
+**Benefits:**
+- Works without Package.resolved file
+- Tests against latest compatible dependency versions
+- Useful for packages without dependencies
+- Required when Package.resolved format is incompatible with Swift version
+
+**Use Cases:**
+- Packages with no dependencies
+- Testing compatibility with latest dependency versions
+- Swift version incompatibility with Package.resolved format
+
+#### Package.resolved Version Compatibility
+
+Swift Package Manager has different Package.resolved format versions:
+
+| Format Version | Swift Version Support | Compatibility |
+|----------------|----------------------|---------------|
+| Version 2 | Swift 5.9 - 6.x | Universal support |
+| Version 3 | Swift 6.0+ only | Not compatible with Swift 5.9/5.10 |
+
+**Example: Handling Version Incompatibility**
+
+If your Package.resolved uses version 3 format but you need to support Swift 5.9/5.10:
+
+```yaml
+name: Multi-Swift Version Testing
+on: [push, pull_request]
+
+jobs:
+  # Swift 6.0+ with strict dependency pinning (uses Package.resolved v3)
+  test-swift6-strict:
+    strategy:
+      matrix:
+        swift: ["6.0", "6.1", "6.2"]
+        ubuntu: [jammy, noble]
+    runs-on: ubuntu-latest
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.4
+        with:
+          scheme: MyPackage
+          # Defaults to strict mode - Package.resolved v3 works on Swift 6.0+
+
+  # Swift 5.9/5.10 with floating dependencies (bypasses Package.resolved v3)
+  test-swift5-floating:
+    strategy:
+      matrix:
+        swift: ["5.9", "5.10"]
+        ubuntu: [jammy, focal]
+    runs-on: ubuntu-latest
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.3.4
+        with:
+          scheme: MyPackage
+          skip-package-resolved: true  # Required for Swift 5.9/5.10 with Package.resolved v3
+```
+
+**Technical Details:**
+
+When `skip-package-resolved: false` (default):
+- Verifies Package.resolved exists before building
+- Computes hash of Package.resolved for cache keys
+- Passes `--force-resolved-versions` to Swift PM commands
+- Build fails if Package.resolved is missing or incompatible
+
+When `skip-package-resolved: true`:
+- Skips Package.resolved validation
+- Uses `no-resolved` placeholder in cache keys
+- Omits `--force-resolved-versions` flag
+- Allows Swift PM to resolve dependencies dynamically
 
 ## ⚡ Performance Optimization Examples
 

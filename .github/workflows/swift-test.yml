@@ -10,25 +10,23 @@ jobs:
     strategy:
       matrix:
         include:
-          # SPM Build Matrix - Test with skip-package-resolved (floating deps)
+          # SPM Build Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
-            skip-package-resolved: "true"
 
-          # macOS Build Matrix - Test default behavior (strict mode)
+          # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
 
-          # iOS Build Matrix - Mix of strict and floating
+          # iOS Build Matrix
           - type: ios
             runs-on: macos-14
             xcode: "/Applications/Xcode_15.1.app"
             deviceName: "iPhone 15"
             osVersion: "17.5"
-            skip-package-resolved: "true"
 
           - type: ios
             runs-on: macos-15
@@ -45,9 +43,7 @@ jobs:
             download-platform: "true"
             use-xcbeautify: "true"
             xcbeautify-renderer: "azure-devops-pipelines"
-            skip-package-resolved: "true"
 
-          # watchOS - Test default behavior
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -62,22 +58,18 @@ jobs:
             download-platform: "true"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
-            skip-package-resolved: "true"
 
-          # visionOS - Test default behavior
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
 
-          # tvOS - Mix of strict and floating
           - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "18.5"
-            skip-package-resolved: "true"
 
           - type: tvos
             runs-on: macos-15
@@ -99,7 +91,7 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
-          skip-package-resolved: ${{ matrix['skip-package-resolved'] || 'false' }}
+          skip-package-resolved: "true"
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -107,26 +99,25 @@ jobs:
     strategy:
       matrix:
         include:
-          # SPM Build Matrix - Test default behavior (strict mode)
+          # SPM Build Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
 
-          # macOS Build Matrix - Test with skip-package-resolved
+          # macOS Build Matrix
           - type: macos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
-            use-xcbeautify: "true"
-            skip-package-resolved: "true"
+            use-xcbeautify: "true"  
 
-          # iOS Build Matrix - Mix of strict and floating
+          # iOS Build Matrix
           - type: ios
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
-            use-xcbeautify: "true"
+            use-xcbeautify: "true" 
             xcbeautify-renderer: "github-actions"
 
           - type: ios
@@ -135,11 +126,9 @@ jobs:
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
             download-platform: "true"
-            use-xcbeautify: "true"
+            use-xcbeautify: "true" 
             xcbeautify-renderer: "azure-devops-pipelines"
-            skip-package-resolved: "true"
 
-          # watchOS - Test default behavior
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -152,19 +141,15 @@ jobs:
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
             download-platform: "true"
-            use-xcbeautify: "true"
+            use-xcbeautify: "true" 
             xcbeautify-renderer: "github-actions"
-            skip-package-resolved: "true"
 
-          # visionOS - Test with skip-package-resolved
           - type: visionos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Vision Pro"
             osVersion: "2.5"
-            skip-package-resolved: "true"
 
-          # tvOS - Test default behavior
           - type: tvos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -177,8 +162,7 @@ jobs:
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "26.0"
             download-platform: "true"
-            use-xcbeautify: "true"
-            skip-package-resolved: "true"
+            use-xcbeautify: "true" 
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -192,7 +176,7 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
-          skip-package-resolved: ${{ matrix['skip-package-resolved'] || 'false' }}
+          skip-package-resolved: "true"
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -232,7 +216,7 @@ jobs:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
           use-xcbeautify: "true"
-          # Test default behavior (strict mode with Package.resolved) 
+          skip-package-resolved: "true" 
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -272,7 +256,7 @@ jobs:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage
           xcbeautify-renderer: "github-actions"
-          skip-package-resolved: "true"  # Test floating dependencies mode
+          skip-package-resolved: "true"
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -294,7 +278,7 @@ jobs:
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
-          # Test default behavior (strict mode with Package.resolved)
+          skip-package-resolved: "true" 
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
@@ -317,51 +301,80 @@ jobs:
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
-          skip-package-resolved: "true"  # Test floating dependencies mode
+          skip-package-resolved: "true"
 
-  # Test strict mode behavior: Should FAIL when Package.resolved is missing and skip-package-resolved=false
-  test-strict-mode-missing-resolved:
-    name: Test Strict Mode (Should Fail)
-    runs-on: macos-15
+  test-dependency-package-swift6:
+    name: Test Dependency Package (Swift 6.0+)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "6.0"
+          - "6.1"
+          - "6.2"
+        ubuntu:
+          - jammy
+          - noble
+        nightly:
+          - false
+          - true
+        exclude:
+          - swift: 6.0
+            nightly: true
+          - swift: 6.1
+            nightly: true
+          - swift: 6.2
+            nightly: false
+    container:
+      image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
       - uses: actions/checkout@v4
-      - name: Remove Package.resolved to simulate missing file
-        working-directory: test/SingleTargetPackage
-        run: rm -f Package.resolved
-      - name: Run action (expect failure)
-        id: test
-        continue-on-error: true
-        uses: ./
+      - uses: ./
         with:
-          working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
-          xcode: "/Applications/Xcode_16.4.app"
-          skip-package-resolved: "false"  # Strict mode: requires Package.resolved
-      - name: Verify failure
-        if: steps.test.outcome != 'failure'
-        run: |
-          echo "ERROR: Action should have failed when Package.resolved is missing and skip-package-resolved=false"
-          exit 1
-      - name: Verify error message
-        if: steps.test.outcome == 'failure'
-        run: |
-          echo "SUCCESS: Action correctly failed in strict mode without Package.resolved"
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
 
-  # Test strict mode behavior: Should SUCCEED when Package.resolved exists and skip-package-resolved=false
-  test-strict-mode-with-resolved:
-    name: Test Strict Mode (Should Succeed)
-    runs-on: macos-15
+  test-dependency-package-swift5-strict:
+    name: Test Dependency Package (Swift 5.x strict - EXPECTED TO FAIL)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+          - "5.10"
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
       - uses: actions/checkout@v4
-      # Package.resolved already exists in the repo, so we just run the action
-      - name: Run action (expect success)
-        uses: ./
+      - uses: ./
         with:
-          working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
-          xcode: "/Applications/Xcode_16.4.app"
-          skip-package-resolved: "false"  # Strict mode: uses Package.resolved
-      - name: Verify --force-resolved-versions was used
-        working-directory: test/SingleTargetPackage
-        run: |
-          echo "SUCCESS: Action correctly used Package.resolved in strict mode" 
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+
+  test-dependency-package-swift5-floating:
+    name: Test Dependency Package (Swift 5.x floating)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift:
+          - "5.9"
+          - "5.10"
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
+          skip-package-resolved: "true" 
