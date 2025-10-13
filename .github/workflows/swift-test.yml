@@ -400,6 +400,7 @@ jobs:
           windows-swift-version: ${{ matrix.swift-version }}
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
+          skip-package-resolved: "false"
 
   test-dependency-package-macos:
     name: Test Dependency Package (macOS)
@@ -412,3 +413,4 @@ jobs:
           scheme: DependencyPackage
           xcode: "/Applications/Xcode_16.4.app"
           use-xcbeautify: "true" 
+          skip-package-resolved: "false"
