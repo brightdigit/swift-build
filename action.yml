@@ -221,8 +221,15 @@ runs:
           exit 1
         else
           # Package.resolved exists and should be used
-          # Compute hash for cache key
-          RESOLVED_HASH=$(shasum -a 256 Package.resolved | cut -d' ' -f1)
+          # Compute hash for cache key using portable method
+          if command -v shasum >/dev/null 2>&1; then
+            RESOLVED_HASH=$(shasum -a 256 Package.resolved | cut -d' ' -f1)
+          elif command -v sha256sum >/dev/null 2>&1; then
+            RESOLVED_HASH=$(sha256sum Package.resolved | cut -d' ' -f1)
+          else
+            # Fallback: use file size and modification time as pseudo-hash
+            RESOLVED_HASH=$(ls -l Package.resolved | awk '{print $5"-"$6"-"$7"-"$8}')
+          fi
           echo "resolved-hash=$RESOLVED_HASH" >> $GITHUB_OUTPUT
           echo "use-resolved=true" >> $GITHUB_OUTPUT
           echo "Using Package.resolved with hash: $RESOLVED_HASH"
