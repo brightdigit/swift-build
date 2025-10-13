@@ -82,6 +82,17 @@
 - **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SPM builds)
 - **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
 
+### Build-Only Mode
+
+When `build-only: true` is specified:
+
+- **SPM builds**: Uses `swift build` instead of `swift build --build-tests` + `swift test`
+- **Xcode builds**: Uses `xcodebuild build` instead of `xcodebuild test`
+- **Code coverage**: Not collected (coverage is only generated when tests are run)
+- **Test compilation**: Test targets are not compiled in build-only mode
+- **Performance**: Faster execution since tests are skipped
+- **Use cases**: Build validation, binary distribution, CI pipelines that separate build and test stages
+
 ### xcbeautify Integration
 
 swift-build includes optional integration with [xcbeautify](https://github.com/thii/xcbeautify) for enhanced xcodebuild output formatting and better CI integration.
