@@ -358,16 +358,16 @@ jobs:
           scheme: DependencyPackage
           use-xcbeautify: "true"
       - name: Verify test failed as expected
-        if: steps.strict-test.outcome == 'failure'
+        if: always() && steps.strict-test.outcome == 'failure'
         run: |
           echo "Test failed as expected with Swift 5.9 and Package.resolved v3 incompatibility ✓"
       - name: Verify expected failure (not success)
-        if: steps.strict-test.outcome == 'success'
+        if: always() && steps.strict-test.outcome == 'success'
         run: |
           echo "ERROR: Expected strict mode to fail with Swift 5.9 and Package.resolved v3, but it succeeded"
           exit 1
       - name: Handle unexpected outcome
-        if: steps.strict-test.outcome != 'success' && steps.strict-test.outcome != 'failure'
+        if: always() && steps.strict-test.outcome != 'success' && steps.strict-test.outcome != 'failure'
         run: |
           echo "ERROR: Unexpected test outcome: ${{ steps.strict-test.outcome }}"
           exit 1
