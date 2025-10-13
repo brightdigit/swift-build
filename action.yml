@@ -265,6 +265,30 @@ runs:
           echo "Using Package.resolved with hash: $RESOLVED_HASH"
         fi
 
+    # Remove Package.resolved when skip-package-resolved is enabled
+    # This step deletes Package.resolved when skip-package-resolved=true to prevent
+    # Swift from attempting to parse incompatible Package.resolved formats.
+    #
+    # Why this is necessary:
+    # - Swift 5.9 cannot parse Package.resolved v3 format (fails with parsing errors)
+    # - Simply omitting --force-resolved-versions is not enough
+    # - Swift still tries to read and parse Package.resolved if it exists
+    # - Deleting the file allows Swift to resolve dependencies from scratch
+    #
+    # This enables floating dependency mode to work correctly even when
+    # a Package.resolved file exists but is incompatible with the Swift version.
+    - name: Remove Package.resolved (skip mode)
+      if: inputs.skip-package-resolved == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ -f "Package.resolved" ]]; then
+          echo "Deleting Package.resolved (skip-package-resolved=true)"
+          rm -f Package.resolved
+        else
+          echo "Package.resolved not found, nothing to delete"
+        fi
+
     # Package.swift Hash Computation
     # Computes a hash of the Package.swift semantic content to ensure unique cache keys per package.
     # This prevents cache collisions when multiple packages use skip-package-resolved mode
