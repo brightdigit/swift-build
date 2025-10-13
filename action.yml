@@ -275,15 +275,17 @@ runs:
     # - Swift still tries to read and parse Package.resolved if it exists
     # - Deleting the file allows Swift to resolve dependencies from scratch
     #
-    # This enables floating dependency mode to work correctly even when
-    # a Package.resolved file exists but is incompatible with the Swift version.
+    # The file is backed up to a temporary location and will be restored at the end
+    # of the job to maintain consistency with the repository state.
     - name: Remove Package.resolved (skip mode)
       if: inputs.skip-package-resolved == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
         if [[ -f "Package.resolved" ]]; then
-          echo "Deleting Package.resolved (skip-package-resolved=true)"
+          echo "Backing up and deleting Package.resolved (skip-package-resolved=true)"
+          # Backup to a temporary location for restoration at the end
+          cp Package.resolved "$RUNNER_TEMP/Package.resolved.backup"
           rm -f Package.resolved
         else
           echo "Package.resolved not found, nothing to delete"
@@ -929,4 +931,28 @@ runs:
         else
           # Execute without xcbeautify
           eval "$XCODEBUILD_CMD"
+        fi
+
+    # Restore Package.resolved after build/test completion
+    # This step restores the Package.resolved file that was backed up and deleted
+    # in the "Remove Package.resolved (skip mode)" step earlier in the workflow.
+    #
+    # Why this is necessary:
+    # - Maintains consistency with the repository state
+    # - Prevents confusion for multi-step workflows that might reference the file
+    # - Ensures artifacts or caches capture the original repository structure
+    # - Avoids accidental commits of missing Package.resolved in auto-commit workflows
+    #
+    # The restoration happens after all build and test operations are complete,
+    # so it doesn't interfere with the floating dependency resolution during builds.
+    - name: Restore Package.resolved (skip mode)
+      if: inputs.skip-package-resolved == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ -f "$RUNNER_TEMP/Package.resolved.backup" ]]; then
+          echo "Restoring Package.resolved from backup"
+          cp "$RUNNER_TEMP/Package.resolved.backup" Package.resolved
+        else
+          echo "No Package.resolved backup found, nothing to restore"
         fi
