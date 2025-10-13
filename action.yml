@@ -140,23 +140,25 @@ inputs:
   # Skip Package.resolved dependency pinning
   # Controls strict dependency pinning behavior in Swift Package Manager builds
   #
-  # When 'false' (default - strict mode):
-  # - Requires Package.resolved to exist (build fails if missing)
-  # - Always uses --force-resolved-versions flag for reproducible builds
-  # - Cache keys include Package.resolved hash
-  # - Detects corrupt Package.resolved files via hash validation
+  # When 'false' (default - automatic mode):
+  # - If Package.resolved exists: Uses --force-resolved-versions for reproducible builds
+  # - If Package.resolved missing: Omits --force-resolved-versions (no dependencies to pin)
+  # - Cache keys include Package.resolved hash when file exists
+  # - Automatically handles packages with no dependencies
   #
-  # When 'true' (floating dependencies mode):
-  # - Package.resolved is optional (build succeeds even if missing)
-  # - Omits --force-resolved-versions flag to allow latest dependency versions
+  # When 'true' (force skip mode):
+  # - Always omits --force-resolved-versions flag to allow latest dependency versions
+  # - Removes Package.resolved file temporarily to prevent parsing errors
   # - Cache keys use 'no-resolved' instead of hash
   # - Useful when Package.resolved exists but is corrupt or incompatible
   #
   # Common use cases for 'true':
-  # - Packages without Package.resolved in repository
   # - Testing against latest dependency versions
   # - Package.resolved v3 incompatibility with Swift 5.x toolchains
   # - Corrupt or malformed Package.resolved that prevents builds
+  # - Forcing dependency resolution when Package.resolved is outdated
+  #
+  # Note: Packages without dependencies work automatically with default settings
   #
   # Default: 'false'
   skip-package-resolved:
@@ -212,7 +214,7 @@ runs:
     #
     # Decision Logic:
     # - If skip-package-resolved is 'true': Use 'no-resolved' (floating dependencies allowed)
-    # - If skip-package-resolved is 'false' AND Package.resolved missing: FAIL (strict mode)
+    # - If Package.resolved doesn't exist: Use 'no-resolved' (no dependencies to pin)
     # - Otherwise: Use actual file hash (pinned dependencies)
     #
     # Outputs:
@@ -238,10 +240,10 @@ runs:
           echo "use-resolved=false" >> $GITHUB_OUTPUT
           echo "Skipping Package.resolved (skip-package-resolved=true)"
         elif [[ ! -f "Package.resolved" ]]; then
-          # Package.resolved file doesn't exist but is required (strict mode)
-          echo "ERROR: Package.resolved not found and skip-package-resolved is false" >&2
-          echo "Either add Package.resolved to your repository or set skip-package-resolved: true" >&2
-          exit 1
+          # Package.resolved doesn't exist (likely no dependencies)
+          echo "resolved-hash=no-resolved" >> $GITHUB_OUTPUT
+          echo "use-resolved=false" >> $GITHUB_OUTPUT
+          echo "Package.resolved not found (no dependencies or not committed)"
         else
           # Package.resolved exists and should be used
           # Compute hash for cache key using portable method
