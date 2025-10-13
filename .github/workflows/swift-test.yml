@@ -336,13 +336,12 @@ jobs:
           use-xcbeautify: "true"
 
   test-dependency-package-swift5-strict:
-    name: Test Dependency Package (Ubuntu, Swift 5.x strict - EXPECTED TO FAIL)
+    name: Test Dependency Package (Ubuntu, Swift 5.9 strict - EXPECTED TO FAIL)
     runs-on: ubuntu-latest
     strategy:
       matrix:
         swift:
           - "5.9"
-          - "5.10"
         ubuntu:
           - jammy
           - focal
@@ -358,11 +357,39 @@ jobs:
           working-directory: test/DependencyPackage
           scheme: DependencyPackage
           use-xcbeautify: "true"
-      - name: Verify expected failure
+      - name: Verify test failed as expected
+        if: steps.strict-test.outcome == 'failure'
+        run: |
+          echo "Test failed as expected with Swift 5.9 and Package.resolved v3 incompatibility ✓"
+      - name: Verify expected failure (not success)
         if: steps.strict-test.outcome == 'success'
         run: |
-          echo "ERROR: Expected strict mode to fail with Swift 5.x and Package.resolved v3, but it succeeded"
+          echo "ERROR: Expected strict mode to fail with Swift 5.9 and Package.resolved v3, but it succeeded"
           exit 1
+      - name: Handle unexpected outcome
+        if: steps.strict-test.outcome != 'success' && steps.strict-test.outcome != 'failure'
+        run: |
+          echo "ERROR: Unexpected test outcome: ${{ steps.strict-test.outcome }}"
+          exit 1
+
+  test-dependency-package-swift510-strict:
+    name: Test Dependency Package (Ubuntu, Swift 5.10 strict - EXPECTED TO SUCCEED)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ubuntu:
+          - jammy
+          - focal
+    container:
+      image: swift:5.10-${{ matrix.ubuntu }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test strict mode (expect success)
+        uses: ./
+        with:
+          working-directory: test/DependencyPackage
+          scheme: DependencyPackage
+          use-xcbeautify: "true"
 
   test-dependency-package-swift5-floating:
     name: Test Dependency Package (Ubuntu, Swift 5.x floating)

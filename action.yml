@@ -255,6 +255,72 @@ runs:
           echo "Using Package.resolved with hash: $RESOLVED_HASH"
         fi
 
+    # Package.swift Hash Computation
+    # Computes a hash of the Package.swift semantic content to ensure unique cache keys per package.
+    # This prevents cache collisions when multiple packages use skip-package-resolved mode
+    # or when different packages are built on the same runner.
+    #
+    # Uses 'swift package dump-package' to generate a canonical JSON representation that ignores:
+    # - Whitespace and formatting changes
+    # - Comments
+    # - Variable names in the manifest
+    # - Code organization
+    #
+    # Only actual changes to dependencies, targets, products, or package configuration
+    # will invalidate the cache. This maximizes cache reuse while maintaining correctness.
+    #
+    # Outputs:
+    # - package-hash: The hash of Package.swift semantic content
+    #
+    # This ensures that each unique Swift package gets its own cache namespace,
+    # preventing cache pollution between different projects.
+    - name: Compute Package.swift Hash
+      shell: bash
+      id: package-hash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [[ ! -f "Package.swift" ]]; then
+          echo "ERROR: Package.swift not found in working directory" >&2
+          exit 1
+        fi
+
+        # Use swift package dump-package to get canonical JSON representation
+        # This ignores whitespace, comments, and other cosmetic changes
+        # Falls back to raw file hash if dump-package fails
+        if PACKAGE_JSON=$(swift package dump-package 2>/dev/null); then
+          # Hash the canonical JSON output
+          if command -v shasum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | shasum -a 256 | cut -d' ' -f1)
+          elif command -v sha256sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | sha256sum | cut -d' ' -f1)
+          elif command -v md5sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | md5sum | cut -d' ' -f1)
+          elif command -v md5 >/dev/null 2>&1; then
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | md5)
+          else
+            PACKAGE_HASH=$(echo "$PACKAGE_JSON" | cksum | awk '{print $1"-"$2}')
+          fi
+          echo "Using semantic Package.swift hash (from dump-package)"
+        else
+          # Fallback: hash the raw file if dump-package fails
+          echo "Warning: 'swift package dump-package' failed, using raw file hash" >&2
+          if command -v shasum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(shasum -a 256 Package.swift | cut -d' ' -f1)
+          elif command -v sha256sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(sha256sum Package.swift | cut -d' ' -f1)
+          elif command -v md5sum >/dev/null 2>&1; then
+            PACKAGE_HASH=$(md5sum Package.swift | cut -d' ' -f1)
+          elif command -v md5 >/dev/null 2>&1; then
+            PACKAGE_HASH=$(md5 -q Package.swift)
+          else
+            PACKAGE_HASH=$(cksum Package.swift | awk '{print $1"-"$2}')
+          fi
+          echo "Using raw Package.swift file hash (fallback)"
+        fi
+
+        echo "package-hash=$PACKAGE_HASH" >> $GITHUB_OUTPUT
+        echo "Package.swift hash: $PACKAGE_HASH"
+
     # macOS Xcode Configuration Steps
     # These steps only execute on macOS runners when Apple platform builds are requested.
     # They configure the Xcode toolchain, map platform types to SDK/simulator names,
@@ -503,12 +569,13 @@ runs:
     # because it understands Xcode's derived data structure and selective caching needs.
     #
     # Cache Key Strategy:
-    # - Primary: xcode-deriveddata-{OS}-{XcodeVersion}-{ResolvedHash}-{CommitSHA}
-    # - Fallback: xcode-deriveddata-{OS}-{XcodeVersion}-{ResolvedHash}-
+    # - Primary: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageHash}-{ResolvedHash}-{CommitSHA}
+    # - Fallback: xcode-deriveddata-{OS}-{XcodeVersion}-{PackageHash}-{ResolvedHash}-
     #
     # Key Components Explained:
     # - runner.os: Ensures platform isolation (different derived data per OS)
     # - XCODE_NAME: Isolates builds between different Xcode versions (critical for compatibility)
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
     # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - github.sha: Provides exact build reproducibility (fallback allows partial matches)
     #
@@ -517,12 +584,13 @@ runs:
     # - Preserves incremental compilation benefits
     # - Handles module dependency graphs efficiently
     # - Reduces redundant downloading of precompiled Swift modules
+    # - Prevents cache pollution between different packages
     - uses: irgaly/xcode-cache@v1
       if: steps.detect-os.outputs.os == 'macos' && inputs.type && steps.detect-resolved.outputs.use-resolved == 'true'
       with:
-        key: xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ github.sha }}
+        key: xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ github.sha }}
         restore-keys: |
-          xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.detect-resolved.outputs.resolved-hash }}-
+          xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-
         deriveddata-directory: ${{ env.DERIVED_DATA_PATH }}
         swiftpm-package-resolved-file: |
           ${{ inputs.working-directory }}/Package.resolved
@@ -533,9 +601,9 @@ runs:
     - uses: irgaly/xcode-cache@v1
       if: steps.detect-os.outputs.os == 'macos' && inputs.type && steps.detect-resolved.outputs.use-resolved == 'false'
       with:
-        key: xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ github.sha }}
+        key: xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ github.sha }}
         restore-keys: |
-          xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.detect-resolved.outputs.resolved-hash }}-
+          xcode-deriveddata-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-
         deriveddata-directory: ${{ env.DERIVED_DATA_PATH }}
 
     # Ubuntu specific steps
@@ -607,8 +675,9 @@ runs:
     # Focuses on .build directory which contains Swift Package Manager compilation artifacts.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-{OS}-{XcodeVersion}-{ResolvedHash}
+    # - Pattern: spm-{OS}-{XcodeVersion}-{PackageHash}-{ResolvedHash}
     # - Xcode version isolation ensures Swift toolchain compatibility
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
     # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - Simpler than derived data caching since no platform-specific artifacts
     #
@@ -618,18 +687,19 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ inputs.working-directory }}/.build
-        key: spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.detect-resolved.outputs.resolved-hash }}
+        key: spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}
         restore-keys: |
-          spm-${{ runner.os }}-${{ env.XCODE_NAME }}-
+          spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-
 
     # Intelligent Caching Strategy 2b: Ubuntu SPM Cache (Linux Builds)
     # Comprehensive caching for Ubuntu Swift builds covering all SPM directories.
     # Includes additional .swiftpm and .cache directories that Swift uses for metadata.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-{UbuntuVersion}-{SwiftVersion}-{ResolvedHash}
+    # - Pattern: spm-{UbuntuVersion}-{SwiftVersion}-{PackageHash}-{ResolvedHash}
     # - OS version isolation (focal/jammy/noble) ensures ABI compatibility
     # - Swift version isolation prevents toolchain conflicts
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
     # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - No Xcode version since Ubuntu uses system Swift toolchain
     #
@@ -647,16 +717,17 @@ runs:
           ${{ inputs.working-directory }}/.build
           ${{ inputs.working-directory }}/.swiftpm
           ${{ inputs.working-directory }}/.cache
-        key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.detect-resolved.outputs.resolved-hash }}
+        key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}
 
     # Intelligent Caching Strategy 2c: Windows SPM Cache (Windows Builds)
     # Comprehensive caching for Windows Swift builds covering all SPM directories.
     # Similar to Ubuntu but with Windows-specific Swift toolchain considerations.
     #
     # Cache Key Strategy:
-    # - Pattern: spm-windows-{WindowsProductNameSlug}-{BuildNumber}-{SwiftVersion}-{ResolvedHash}
+    # - Pattern: spm-windows-{WindowsProductNameSlug}-{BuildNumber}-{SwiftVersion}-{PackageHash}-{ResolvedHash}
     # - Windows version and build isolation ensures toolchain compatibility
     # - Swift version isolation prevents conflicts between different Windows Swift builds
+    # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
     # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - Uses Swift version from installed Windows toolchain
     # - Uses slugified Windows product name + build number (e.g., "windows-server-2022-20348") for proper cache isolation
@@ -675,7 +746,7 @@ runs:
           ${{ inputs.working-directory }}/.build
           ${{ inputs.working-directory }}/.swiftpm
           ${{ inputs.working-directory }}/.cache
-        key: spm-${{ env.WINDOWS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.detect-resolved.outputs.resolved-hash }}
+        key: spm-${{ env.WINDOWS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}
 
     # Build and Test Execution: Two-Path Strategy
     # The action implements a dual-path build strategy to handle both cross-platform Swift packages
