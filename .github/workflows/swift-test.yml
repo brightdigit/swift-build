@@ -65,7 +65,7 @@ jobs:
           - type: ios
             runs-on: macos-15
             xcode: "/Applications/Xcode_26.0.1.app"
-            deviceName: "iPhone 17 Pro"
+            deviceName: "iPhone 16 Pro"
             osVersion: "26.0"
             download-platform: "true"
             use-xcbeautify: "true"
