@@ -52,7 +52,7 @@ inputs:
     required: true
 
   # Platform type for builds and testing
-  # Apple platforms: 'ios', 'watchos', 'visionos', 'tvos', 'macos'
+  # Apple platforms: 'ios', 'watchOS', 'visionOS', 'tvOS', 'macOS'
   # Android platform: 'android' (runs on ubuntu-* or macos-* runners)
   # Omit this parameter for cross-platform SPM builds
   # Required when using deviceName/osVersion parameters (Apple platforms only)

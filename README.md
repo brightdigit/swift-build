@@ -1711,7 +1711,7 @@ macOS is **native testing only** - no simulators needed:
 
 #### 🤖 Android Issues
 
-**Q: How do I fix "Emulator fails to start" on ARM macOS runners?**
+#### Q: How do I fix "Emulator fails to start" on ARM macOS runners?
 
 ARM-based macOS runners (macos-14, macos-15) cannot run Android emulator due to nested virtualization limitations:
 
@@ -1734,7 +1734,7 @@ runs-on: macos-14  # ARM-based
 
 **Solution:** Use ubuntu-latest runners for full Android testing with emulator, or use Intel macOS runners (macos-13, deprecated).
 
-**Q: How do I fix "Out of disk space" errors on Ubuntu?**
+#### Q: How do I fix "Out of disk space" errors on Ubuntu?
 
 Android SDK and emulator images are large (~10GB). Free up space before building:
 
@@ -1829,7 +1829,7 @@ android-api-level: "34"  # Android 14, latest but less tested
 
 **No.** xcbeautify only works on macOS with Xcode toolchain. It will be ignored on Ubuntu and Windows runners.
 
-**Q: How do I fix scheme not found errors?**
+#### Q: How do I fix scheme not found errors?
 
 1. **Check if you have a Swift Package:**
 ```yaml
@@ -1878,7 +1878,7 @@ working-directory: .              # ✅ Current directory
 
 #### 🔗 Simulator & Connection Issues
 
-**Q: How do I fix simulator connection issues?**
+#### Q: How do I fix simulator connection issues?
 
 **Quick fix - Use defaults** (recommended):
 ```yaml
@@ -1902,7 +1902,7 @@ working-directory: .              # ✅ Current directory
     osVersion: '17.0'
 ```
 
-**Q: How do I fix "Platform not available" errors?**
+#### Q: How do I fix "Platform not available" errors?
 
 **Enable automatic platform downloads:**
 ```yaml

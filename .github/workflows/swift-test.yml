@@ -666,15 +666,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Free up disk space on Ubuntu runners (Android SDK/emulator are large)
-      - name: Free up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
@@ -715,15 +706,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Free up disk space on Ubuntu runners (Android SDK/emulator are large)
-      - name: Free up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
-
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
@@ -755,15 +737,6 @@ jobs:
             android-run-tests: "true"
     steps:
       - uses: actions/checkout@v4
-
-      # Free up disk space on Ubuntu runners (Android SDK/emulator are large)
-      - name: Free up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          df -h
 
       - uses: ./
         with:
