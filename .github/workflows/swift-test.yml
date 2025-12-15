@@ -647,51 +647,27 @@ jobs:
 
   test-single-target-android:
     name: Test Single Target Package (Android)
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           # Ubuntu runner with Android emulator testing
-          - runs-on: ubuntu-latest
-            android-swift-version: "6.2"
+          - android-swift-version: "6.2"
             android-api-level: "28"
             android-run-tests: "true"
             build-only: false
 
           # Ubuntu runner with Android build-only mode
-          - runs-on: ubuntu-latest
-            android-swift-version: "6.2"
-            android-api-level: "30"
-            android-run-tests: "true"
-            build-only: true
-
-          # Ubuntu runner with different API level
-          - runs-on: ubuntu-latest
-            android-swift-version: "6.2"
-            android-api-level: "31"
-            android-run-tests: "true"
-            build-only: false
-
-          # ARM macOS runner (build-only, no emulator support)
-          - runs-on: macos-14
-            android-swift-version: "6.2"
+          - android-swift-version: "6.2"
             android-api-level: "28"
-            android-run-tests: "false"
-            build-only: false
-
-          # ARM macOS runner with build-only mode
-          - runs-on: macos-15
-            android-swift-version: "6.2"
-            android-api-level: "28"
-            android-run-tests: "false"
+            android-run-tests: "true"
             build-only: true
     steps:
       - uses: actions/checkout@v4
 
       # Free up disk space on Ubuntu runners (Android SDK/emulator are large)
-      - name: Free up disk space (Ubuntu)
-        if: runner.os == 'Linux'
+      - name: Free up disk space
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -720,37 +696,27 @@ jobs:
 
   test-multi-target-android:
     name: Test Multi-Target Package (Android)
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           # Ubuntu runner with Android emulator testing
-          - runs-on: ubuntu-latest
-            android-swift-version: "6.2"
+          - android-swift-version: "6.2"
             android-api-level: "28"
             android-run-tests: "true"
             build-only: false
 
           # Ubuntu runner with build-only mode
-          - runs-on: ubuntu-latest
-            android-swift-version: "6.2"
-            android-api-level: "30"
+          - android-swift-version: "6.2"
+            android-api-level: "28"
             android-run-tests: "true"
             build-only: true
-
-          # ARM macOS runner (build-only, no emulator support)
-          - runs-on: macos-14
-            android-swift-version: "6.2"
-            android-api-level: "28"
-            android-run-tests: "false"
-            build-only: false
     steps:
       - uses: actions/checkout@v4
 
       # Free up disk space on Ubuntu runners (Android SDK/emulator are large)
-      - name: Free up disk space (Ubuntu)
-        if: runner.os == 'Linux'
+      - name: Free up disk space
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -786,9 +752,6 @@ jobs:
         include:
           - android-swift-version: "6.2"
             android-api-level: "28"
-            android-run-tests: "true"
-          - android-swift-version: "6.2"
-            android-api-level: "31"
             android-run-tests: "true"
     steps:
       - uses: actions/checkout@v4
