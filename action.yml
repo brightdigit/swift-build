@@ -611,13 +611,44 @@ runs:
         swift-version: ${{ inputs.windows-swift-version }}
         swift-build: ${{ inputs.windows-swift-build }}
 
+    # Manual Android NDK Setup
+    # This step manually configures the Android NDK when a custom version is specified.
+    # This is a workaround for skiptools/swift-android-action NDK setup timing issues.
+    #
+    # Background:
+    # When ndk-version is passed to swift-android-action, the action's setup script
+    # runs before NDK environment variables are properly configured, causing failures.
+    #
+    # Workaround:
+    # - Manually set ANDROID_NDK_HOME environment variable before calling the action
+    # - Do NOT pass ndk-version parameter to the action (handled below)
+    # - The action will use the pre-configured NDK from ANDROID_NDK_HOME
+    #
+    # References:
+    # - https://github.com/skiptools/swift-android-action/issues/9#issuecomment-3671782993
+    # - https://github.com/brightdigit/swift-build/actions/runs/20341770811/job/58460668442
+    - name: Setup Android NDK
+      if: steps.detect-os.outputs.os == 'android' && inputs.android-ndk-version
+      shell: bash
+      run: |
+        # Determine NDK installation path based on runner OS
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+          NDK_PATH="$HOME/Library/Android/sdk/ndk/${{ inputs.android-ndk-version }}"
+        else
+          # Ubuntu/Linux runners
+          NDK_PATH="${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}/ndk/${{ inputs.android-ndk-version }}"
+        fi
+
+        echo "Setting ANDROID_NDK_HOME to: $NDK_PATH"
+        echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+
     # Android Swift Build and Test
     # This step executes only when type is 'android'
     # Uses skiptools/swift-android-action for complete Android build workflow
     #
     # The swift-android-action handles:
     # - Installing Swift toolchain with Android SDK support
-    # - Installing Android NDK
+    # - Installing Android NDK (when ndk-version is specified)
     # - Cross-compiling Swift package for Android
     # - Optionally running tests on Android emulator (if android-run-tests is true)
     #
@@ -625,7 +656,7 @@ runs:
     # - android-swift-version → swift-version
     # - working-directory → package-path
     # - android-api-level → android-api-level
-    # - android-ndk-version → ndk-version
+    # - android-ndk-version → SKIPPED (manually configured via ANDROID_NDK_HOME above)
     # - android-swift-build-flags → swift-build-flags
     # - android-swift-test-flags → swift-test-flags
     # - android-emulator-boot-timeout → android-emulator-boot-timeout
@@ -641,6 +672,11 @@ runs:
     # Build-Only Mode:
     # When build-only is 'true', we disable both build-tests and run-tests
     # to only compile the package without test targets
+    #
+    # NDK Configuration:
+    # - When android-ndk-version is specified: NDK is pre-configured via ANDROID_NDK_HOME
+    #   in the "Setup Android NDK" step above (ndk-version parameter is NOT passed)
+    # - When android-ndk-version is NOT specified: Uses swift-android-action's default NDK
     - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (Android)
       if: steps.detect-os.outputs.os == 'android'
       uses: skiptools/swift-android-action@v2
@@ -650,9 +686,6 @@ runs:
 
         # Package directory
         package-path: ${{ inputs.working-directory }}
-
-        # Android NDK version (optional, uses action's default if not specified)
-        ndk-version: ${{ inputs.android-ndk-version }}
 
         # Android emulator configuration (only used when tests are enabled)
         android-api-level: ${{ inputs.android-api-level || '28' }}
