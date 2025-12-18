@@ -666,6 +666,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free disk space (Ubuntu)
+        if: matrix.build-only == false
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
@@ -705,6 +717,18 @@ jobs:
             build-only: true
     steps:
       - uses: actions/checkout@v4
+
+      - name: Free disk space (Ubuntu)
+        if: matrix.build-only == false
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - uses: ./
         with:
@@ -821,6 +845,17 @@ jobs:
             android-run-tests: "true"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - uses: ./
         with:
