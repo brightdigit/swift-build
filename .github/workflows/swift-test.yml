@@ -789,6 +789,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Install custom NDK version if specified
+      - name: Install Android NDK ${{ matrix.android-ndk-version }}
+        if: matrix.android-ndk-version
+        run: |
+          echo "Installing Android NDK ${{ matrix.android-ndk-version }}"
+          echo "y" | sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "ndk;${{ matrix.android-ndk-version }}"
+
       - name: Test Android Auto-Detection - ${{ matrix.name }}
         uses: ./
         with:
