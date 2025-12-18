@@ -119,7 +119,6 @@ inputs:
   android-swift-version:
     description: 'Swift version for Android Swift SDK installation'
     required: false
-    default: '6.2'
 
   # Android API level for emulator testing
   # Examples: '28', '29', '30', '31', '33', '34'
@@ -129,7 +128,6 @@ inputs:
   android-api-level:
     description: 'Android API level for emulator testing'
     required: false
-    default: '28'
 
   # Android NDK version
   # Examples: '26.1.10909125', '25.2.9519653'
@@ -148,7 +146,6 @@ inputs:
   android-run-tests:
     description: 'Run tests on Android emulator (must be false on ARM macOS)'
     required: false
-    default: 'true'
 
   # Additional Swift build flags for Android
   # Examples: '-v', '--static-swift-stdlib'
@@ -173,7 +170,6 @@ inputs:
   android-emulator-boot-timeout:
     description: 'Android emulator boot timeout in seconds'
     required: false
-    default: '600'
 
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
@@ -259,12 +255,35 @@ runs:
       id: detect-os
       working-directory: ${{ inputs.working-directory }}
       run: |
-        if [[ "${{ inputs.type }}" == "android" ]]; then
+        # Determine effective build type (explicit or auto-detected)
+        EFFECTIVE_TYPE="${{ inputs.type }}"
+
+        # Auto-detect Android if type is not explicitly set
+        if [[ -z "$EFFECTIVE_TYPE" ]]; then
+          # Check if ANY Android parameter is set (non-empty)
+          if [[ -n "${{ inputs.android-swift-version }}" ]] || \
+             [[ -n "${{ inputs.android-api-level }}" ]] || \
+             [[ -n "${{ inputs.android-ndk-version }}" ]] || \
+             [[ -n "${{ inputs.android-run-tests }}" ]] || \
+             [[ -n "${{ inputs.android-swift-build-flags }}" ]] || \
+             [[ -n "${{ inputs.android-swift-test-flags }}" ]] || \
+             [[ -n "${{ inputs.android-emulator-boot-timeout }}" ]]; then
+            echo "Android build auto-detected from Android parameters"
+            EFFECTIVE_TYPE="android"
+          fi
+        fi
+
+        # Determine OS based on effective type
+        if [[ "$EFFECTIVE_TYPE" == "android" ]]; then
           # Android builds use Swift Android SDK via skiptools/swift-android-action
           # Runs on ubuntu-* or macos-* runners with Android emulator or build-only mode
           # ARM macOS runners (macos-14, macos-15) require android-run-tests: false
           echo "os=android" >> $GITHUB_OUTPUT
-          echo "Detected Android build mode (type: android)"
+          if [[ -z "${{ inputs.type }}" ]]; then
+            echo "Detected Android build mode (auto-detected from Android parameters)"
+          else
+            echo "Detected Android build mode (type: android)"
+          fi
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
           # macOS runners support both SPM and Xcode builds
           # Set up derived data path for optimal Xcode build performance and caching
@@ -592,13 +611,91 @@ runs:
         swift-version: ${{ inputs.windows-swift-version }}
         swift-build: ${{ inputs.windows-swift-build }}
 
+
+    # Android NDK Setup
+    # Manually configures the Android NDK when a custom version is specified.
+    # This follows the guidance from https://github.com/skiptools/swift-android-action/issues/9#issuecomment-3671782993
+    #
+    # Background:
+    # The swift-android-action expects ANDROID_NDK_HOME to be pre-configured when using
+    # custom NDK versions. Passing ndk-version directly to the action can cause timing
+    # issues where the setup script runs before environment variables are properly set.
+    #
+    # Approach:
+    # 1. Check if the specified NDK version is already installed
+    # 2. If installed, set ANDROID_NDK_HOME environment variable
+    # 3. If not installed, provide a clear error message
+    # 4. Do NOT pass ndk-version parameter to swift-android-action (it will use ANDROID_NDK_HOME)
+    #
+    # Note: Users must manually install custom NDK versions before using this action.
+    # For GitHub Actions runners, you can install the NDK using:
+    #   - name: Install NDK
+    #     run: |
+    #       echo "y" | sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "ndk;VERSION"
+    #
+    # References:
+    # - https://github.com/skiptools/swift-android-action/issues/9#issuecomment-3671782993
+    # - https://github.com/attaswift/BigInt/blob/master/.github/workflows/swift.yml#L38
+    # - https://github.com/marcprux/swift-android-emulator-demo/blob/main/.github/workflows/swift-demo.yml#L20
+    - name: Setup Android NDK
+      if: steps.detect-os.outputs.os == 'android' && inputs.android-ndk-version
+      shell: bash
+      run: |
+        # Determine Android SDK root based on runner OS
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+          ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
+        else
+          # Ubuntu/Linux runners
+          if [[ -z "${ANDROID_SDK_ROOT}" ]]; then
+            # Check both common locations
+            if [[ -d "/usr/local/lib/android/sdk" ]]; then
+              ANDROID_SDK_ROOT="/usr/local/lib/android/sdk"
+            elif [[ -d "$HOME/Android/Sdk" ]]; then
+              ANDROID_SDK_ROOT="$HOME/Android/Sdk"
+            else
+              echo "ERROR: Cannot find Android SDK root" >&2
+              exit 1
+            fi
+          fi
+        fi
+
+        NDK_PATH="$ANDROID_SDK_ROOT/ndk/${{ inputs.android-ndk-version }}"
+
+        echo "Checking for NDK ${{ inputs.android-ndk-version }} at $NDK_PATH"
+
+        # Check if NDK is already installed
+        if [[ ! -d "$NDK_PATH" ]]; then
+          echo "ERROR: NDK ${{ inputs.android-ndk-version }} not found at $NDK_PATH" >&2
+          echo "" >&2
+          echo "Please install the NDK before running this action:" >&2
+          echo "  - name: Install Android NDK" >&2
+          echo "    run: |" >&2
+          echo "      echo \"y\" | sudo \${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install \"ndk;${{ inputs.android-ndk-version }}\"" >&2
+          echo "" >&2
+          echo "Available NDKs:" >&2
+          ls -la "$ANDROID_SDK_ROOT/ndk/" 2>&1 || echo "NDK directory not found" >&2
+          exit 1
+        fi
+
+        echo "Found NDK ${{ inputs.android-ndk-version }} at $NDK_PATH"
+
+        # Verify the NDK has the required structure
+        if [[ ! -d "$NDK_PATH/toolchains/llvm/prebuilt" ]]; then
+          echo "ERROR: NDK at $NDK_PATH is missing required toolchains/llvm/prebuilt directory" >&2
+          echo "NDK structure:" >&2
+          ls -la "$NDK_PATH" >&2
+          exit 1
+        fi
+
+        echo "Setting ANDROID_NDK_HOME to: $NDK_PATH"
+        echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+
     # Android Swift Build and Test
     # This step executes only when type is 'android'
     # Uses skiptools/swift-android-action for complete Android build workflow
     #
     # The swift-android-action handles:
     # - Installing Swift toolchain with Android SDK support
-    # - Installing Android NDK
     # - Cross-compiling Swift package for Android
     # - Optionally running tests on Android emulator (if android-run-tests is true)
     #
@@ -606,7 +703,7 @@ runs:
     # - android-swift-version → swift-version
     # - working-directory → package-path
     # - android-api-level → android-api-level
-    # - android-ndk-version → ndk-version
+    # - android-ndk-version → NOT PASSED (NDK is pre-configured via ANDROID_NDK_HOME in Setup Android NDK step)
     # - android-swift-build-flags → swift-build-flags
     # - android-swift-test-flags → swift-test-flags
     # - android-emulator-boot-timeout → android-emulator-boot-timeout
@@ -622,22 +719,26 @@ runs:
     # Build-Only Mode:
     # When build-only is 'true', we disable both build-tests and run-tests
     # to only compile the package without test targets
+    #
+    # NDK Configuration:
+    # - When android-ndk-version IS specified: NDK is installed and configured via ANDROID_NDK_HOME
+    #   in the "Setup Android NDK" step above. The ndk-version parameter is NOT passed to
+    #   swift-android-action to avoid timing issues (the action will use pre-configured ANDROID_NDK_HOME)
+    # - When android-ndk-version is NOT specified: Uses the runner's default pre-installed NDK
+    #   (swift-android-action will use the existing ANDROID_NDK_HOME environment variable)
     - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (Android)
       if: steps.detect-os.outputs.os == 'android'
       uses: skiptools/swift-android-action@v2
       with:
         # Swift toolchain version (supports versions, snapshots, and nightly builds)
-        swift-version: ${{ inputs.android-swift-version }}
+        swift-version: ${{ inputs.android-swift-version || '6.2' }}
 
         # Package directory
         package-path: ${{ inputs.working-directory }}
 
-        # Android NDK version (optional, uses action's default if not specified)
-        ndk-version: ${{ inputs.android-ndk-version }}
-
         # Android emulator configuration (only used when tests are enabled)
-        android-api-level: ${{ inputs.android-api-level }}
-        android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout }}
+        android-api-level: ${{ inputs.android-api-level || '28' }}
+        android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout || '600' }}
 
         # Build control flags
         # Always build the package
@@ -645,7 +746,7 @@ runs:
         # Build tests only if not in build-only mode
         build-tests: ${{ inputs.build-only != 'true' }}
         # Run tests only if not in build-only mode AND android-run-tests is true
-        run-tests: ${{ inputs.build-only != 'true' && inputs.android-run-tests == 'true' }}
+        run-tests: ${{ inputs.build-only != 'true' && (inputs.android-run-tests || 'true') == 'true' }}
 
         # Additional build/test flags (optional)
         swift-build-flags: ${{ inputs.android-swift-build-flags }}
