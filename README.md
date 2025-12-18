@@ -47,7 +47,7 @@
 |-----------|-------------|---------|---------|--------------|---------|
 | `scheme` | The scheme to build and test | Required when `type` specified | `MyPackage-Package` | Any valid scheme name | **Xcode builds only** - Required when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS simulator testing). Not needed for SPM builds (Ubuntu/macOS) |
 | `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` | Any valid directory path | **All platforms** - SPM (Ubuntu/macOS) and Xcode builds |
-| `type` | Build type | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos`, `android` | **Platform selection** - Apple platforms use xcodebuild, `android` uses Swift Android SDK. When `null`, uses SPM (swift build/test) |
+| `type` | Build type | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos`, `android` | **Platform selection** - Apple platforms use xcodebuild, `android` uses Swift Android SDK. When `null`, uses SPM (swift build/test). **Note:** Android is auto-detected when any `android-*` parameter is set (explicit `type: android` not required) |
 | `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path | **Xcode builds only** - iOS, watchOS, tvOS, visionOS, macOS simulator testing |
 | `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version | **Xcode builds only** - Required when `type` is specified (except `macos`) |
@@ -55,13 +55,13 @@
 | `build-only` | Build without running tests | `false` | `true` | `true`, `false` | **All platforms** - SPM (Ubuntu/macOS/Windows) and Xcode builds |
 | `windows-swift-version` | Swift version for Windows toolchain | `null` | `swift-6.1-release` | `swift-6.0-release`, `swift-6.1-release`, `swift-6.2-branch` | **Windows builds only** - Maps to `swift-version` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 | `windows-swift-build` | Swift build identifier for Windows | `null` | `6.1-RELEASE` | `6.1-RELEASE`, `6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a` | **Windows builds only** - Maps to `swift-build` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
-| `android-swift-version` | Swift version for Android SDK | `6.2` | `nightly-main` | Swift versions, snapshots, or `nightly-main` | **Android builds only** - Used when `type: android`. Maps to `swift-version` in [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) |
-| `android-api-level` | Android emulator API level | `28` | `31` | `28`, `29`, `30`, `31`, `33`, `34` | **Android builds only** - Used when `type: android` and `android-run-tests: true` |
-| `android-ndk-version` | Android NDK version | Action default | `26.1.10909125` | Any valid NDK version | **Android builds only** - Used when `type: android` |
-| `android-run-tests` | Run tests on Android emulator | `true` | `false` | `true`, `false` | **Android builds only** - Must be `false` on ARM macOS runners (no nested virtualization support) |
-| `android-swift-build-flags` | Additional Swift build flags for Android | `null` | `-v` | Any valid Swift build flags | **Android builds only** - Used when `type: android` |
-| `android-swift-test-flags` | Additional Swift test flags for Android | `null` | `--parallel` | Any valid Swift test flags | **Android builds only** - Used when `type: android` and `android-run-tests: true` |
-| `android-emulator-boot-timeout` | Emulator boot timeout (seconds) | `600` | `900` | Any positive integer | **Android builds only** - Used when `type: android` and `android-run-tests: true` |
+| `android-swift-version` | Swift version for Android SDK | `6.2` | `nightly-main` | Swift versions, snapshots, or `nightly-main` | **Android builds only** - Auto-detects Android build. Maps to `swift-version` in [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) |
+| `android-api-level` | Android emulator API level | `28` | `31` | `28`, `29`, `30`, `31`, `33`, `34` | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
+| `android-ndk-version` | Android NDK version | Action default | `26.1.10909125` | Any valid NDK version | **Android builds only** - Auto-detects Android build |
+| `android-run-tests` | Run tests on Android emulator | `true` | `false` | `true`, `false` | **Android builds only** - Auto-detects Android build. Must be `false` on ARM macOS runners (no nested virtualization support) |
+| `android-swift-build-flags` | Additional Swift build flags for Android | `null` | `-v` | Any valid Swift build flags | **Android builds only** - Auto-detects Android build |
+| `android-swift-test-flags` | Additional Swift test flags for Android | `null` | `--parallel` | Any valid Swift test flags | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
+| `android-emulator-boot-timeout` | Emulator boot timeout (seconds) | `600` | `900` | Any positive integer | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
@@ -74,6 +74,7 @@
 - **macOS SPM builds**: `scheme`, `working-directory` (no `type` specified)
 - **Apple platform builds**: Require `scheme`, `type`, and optionally `deviceName`/`osVersion`
 - **Windows builds**: `working-directory`, `windows-swift-version`, `windows-swift-build` (no `scheme` needed)
+- **Android builds**: Auto-detected from any `android-*` parameter (e.g., `android-swift-version`, `android-api-level`). Explicit `type: android` optional but recommended for clarity
 - **Custom Xcode**: When `xcode` is specified, it overrides system default
 - **Platform download**: Only effective with Xcode versions
 
@@ -89,6 +90,7 @@
 
 - **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SPM builds)
 - **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
+- **Swift Android SDK**: Uses [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) when Android is detected (auto-detected from `android-*` parameters or explicit `type: android`)
 
 ### Build-Only Mode
 
@@ -545,6 +547,26 @@ jobs:
           android-swift-version: "6.2"
           build-only: true
 ```
+
+#### Android with Auto-Detection (No Explicit Type)
+```yaml
+name: Android Auto-Detected
+on: [push, pull_request]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.0
+        with:
+          scheme: MyPackage
+          # No type parameter needed - auto-detected from android parameters
+          android-swift-version: "6.2"
+          android-api-level: "28"
+```
+
+> **Note:** Android builds are auto-detected when any `android-*` parameter is set. The `type: android` parameter is optional but recommended for explicit clarity.
 
 #### Android on ARM macOS (No Emulator)
 ```yaml
