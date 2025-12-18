@@ -1805,6 +1805,39 @@ android-api-level: "34"  # Android 14, latest but less tested
 
 **Recommendation:** Use ubuntu-latest for Android builds and tests.
 
+**Q: When do I need to manually install Android NDK?**
+
+Most users don't need to specify `android-ndk-version` - the action uses a compatible default NDK version automatically. However, if you need a specific NDK version for compatibility or testing:
+
+1. **Install the NDK before running this action:**
+
+```yaml
+steps:
+  # Install custom NDK version
+  - name: Install Android NDK
+    run: |
+      echo "y" | sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125"
+
+  # Then use the action with the custom NDK
+  - uses: brightdigit/swift-build@v1.4.0
+    with:
+      scheme: MyPackage
+      type: android
+      android-ndk-version: "26.1.10909125"
+```
+
+2. **Why manual installation is required:**
+   - The swift-android-action expects `ANDROID_NDK_HOME` to be pre-configured when using custom NDK versions
+   - Pre-installing ensures proper environment setup before the action runs
+   - See [skiptools/swift-android-action#9](https://github.com/skiptools/swift-android-action/issues/9) for technical details
+
+3. **When to use custom NDK versions:**
+   - Testing with specific NDK versions
+   - Compatibility requirements with native libraries
+   - Reproducing build environments
+
+**Recommendation:** Only specify `android-ndk-version` if you have a specific compatibility requirement. The default NDK works for most use cases.
+
 #### ⚙️ Configuration Issues
 
 **Q: What are the parameter validation rules?**
