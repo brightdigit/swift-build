@@ -1838,6 +1838,22 @@ steps:
 
 **Recommendation:** Only specify `android-ndk-version` if you have a specific compatibility requirement. The default NDK works for most use cases.
 
+**Q: Does code coverage work on Android builds?**
+
+Code coverage is not currently supported for Android builds. This is a known limitation of the Swift Android toolchain.
+
+```yaml
+# ⚠️ Code coverage not available on Android
+- uses: brightdigit/swift-build@v1.4.0
+  with:
+    type: android
+    # enable-code-coverage parameter has no effect on Android
+```
+
+**Status:** Tracking issue at [skiptools/swift-android-action#8](https://github.com/skiptools/swift-android-action/issues/8)
+
+**Workaround:** If you need code coverage, run tests on other platforms (iOS, macOS, Ubuntu SPM) where coverage is supported.
+
 #### ⚙️ Configuration Issues
 
 **Q: What are the parameter validation rules?**
