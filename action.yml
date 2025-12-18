@@ -119,7 +119,6 @@ inputs:
   android-swift-version:
     description: 'Swift version for Android Swift SDK installation'
     required: false
-    default: '6.2'
 
   # Android API level for emulator testing
   # Examples: '28', '29', '30', '31', '33', '34'
@@ -129,7 +128,6 @@ inputs:
   android-api-level:
     description: 'Android API level for emulator testing'
     required: false
-    default: '28'
 
   # Android NDK version
   # Examples: '26.1.10909125', '25.2.9519653'
@@ -148,7 +146,6 @@ inputs:
   android-run-tests:
     description: 'Run tests on Android emulator (must be false on ARM macOS)'
     required: false
-    default: 'true'
 
   # Additional Swift build flags for Android
   # Examples: '-v', '--static-swift-stdlib'
@@ -173,7 +170,6 @@ inputs:
   android-emulator-boot-timeout:
     description: 'Android emulator boot timeout in seconds'
     required: false
-    default: '600'
 
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
@@ -259,12 +255,35 @@ runs:
       id: detect-os
       working-directory: ${{ inputs.working-directory }}
       run: |
-        if [[ "${{ inputs.type }}" == "android" ]]; then
+        # Determine effective build type (explicit or auto-detected)
+        EFFECTIVE_TYPE="${{ inputs.type }}"
+
+        # Auto-detect Android if type is not explicitly set
+        if [[ -z "$EFFECTIVE_TYPE" ]]; then
+          # Check if ANY Android parameter is set (non-empty)
+          if [[ -n "${{ inputs.android-swift-version }}" ]] || \
+             [[ -n "${{ inputs.android-api-level }}" ]] || \
+             [[ -n "${{ inputs.android-ndk-version }}" ]] || \
+             [[ -n "${{ inputs.android-run-tests }}" ]] || \
+             [[ -n "${{ inputs.android-swift-build-flags }}" ]] || \
+             [[ -n "${{ inputs.android-swift-test-flags }}" ]] || \
+             [[ -n "${{ inputs.android-emulator-boot-timeout }}" ]]; then
+            echo "Android build auto-detected from Android parameters"
+            EFFECTIVE_TYPE="android"
+          fi
+        fi
+
+        # Determine OS based on effective type
+        if [[ "$EFFECTIVE_TYPE" == "android" ]]; then
           # Android builds use Swift Android SDK via skiptools/swift-android-action
           # Runs on ubuntu-* or macos-* runners with Android emulator or build-only mode
           # ARM macOS runners (macos-14, macos-15) require android-run-tests: false
           echo "os=android" >> $GITHUB_OUTPUT
-          echo "Detected Android build mode (type: android)"
+          if [[ -z "${{ inputs.type }}" ]]; then
+            echo "Detected Android build mode (auto-detected from Android parameters)"
+          else
+            echo "Detected Android build mode (type: android)"
+          fi
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
           # macOS runners support both SPM and Xcode builds
           # Set up derived data path for optimal Xcode build performance and caching
@@ -627,7 +646,7 @@ runs:
       uses: skiptools/swift-android-action@v2
       with:
         # Swift toolchain version (supports versions, snapshots, and nightly builds)
-        swift-version: ${{ inputs.android-swift-version }}
+        swift-version: ${{ inputs.android-swift-version || '6.2' }}
 
         # Package directory
         package-path: ${{ inputs.working-directory }}
@@ -636,8 +655,8 @@ runs:
         ndk-version: ${{ inputs.android-ndk-version }}
 
         # Android emulator configuration (only used when tests are enabled)
-        android-api-level: ${{ inputs.android-api-level }}
-        android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout }}
+        android-api-level: ${{ inputs.android-api-level || '28' }}
+        android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout || '600' }}
 
         # Build control flags
         # Always build the package
@@ -645,7 +664,7 @@ runs:
         # Build tests only if not in build-only mode
         build-tests: ${{ inputs.build-only != 'true' }}
         # Run tests only if not in build-only mode AND android-run-tests is true
-        run-tests: ${{ inputs.build-only != 'true' && inputs.android-run-tests == 'true' }}
+        run-tests: ${{ inputs.build-only != 'true' && (inputs.android-run-tests || 'true') == 'true' }}
 
         # Additional build/test flags (optional)
         swift-build-flags: ${{ inputs.android-swift-build-flags }}
