@@ -743,9 +743,11 @@ jobs:
             android-run-tests: "false"
 
           # Auto-detect from android-ndk-version
-          - name: "Auto-detect from ndk-version"
-            android-ndk-version: "26.1.10909125"
-            android-run-tests: "false"
+          # DISABLED: Bug in swift-android-action when custom ndk-version is specified
+          # See: https://github.com/skiptools/swift-android-action/issues/9
+          # - name: "Auto-detect from ndk-version"
+          #   android-ndk-version: "26.1.10909125"
+          #   android-run-tests: "false"
 
           # Auto-detect from android-run-tests
           - name: "Auto-detect from run-tests"
