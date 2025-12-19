@@ -35,7 +35,7 @@
 
 🚀 **Zero Configuration** - Works out of the box with just a scheme parameter
 ⚡ **Intelligent Caching** - Platform-specific caching strategies for maximum performance
-🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS) + Windows (Swift 6.1+) + Android (Swift 6.2+)
+🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS) + Windows (Swift 6.1+) + Android (Swift 6.1+)
 🎯 **Optimized Workflows** - Purpose-built for modern Swift CI/CD pipelines
 📦 **Real-World Proven** - Used by 25+ open source Swift packages including SyndiKit, DataThespian, and more  
 
@@ -91,6 +91,18 @@
 - **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SPM builds)
 - **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
 - **Swift Android SDK**: Uses [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) when Android is detected (auto-detected from `android-*` parameters or explicit `type: android`)
+
+### Android Swift Version Support
+
+The Android platform supports the following Swift versions through the Swift Android SDK:
+
+- **Swift 6.2** (default) - Uses pre-official SDK from [finagolfin/swift-android-sdk](https://github.com/finagolfin/swift-android-sdk)
+- **Swift 6.1+** - Also supported via pre-official SDK (tested in production)
+- **Swift 6.3+ snapshots** - Uses official Swift SDK for Android from [Swift.org](https://www.swift.org/blog/nightly-swift-sdk-for-android/)
+- **Development snapshots** - `nightly-main` or `nightly-6.3` tags for latest builds
+- **Custom versions** - Specify any Swift version, snapshot, or nightly build via `android-swift-version` parameter
+
+**Note:** Swift 6.2 is the default. Earlier versions like 6.1 also work with the pre-official SDK. Swift 6.0 and earlier versions are not officially documented as supported.
 
 ### Build-Only Mode
 
@@ -1574,6 +1586,7 @@ jobs:
 | Connection failures | `Lost connection`, `Unable to connect` | [→ Simulator Connection](#q-how-do-i-fix-simulator-connection-issues) |
 | Android emulator fails | `Emulator`, `ARM macOS` | [→ Android Emulator](#q-how-do-i-fix-emulator-fails-to-start-on-arm-macos-runners) |
 | Out of disk space | `No space left`, `disk space` | [→ Disk Space](#q-how-do-i-fix-out-of-disk-space-errors-on-ubuntu) |
+| Emulator timeout | `timeout`, `boot`, `emulator` | [→ Emulator Timeout](#q-why-is-my-android-emulator-timing-out-during-boot) |
 | Parameter validation | `Invalid input`, `requires` | [→ Parameter Rules](#q-what-are-the-parameter-validation-rules) |
 
 ---
@@ -1758,7 +1771,30 @@ runs-on: macos-14  # ARM-based
 
 #### Q: How do I fix "Out of disk space" errors on Ubuntu?
 
-Android SDK and emulator images are large (~10GB). Free up space before building:
+Android SDK and emulator images are large (~10GB). Free up space before building.
+
+**Recommended: Use jlumbroso/free-disk-space action**
+
+```yaml
+- name: Free disk space (Ubuntu)
+  uses: jlumbroso/free-disk-space@main
+  with:
+    tool-cache: false
+    android: false  # Keep Android SDK
+    dotnet: true
+    haskell: true
+    large-packages: true
+    docker-images: true
+    swap-storage: true
+```
+
+This action is used in our CI workflows and safely removes:
+- .NET SDK (~6GB)
+- Haskell toolchain (~5GB)
+- Docker images (~3GB)
+- Large packages (~2GB)
+
+**Alternative: Manual cleanup**
 
 ```yaml
 - name: Free up disk space
@@ -1775,7 +1811,54 @@ Android SDK and emulator images are large (~10GB). Free up space before building
     # ... other parameters
 ```
 
-**Q: How do I fix Android API level compatibility issues?**
+See also: [Why is my Android emulator timing out?](#q-why-is-my-android-emulator-timing-out-during-boot)
+
+#### Q: Why is my Android emulator timing out during boot?
+
+The Android emulator can take several minutes to boot, especially on Ubuntu runners with limited disk space. The default timeout is 600 seconds (10 minutes), which should be sufficient for most cases.
+
+**Common causes:**
+- Insufficient disk space (Android SDK + emulator images require ~10GB)
+- Slow runner hardware
+- Large test suites
+
+**Solutions:**
+
+1. **Use jlumbroso/free-disk-space action** (recommended):
+   ```yaml
+   - name: Free disk space (Ubuntu)
+     uses: jlumbroso/free-disk-space@main
+     with:
+       tool-cache: false
+       android: false  # Keep Android SDK
+       dotnet: true
+       haskell: true
+       large-packages: true
+       docker-images: true
+       swap-storage: true
+   ```
+
+2. **Increase timeout** if needed:
+   ```yaml
+   - uses: brightdigit/swift-build@v2
+     with:
+       scheme: MyPackage
+       type: android
+       android-emulator-boot-timeout: 900  # 15 minutes
+   ```
+
+3. **Use build-only mode** for faster CI:
+   ```yaml
+   - uses: brightdigit/swift-build@v2
+     with:
+       scheme: MyPackage
+       type: android
+       android-run-tests: false  # Skip emulator
+   ```
+
+See also: [How do I fix "Out of disk space" errors?](#q-how-do-i-fix-out-of-disk-space-errors-on-ubuntu)
+
+#### Q: How do I fix Android API level compatibility issues?
 
 Different API levels have different compatibility:
 
