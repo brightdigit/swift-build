@@ -33,10 +33,10 @@
 
 ## ✨ Why Choose This Action?
 
-🚀 **Zero Configuration** - Works out of the box with just a scheme parameter  
-⚡ **Intelligent Caching** - Platform-specific caching strategies for maximum performance  
-🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS) + Windows (Swift 6.1+)  
-🎯 **Optimized Workflows** - Purpose-built for modern Swift CI/CD pipelines  
+🚀 **Zero Configuration** - Works out of the box with just a scheme parameter
+⚡ **Intelligent Caching** - Platform-specific caching strategies for maximum performance
+🌍 **Complete Platform Coverage** - Ubuntu (Swift 5.9-6.2) + macOS (iOS, watchOS, tvOS, visionOS, macOS) + Windows (Swift 6.1+) + Android (Swift 6.1+)
+🎯 **Optimized Workflows** - Purpose-built for modern Swift CI/CD pipelines
 📦 **Real-World Proven** - Used by 25+ open source Swift packages including SyndiKit, DataThespian, and more  
 
 ## ⚙️ Configuration Reference
@@ -47,7 +47,7 @@
 |-----------|-------------|---------|---------|--------------|---------|
 | `scheme` | The scheme to build and test | Required when `type` specified | `MyPackage-Package` | Any valid scheme name | **Xcode builds only** - Required when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS simulator testing). Not needed for SPM builds (Ubuntu/macOS) |
 | `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` | Any valid directory path | **All platforms** - SPM (Ubuntu/macOS) and Xcode builds |
-| `type` | Build type for Apple platforms | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos` | **Xcode builds only** - When specified, uses xcodebuild. When `null` (not specified), uses SPM (swift build/test) instead |
+| `type` | Build type | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos`, `android` | **Platform selection** - Apple platforms use xcodebuild, `android` uses Swift Android SDK. When `null`, uses SPM (swift build/test). **Note:** Android is auto-detected when any `android-*` parameter is set (explicit `type: android` not required) |
 | `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path | **Xcode builds only** - iOS, watchOS, tvOS, visionOS, macOS simulator testing |
 | `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version | **Xcode builds only** - Required when `type` is specified (except `macos`) |
@@ -55,6 +55,13 @@
 | `build-only` | Build without running tests | `false` | `true` | `true`, `false` | **All platforms** - SPM (Ubuntu/macOS/Windows) and Xcode builds |
 | `windows-swift-version` | Swift version for Windows toolchain | `null` | `swift-6.1-release` | `swift-6.0-release`, `swift-6.1-release`, `swift-6.2-branch` | **Windows builds only** - Maps to `swift-version` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 | `windows-swift-build` | Swift build identifier for Windows | `null` | `6.1-RELEASE` | `6.1-RELEASE`, `6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a` | **Windows builds only** - Maps to `swift-build` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
+| `android-swift-version` | Swift version for Android SDK | `6.2` | `nightly-main` | Swift versions, snapshots, or `nightly-main` | **Android builds only** - Auto-detects Android build. Maps to `swift-version` in [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) |
+| `android-api-level` | Android emulator API level | `28` | `31` | `28`, `29`, `30`, `31`, `33`, `34` | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
+| `android-ndk-version` | Android NDK version | Action default | `26.1.10909125` | Any valid NDK version | **Android builds only** - Auto-detects Android build |
+| `android-run-tests` | Run tests on Android emulator | `true` | `false` | `true`, `false` | **Android builds only** - Auto-detects Android build. Must be `false` on ARM macOS runners (no nested virtualization support) |
+| `android-swift-build-flags` | Additional Swift build flags for Android | `null` | `-v` | Any valid Swift build flags | **Android builds only** - Auto-detects Android build |
+| `android-swift-test-flags` | Additional Swift test flags for Android | `null` | `--parallel` | Any valid Swift test flags | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
+| `android-emulator-boot-timeout` | Emulator boot timeout (seconds) | `600` | `900` | Any positive integer | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
@@ -67,6 +74,7 @@
 - **macOS SPM builds**: `scheme`, `working-directory` (no `type` specified)
 - **Apple platform builds**: Require `scheme`, `type`, and optionally `deviceName`/`osVersion`
 - **Windows builds**: `working-directory`, `windows-swift-version`, `windows-swift-build` (no `scheme` needed)
+- **Android builds**: Auto-detected from any `android-*` parameter (e.g., `android-swift-version`, `android-api-level`). Explicit `type: android` optional but recommended for clarity
 - **Custom Xcode**: When `xcode` is specified, it overrides system default
 - **Platform download**: Only effective with Xcode versions
 
@@ -82,6 +90,19 @@
 
 - **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SPM builds)
 - **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
+- **Swift Android SDK**: Uses [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) when Android is detected (auto-detected from `android-*` parameters or explicit `type: android`)
+
+### Android Swift Version Support
+
+The Android platform supports the following Swift versions through the Swift Android SDK:
+
+- **Swift 6.2** (default) - Uses pre-official SDK from [finagolfin/swift-android-sdk](https://github.com/finagolfin/swift-android-sdk)
+- **Swift 6.1+** - Also supported via pre-official SDK (tested in production)
+- **Swift 6.3+ snapshots** - Uses official Swift SDK for Android from [Swift.org](https://www.swift.org/blog/nightly-swift-sdk-for-android/)
+- **Development snapshots** - `nightly-main` or `nightly-6.3` tags for latest builds
+- **Custom versions** - Specify any Swift version, snapshot, or nightly build via `android-swift-version` parameter
+
+**Note:** Swift 6.2 is the default. Earlier versions like 6.1 also work with the pre-official SDK. Swift 6.0 and earlier versions are not officially documented as supported.
 
 ### Build-Only Mode
 
@@ -492,6 +513,192 @@ jobs:
           windows-swift-version: swift-6.1-release
           windows-swift-build: 6.1-RELEASE
 ```
+
+### Android Swift Development Examples
+
+#### Basic Android Build with Testing
+```yaml
+name: Android Swift Package Tests
+on: [push, pull_request]
+
+jobs:
+  test-android:
+    runs-on: ubuntu-latest
+    steps:
+      # Free up disk space (Android SDK/emulator are large)
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.0
+        with:
+          scheme: MyPackage
+          type: android
+          android-swift-version: "6.2"
+          android-api-level: "28"
+```
+
+#### Android Build-Only (No Tests)
+```yaml
+name: Android Build Only
+on: [push, pull_request]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.0
+        with:
+          scheme: MyPackage
+          type: android
+          android-swift-version: "6.2"
+          build-only: true
+```
+
+#### Android with Auto-Detection (No Explicit Type)
+```yaml
+name: Android Auto-Detected
+on: [push, pull_request]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.0
+        with:
+          scheme: MyPackage
+          # No type parameter needed - auto-detected from android parameters
+          android-swift-version: "6.2"
+          android-api-level: "28"
+```
+
+> **Note:** Android builds are auto-detected when any `android-*` parameter is set. The `type: android` parameter is optional but recommended for explicit clarity.
+
+#### Android on ARM macOS (No Emulator)
+```yaml
+name: Android on ARM macOS
+on: [push, pull_request]
+
+jobs:
+  build-android-macos:
+    runs-on: macos-14  # ARM-based macOS
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.0
+        with:
+          scheme: MyPackage
+          type: android
+          android-swift-version: "6.2"
+          android-run-tests: false  # Required on ARM macOS (no emulator support)
+```
+
+#### Android with Multiple API Levels
+```yaml
+name: Android API Level Matrix
+on: [push, pull_request]
+
+jobs:
+  test-android-matrix:
+    strategy:
+      matrix:
+        api-level: [28, 30, 31, 34]
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.0
+        with:
+          scheme: MyPackage
+          type: android
+          android-swift-version: "6.2"
+          android-api-level: ${{ matrix.api-level }}
+```
+
+#### Multi-Platform Build Matrix (Including Android)
+```yaml
+name: Multi-Platform Swift Build
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Ubuntu SPM build
+          - runs-on: ubuntu-latest
+            scheme: MyPackage
+
+          # iOS Simulator build
+          - runs-on: macos-15
+            scheme: MyPackage
+            type: ios
+            deviceName: "iPhone 16 Pro"
+            osVersion: "18.5"
+            xcode: "/Applications/Xcode_16.4.app"
+
+          # Android build on Ubuntu
+          - runs-on: ubuntu-latest
+            scheme: MyPackage
+            type: android
+            android-swift-version: "6.2"
+            android-api-level: "28"
+
+          # Android build on ARM macOS (no tests)
+          - runs-on: macos-14
+            scheme: MyPackage
+            type: android
+            android-swift-version: "6.2"
+            android-run-tests: false
+
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - name: Free up disk space (Ubuntu only)
+        if: runner.os == 'Linux' && matrix.type == 'android'
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v1.4.0
+        with:
+          scheme: ${{ matrix.scheme }}
+          type: ${{ matrix.type }}
+          deviceName: ${{ matrix.deviceName }}
+          osVersion: ${{ matrix.osVersion }}
+          xcode: ${{ matrix.xcode }}
+          android-swift-version: ${{ matrix.android-swift-version }}
+          android-api-level: ${{ matrix.android-api-level }}
+          android-run-tests: ${{ matrix.android-run-tests || 'true' }}
+```
+
+> **Note:** Android builds are handled by [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) which installs the Swift Android SDK, Android NDK, and optionally runs tests on an Android emulator. ARM macOS runners (macos-14, macos-15) cannot run the Android emulator due to nested virtualization limitations - set `android-run-tests: false` for these runners.
+
+#### Android Platform Support
+
+| Runner Type | Build Support | Test Support | Notes |
+|-------------|---------------|--------------|-------|
+| ubuntu-latest | ✅ Full | ✅ Emulator | Recommended for Android builds |
+| ubuntu-22.04 | ✅ Full | ✅ Emulator | Alternative Ubuntu version |
+| macos-14 (ARM) | ✅ Full | ❌ No emulator | ARM cannot run nested virtualization |
+| macos-15 (ARM) | ✅ Full | ❌ No emulator | ARM cannot run nested virtualization |
+| macos-13 (Intel) | ✅ Full | ✅ Emulator | Intel supports emulator (deprecated runner) |
+
+**Requirements**:
+- Swift 6.2+ recommended
+- Set `type: android` to activate Android mode
+- Set `android-run-tests: false` on ARM macOS runners
+- Ubuntu runners recommended for full testing with emulator
 
 ### Apple Platform Simulator Testing Examples
 
@@ -1358,7 +1565,7 @@ jobs:
   - [📺 tvOS Issues](#-tvos-issues)
   - [🥽 visionOS Issues](#-visionos-issues)
   - [🖥️ macOS Issues](#-macos-issues)
-  - [🪟 Windows Issues](#-windows-issues)
+  - [🤖 Android Issues](#-android-issues)
   - [⚙️ Configuration Issues](#️-configuration-issues)
   - [🔗 Simulator & Connection Issues](#-simulator--connection-issues)
 - [🆘 Community Support](#-community-support)
@@ -1377,6 +1584,9 @@ jobs:
 | Scheme errors | `scheme`, `does not contain` | [→ Scheme Naming](#q-how-do-i-fix-scheme-not-found-errors) |
 | Xcode path issues | `DEVELOPER_DIR`, `xcode-select` | [→ Xcode Paths](#q-what-xcode-path-format-should-i-use) |
 | Connection failures | `Lost connection`, `Unable to connect` | [→ Simulator Connection](#q-how-do-i-fix-simulator-connection-issues) |
+| Android emulator fails | `Emulator`, `ARM macOS` | [→ Android Emulator](#q-how-do-i-fix-emulator-fails-to-start-on-arm-macos-runners) |
+| Out of disk space | `No space left`, `disk space` | [→ Disk Space](#q-how-do-i-fix-out-of-disk-space-errors-on-ubuntu) |
+| Emulator timeout | `timeout`, `boot`, `emulator` | [→ Emulator Timeout](#q-why-is-my-android-emulator-timing-out-during-boot) |
 | Parameter validation | `Invalid input`, `requires` | [→ Parameter Rules](#q-what-are-the-parameter-validation-rules) |
 
 ---
@@ -1534,6 +1744,199 @@ macOS is **native testing only** - no simulators needed:
     osVersion: '15.0'        # ERROR
 ```
 
+#### 🤖 Android Issues
+
+#### Q: How do I fix "Emulator fails to start" on ARM macOS runners?
+
+ARM-based macOS runners (macos-14, macos-15) cannot run Android emulator due to nested virtualization limitations:
+
+```yaml
+# ✅ Correct: Disable emulator on ARM macOS
+- uses: brightdigit/swift-build@v1.4.0
+  with:
+    scheme: MyPackage
+    type: android
+    android-swift-version: "6.2"
+    android-run-tests: false  # Required on ARM macOS
+
+# ❌ Wrong: Trying to run emulator on ARM macOS
+runs-on: macos-14  # ARM-based
+- uses: brightdigit/swift-build@v1.4.0
+  with:
+    type: android
+    android-run-tests: true  # ERROR: Will fail
+```
+
+**Solution:** Use ubuntu-latest runners for full Android testing with emulator, or use Intel macOS runners (macos-13, deprecated).
+
+#### Q: How do I fix "Out of disk space" errors on Ubuntu?
+
+Android SDK and emulator images are large (~10GB). Free up space before building.
+
+**Recommended: Use jlumbroso/free-disk-space action**
+
+```yaml
+- name: Free disk space (Ubuntu)
+  uses: jlumbroso/free-disk-space@main
+  with:
+    tool-cache: false
+    android: false  # Keep Android SDK
+    dotnet: true
+    haskell: true
+    large-packages: true
+    docker-images: true
+    swap-storage: true
+```
+
+This action is used in our CI workflows and safely removes:
+- .NET SDK (~6GB)
+- Haskell toolchain (~5GB)
+- Docker images (~3GB)
+- Large packages (~2GB)
+
+**Alternative: Manual cleanup**
+
+```yaml
+- name: Free up disk space
+  run: |
+    sudo rm -rf /usr/share/dotnet
+    sudo rm -rf /opt/ghc
+    sudo rm -rf /usr/local/share/boost
+    sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+    df -h
+
+- uses: brightdigit/swift-build@v1.4.0
+  with:
+    type: android
+    # ... other parameters
+```
+
+See also: [Why is my Android emulator timing out?](#q-why-is-my-android-emulator-timing-out-during-boot)
+
+#### Q: Why is my Android emulator timing out during boot?
+
+The Android emulator can take several minutes to boot, especially on Ubuntu runners with limited disk space. The default timeout is 600 seconds (10 minutes), which should be sufficient for most cases.
+
+**Common causes:**
+- Insufficient disk space (Android SDK + emulator images require ~10GB)
+- Slow runner hardware
+- Large test suites
+
+**Solutions:**
+
+1. **Use jlumbroso/free-disk-space action** (recommended):
+   ```yaml
+   - name: Free disk space (Ubuntu)
+     uses: jlumbroso/free-disk-space@main
+     with:
+       tool-cache: false
+       android: false  # Keep Android SDK
+       dotnet: true
+       haskell: true
+       large-packages: true
+       docker-images: true
+       swap-storage: true
+   ```
+
+2. **Increase timeout** if needed:
+   ```yaml
+   - uses: brightdigit/swift-build@v2
+     with:
+       scheme: MyPackage
+       type: android
+       android-emulator-boot-timeout: 900  # 15 minutes
+   ```
+
+3. **Use build-only mode** for faster CI:
+   ```yaml
+   - uses: brightdigit/swift-build@v2
+     with:
+       scheme: MyPackage
+       type: android
+       android-run-tests: false  # Skip emulator
+   ```
+
+See also: [How do I fix "Out of disk space" errors?](#q-how-do-i-fix-out-of-disk-space-errors-on-ubuntu)
+
+#### Q: How do I fix Android API level compatibility issues?
+
+Different API levels have different compatibility:
+
+```yaml
+# ✅ Most compatible (recommended)
+android-api-level: "28"  # Android 9.0, best compatibility
+
+# ✅ Modern features
+android-api-level: "31"  # Android 12, more features
+
+# ⚠️ Very new
+android-api-level: "34"  # Android 14, latest but less tested
+```
+
+**Troubleshooting API level errors:**
+1. Try API level 28 first (most compatible)
+2. Check Swift Android SDK compatibility for your Swift version
+3. Verify emulator image availability for your chosen API level
+
+**Q: What Android runner should I use?**
+
+| Runner | Best For | Emulator Support | Notes |
+|--------|----------|------------------|-------|
+| ubuntu-latest | Full testing | ✅ Yes | Recommended for Android |
+| macos-14/15 (ARM) | Build only | ❌ No | Require `android-run-tests: false` |
+| macos-13 (Intel) | Full testing | ✅ Yes | Deprecated by GitHub |
+
+**Recommendation:** Use ubuntu-latest for Android builds and tests.
+
+**Q: When do I need to manually install Android NDK?**
+
+Most users don't need to specify `android-ndk-version` - the action uses a compatible default NDK version automatically. However, if you need a specific NDK version for compatibility or testing:
+
+1. **Install the NDK before running this action:**
+
+```yaml
+steps:
+  # Install custom NDK version
+  - name: Install Android NDK
+    run: |
+      echo "y" | sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125"
+
+  # Then use the action with the custom NDK
+  - uses: brightdigit/swift-build@v1.4.0
+    with:
+      scheme: MyPackage
+      type: android
+      android-ndk-version: "26.1.10909125"
+```
+
+2. **Why manual installation is required:**
+   - The swift-android-action expects `ANDROID_NDK_HOME` to be pre-configured when using custom NDK versions
+   - Pre-installing ensures proper environment setup before the action runs
+   - See [skiptools/swift-android-action#9](https://github.com/skiptools/swift-android-action/issues/9) for technical details
+
+3. **When to use custom NDK versions:**
+   - Testing with specific NDK versions
+   - Compatibility requirements with native libraries
+   - Reproducing build environments
+
+**Recommendation:** Only specify `android-ndk-version` if you have a specific compatibility requirement. The default NDK works for most use cases.
+
+**Q: Does code coverage work on Android builds?**
+
+Code coverage is not currently supported for Android builds. This is a known limitation of the Swift Android toolchain.
+
+```yaml
+# ⚠️ Code coverage not available on Android
+- uses: brightdigit/swift-build@v1.4.0
+  with:
+    type: android
+    # enable-code-coverage parameter has no effect on Android
+```
+
+**Status:** Tracking issue at [skiptools/swift-android-action#8](https://github.com/skiptools/swift-android-action/issues/8)
+
+**Workaround:** If you need code coverage, run tests on other platforms (iOS, macOS, Ubuntu SPM) where coverage is supported.
+
 #### ⚙️ Configuration Issues
 
 **Q: What are the parameter validation rules?**
@@ -1580,7 +1983,7 @@ macOS is **native testing only** - no simulators needed:
 
 **No.** xcbeautify only works on macOS with Xcode toolchain. It will be ignored on Ubuntu and Windows runners.
 
-**Q: How do I fix scheme not found errors?**
+#### Q: How do I fix scheme not found errors?
 
 1. **Check if you have a Swift Package:**
 ```yaml
@@ -1629,7 +2032,7 @@ working-directory: .              # ✅ Current directory
 
 #### 🔗 Simulator & Connection Issues
 
-**Q: How do I fix simulator connection issues?**
+#### Q: How do I fix simulator connection issues?
 
 **Quick fix - Use defaults** (recommended):
 ```yaml
@@ -1653,7 +2056,7 @@ working-directory: .              # ✅ Current directory
     osVersion: '17.0'
 ```
 
-**Q: How do I fix "Platform not available" errors?**
+#### Q: How do I fix "Platform not available" errors?
 
 **Enable automatic platform downloads:**
 ```yaml

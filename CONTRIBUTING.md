@@ -56,6 +56,18 @@ All changes must be tested with:
    xcodebuild test -scheme MyPackage -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0'
    ```
 
+4. **Android testing** (CI recommended due to infrastructure requirements):
+   ```bash
+   # Android builds use skiptools/swift-android-action
+   # Requires: Android SDK, NDK, emulator setup
+   # Best tested via CI workflow (.github/workflows/swift-test.yml)
+
+   # ARM macOS limitation: use android-run-tests: false
+   # Ubuntu/Intel macOS: supports full emulator testing
+   ```
+
+   Note: Android testing requires significant disk space (~15GB) for emulator. CI uses jlumbroso/free-disk-space action.
+
 ### Pull Request Process
 
 1. **Create descriptive PR title** following conventional commits:
@@ -87,6 +99,7 @@ All changes must be tested with:
 - Add support for new Swift versions
 - Add support for new Xcode versions
 - Add support for new Apple platforms
+- Add support for new Android API levels or Swift Android SDK versions
 - Enhance existing functionality
 
 ### 📖 Documentation
@@ -136,6 +149,13 @@ swift-build/
 - `deviceName`/`osVersion`: Optional (required when using type for simulator testing; deviceName and osVersion must be provided together)
 - `download-platform`: Optional - auto-download missing platforms (default: false)
 - `build-only`: Optional - build without running tests (default: false)
+- **Android parameters** (triggers auto-detection when any are set):
+  - `android-swift-version`: Swift Android SDK version (default: '6.2')
+  - `android-api-level`: Target API level (default: '28')
+  - `android-ndk-version`: Custom NDK version (requires pre-installation)
+  - `android-run-tests`: Enable emulator testing (must be false on ARM macOS)
+  - `android-swift-build-flags` / `android-swift-test-flags`: Additional flags
+  - `android-emulator-boot-timeout`: Emulator startup timeout (default: '600')
 
 ## 🧪 Testing Your Changes
 
@@ -162,8 +182,10 @@ swift-build/
 The CI workflow (`swift-test.yml`) automatically tests:
 - Multiple Ubuntu versions with Swift 5.9-6.2
 - Multiple macOS versions with Xcode 15.1-16.4
-- Platform-specific simulator testing
-- Both test packages
+- Platform-specific simulator testing (iOS, watchOS, tvOS, visionOS)
+- Android emulator testing on Ubuntu (API level 28, Swift 6.2)
+- Android auto-detection from parameters
+- Both test packages (SingleTargetPackage and MultiTargetPackage)
 
 ## 🎯 Contribution Ideas
 
