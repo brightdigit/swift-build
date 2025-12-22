@@ -180,6 +180,15 @@ inputs:
     description: 'Additional files to copy to emulator for testing'
     required: false
 
+  # Android architecture for emulator and builds
+  # Examples: 'aarch64', 'x86_64'
+  # Only used when type is 'android'
+  # Maps to 'arch' parameter in skiptools/swift-android-action
+  # Default: Uses skiptools/swift-android-action's default
+  android-arch:
+    description: 'Android architecture for emulator and builds'
+    required: false
+
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
   # Provides human-friendly, colored output and better CI integration
@@ -748,6 +757,7 @@ runs:
         # Android emulator configuration (only used when tests are enabled)
         android-api-level: ${{ inputs.android-api-level || '28' }}
         android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout || '600' }}
+        arch: ${{ inputs.android-arch }}
 
         # Build control flags
         # Always build the package
