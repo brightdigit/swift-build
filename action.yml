@@ -171,6 +171,15 @@ inputs:
     description: 'Android emulator boot timeout in seconds'
     required: false
 
+  # Additional files to copy to Android emulator for testing
+  # Specify directories or files that tests need to access at runtime
+  # Examples: 'Data/', 'Tests/Resources/', 'config.json'
+  # Only used when type is 'android' and android-run-tests is 'true'
+  # Maps to 'copy-files' parameter in skiptools/swift-android-action
+  android-copy-files:
+    description: 'Additional files to copy to emulator for testing'
+    required: false
+
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
   # Provides human-friendly, colored output and better CI integration
@@ -751,6 +760,9 @@ runs:
         # Additional build/test flags (optional)
         swift-build-flags: ${{ inputs.android-swift-build-flags }}
         swift-test-flags: ${{ inputs.android-swift-test-flags }}
+
+        # Additional files to copy to emulator for testing
+        copy-files: ${{ inputs.android-copy-files }}
 
     # xcbeautify Installation
     # Installs xcbeautify tool for prettified xcodebuild output when enabled.
