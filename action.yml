@@ -521,14 +521,14 @@ runs:
         echo "Detected Swift $SWIFT_VERSION, will use SDK: $SDK_NAME"
 
     # WASM SDK Installation
-    # This step installs the WASM SDK bundle for the detected Swift version.
+    # This step downloads and installs the WASM SDK bundle for the detected Swift version.
     # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
     #
-    # Uses 'swift sdk install' with a URL - Swift handles downloading and installation.
+    # Downloads using curl (preferred) or wget (fallback), then installs from local file.
+    # Installing from local file doesn't require a checksum (which isn't published by Swift.org).
     # The installed SDK is cached for subsequent builds.
     #
-    # SDK URL format: https://download.swift.org/swift-{version}-release/static-sdk/{sdk-name}/{sdk-name}.artifactbundle.zip
-    # No checksum validation is performed - let the installation fail naturally if URL is invalid or download is corrupt.
+    # SDK URL format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_{variant}.artifactbundle.tar.gz
     - name: Install WASM SDK
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
@@ -540,13 +540,23 @@ runs:
         echo "Installing WASM SDK: $SDK_NAME"
 
         # The SDK download URL pattern from Swift.org
-        # Format: https://download.swift.org/swift-{version}-release/...
-        SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/static-sdk/${SDK_NAME}/${SDK_NAME}.artifactbundle.zip"
+        # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_{variant}.artifactbundle.tar.gz
+        SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
 
-        echo "Installing from: $SDK_URL"
+        echo "Downloading from: $SDK_URL"
 
-        # Install SDK directly from URL (swift sdk handles download)
-        swift sdk install "$SDK_URL"
+        # Download SDK (use wget if curl not available)
+        if command -v curl >/dev/null 2>&1; then
+          curl -L "$SDK_URL" -o /tmp/wasm-sdk.tar.gz
+        elif command -v wget >/dev/null 2>&1; then
+          wget -O /tmp/wasm-sdk.tar.gz "$SDK_URL"
+        else
+          echo "ERROR: Neither curl nor wget available to download WASM SDK"
+          exit 1
+        fi
+
+        # Install SDK from local file (doesn't require checksum)
+        swift sdk install /tmp/wasm-sdk.tar.gz
 
         # Verify installation
         echo "Installed SDKs:"
