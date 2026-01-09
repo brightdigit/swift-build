@@ -481,7 +481,7 @@ runs:
     # This ensures all Xcode tools (xcodebuild, xcrun, etc.) use the correct toolchain
     # Essential for environments with multiple Xcode versions installed
     - name: Setup Xcode
-      if: steps.detect-os.outputs.os == 'macos' && inputs.xcode
+      if: (steps.detect-os.outputs.os == 'macos' || steps.detect-os.outputs.os == 'wasm') && inputs.xcode && runner.os == 'macOS'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: echo "DEVELOPER_DIR=${{ inputs.xcode }}/Contents/Developer" >> $GITHUB_ENV
@@ -592,6 +592,9 @@ runs:
         # Try to extract full version from the main "Swift version X.Y.Z" part first
         if echo "$SWIFT_VERSION_RAW" | grep -qE 'Swift version [0-9]+\.[0-9]+\.[0-9]+'; then
           SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*Swift version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        # Handle macOS Xcode format: "Apple Swift version 6.2 (swiftlang-6.2.0.19.9 ...)"
+        elif echo "$SWIFT_VERSION_RAW" | grep -qE 'Apple Swift version [0-9]+\.[0-9]+' && echo "$SWIFT_VERSION_RAW" | grep -qE '\(swiftlang-[0-9]+\.[0-9]+\.[0-9]+'; then
+          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swiftlang-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
         # If that doesn't have patch, try to extract from parentheses like "(swift-6.2.3-RELEASE)"
         elif echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+\.[0-9]+'; then
           SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swift-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
@@ -1280,45 +1283,32 @@ runs:
           
           # Install Wasmtime for WASM test execution
           echo "Installing Wasmtime WASM runtime..."
+
+          # Determine platform and download URL
           if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            # Ubuntu/Linux installation
-            curl -L "https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.0/wasmtime-v26.0.0-x86_64-linux.tar.xz" -o /tmp/wasmtime.tar.xz
-            cd /tmp && tar -xf wasmtime.tar.xz
-            
-            # Install to /usr/local/bin if we have permission, otherwise use a local directory
-            if [ -w "/usr/local/bin" ] || [ "$EUID" -eq 0 ]; then
-              # We have write permission to /usr/local/bin or we're root (container)
-              mv wasmtime-v26.0.0-x86_64-linux/wasmtime /usr/local/bin/
-            elif command -v sudo >/dev/null 2>&1; then
-              # We have sudo available
-              sudo mv wasmtime-v26.0.0-x86_64-linux/wasmtime /usr/local/bin/
-            else
-              # Fallback: install to current directory and add to PATH
-              mkdir -p "$HOME/.local/bin"
-              mv wasmtime-v26.0.0-x86_64-linux/wasmtime "$HOME/.local/bin/"
-              echo "$HOME/.local/bin" >> $GITHUB_PATH
-            fi
-            rm -rf wasmtime*
+            WASMTIME_PLATFORM="x86_64-linux"
           elif [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS installation
-            curl -L "https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.0/wasmtime-v26.0.0-x86_64-macos.tar.xz" -o /tmp/wasmtime.tar.xz
-            cd /tmp && tar -xf wasmtime.tar.xz
-            
-            # Install to /usr/local/bin if we have permission, otherwise use sudo
-            if [ -w "/usr/local/bin" ] || [ "$EUID" -eq 0 ]; then
-              # We have write permission to /usr/local/bin or we're root
-              mv wasmtime-v26.0.0-x86_64-macos/wasmtime /usr/local/bin/
-            elif command -v sudo >/dev/null 2>&1; then
-              # We have sudo available
-              sudo mv wasmtime-v26.0.0-x86_64-macos/wasmtime /usr/local/bin/
-            else
-              # Fallback: install to user directory and add to PATH
-              mkdir -p "$HOME/.local/bin"
-              mv wasmtime-v26.0.0-x86_64-macos/wasmtime "$HOME/.local/bin/"
-              echo "$HOME/.local/bin" >> $GITHUB_PATH
-            fi
-            rm -rf wasmtime*
+            WASMTIME_PLATFORM="x86_64-macos"
+          else
+            echo "ERROR: Unsupported platform for Wasmtime: $OSTYPE"
+            exit 1
           fi
+
+          WASMTIME_VERSION="26.0.0"
+          WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
+
+          # Download and extract to local .wasmtime directory
+          mkdir -p .wasmtime
+          curl -L "$WASMTIME_URL" -o .wasmtime/wasmtime.tar.xz
+          tar -xf .wasmtime/wasmtime.tar.xz -C .wasmtime
+          WASMTIME_BIN=".wasmtime/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
+
+          # Verify installation
+          if [[ ! -f "$WASMTIME_BIN" ]]; then
+            echo "ERROR: Failed to extract wasmtime binary"
+            exit 1
+          fi
+          echo "Wasmtime installed at: $WASMTIME_BIN"
           
           # Build tests (separate from running them, per WASI guide)
           echo "Building WASM tests..."
@@ -1327,7 +1317,7 @@ runs:
           # Run tests using Wasmtime runtime (per Swift Testing WASI guide)
           echo "Running WASM tests with Wasmtime runtime..."
           PACKAGE_NAME=$(basename "${{ inputs.working-directory }}")
-          wasmtime .build/debug/${PACKAGE_NAME}PackageTests.wasm --testing-library swift-testing
+          "$WASMTIME_BIN" .build/debug/${PACKAGE_NAME}PackageTests.wasm --testing-library swift-testing
         fi
 
     # Xcode Build and Test Execution (Apple Platform Testing)
