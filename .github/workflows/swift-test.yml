@@ -71,6 +71,15 @@ jobs:
             use-xcbeautify: "true"
             xcbeautify-renderer: "azure-devops-pipelines"
 
+          - type: ios
+            runs-on: macos-26
+            xcode: "/Applications/Xcode_26.2.app"
+            deviceName: "iPhone 17 Pro"
+            osVersion: "26.2"
+            download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "github-actions"
+
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -85,6 +94,15 @@ jobs:
             download-platform: "true"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
+
+          - type: watchos
+            runs-on: macos-26
+            xcode: "/Applications/Xcode_26.2.app"
+            deviceName: "Apple Watch Ultra 3 (49mm)"
+            osVersion: "26.2"
+            download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "azure-devops-pipelines"
 
           - type: visionos
             runs-on: macos-15
@@ -105,6 +123,15 @@ jobs:
             osVersion: "26.0"
             download-platform: "true"
             use-xcbeautify: "true"
+
+          - type: tvos
+            runs-on: macos-26
+            xcode: "/Applications/Xcode_26.2.app"
+            deviceName: "Apple TV 4K (3rd generation)"
+            osVersion: "26.2"
+            download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "github-actions"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -194,6 +221,15 @@ jobs:
             use-xcbeautify: "true"
             xcbeautify-renderer: "azure-devops-pipelines"
 
+          - type: ios
+            runs-on: macos-26
+            xcode: "/Applications/Xcode_26.2.app"
+            deviceName: "iPhone 17 Pro"
+            osVersion: "26.2"
+            download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "github-actions"
+
           - type: watchos
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
@@ -208,6 +244,15 @@ jobs:
             download-platform: "true"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
+
+          - type: watchos
+            runs-on: macos-26
+            xcode: "/Applications/Xcode_26.2.app"
+            deviceName: "Apple Watch Ultra 3 (49mm)"
+            osVersion: "26.2"
+            download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "azure-devops-pipelines"
 
           - type: visionos
             runs-on: macos-15
@@ -228,6 +273,15 @@ jobs:
             osVersion: "26.0"
             download-platform: "true"
             use-xcbeautify: "true"
+
+          - type: tvos
+            runs-on: macos-26
+            xcode: "/Applications/Xcode_26.2.app"
+            deviceName: "Apple TV 4K (3rd generation)"
+            osVersion: "26.2"
+            download-platform: "true"
+            use-xcbeautify: "true"
+            xcbeautify-renderer: "github-actions"
     steps:
       - uses: actions/checkout@v4
       - uses: ./
@@ -286,9 +340,9 @@ jobs:
           - "6.0"
           - "6.1"
           - "6.2"
+          - "6.3"
         ubuntu:
           - jammy
-          - focal
           - noble
         nightly:
           - false
@@ -305,7 +359,9 @@ jobs:
             nightly: true
           - swift: 6.0
             nightly: true
-          - swift: 6.2
+          - swift: 6.1
+            nightly: true            
+          - swift: 6.3
             nightly: false
           # Only test build-only for one swift version per ubuntu to reduce test matrix
           - swift: 5.9
@@ -314,7 +370,9 @@ jobs:
             build-only: true
           - swift: 6.0
             build-only: true
-          - swift: 6.2
+          - swift: 6.1
+            build-only: true
+          - swift: 6.3
             build-only: true
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
@@ -353,41 +411,18 @@ jobs:
     strategy:
       matrix:
         swift:
-          - "5.9"
-          - "5.10"
-          - "6.0"
           - "6.1"
           - "6.2"
+          - "6.3"
         ubuntu:
           - jammy
-          - focal
           - noble
         nightly:
           - false
           - true
-        build-only:
-          - false
-          - true
         exclude:
-          - swift: 5.9
-            ubuntu: noble
-          - swift: 5.9
-            nightly: true
-          - swift: 5.10
-            nightly: true
-          - swift: 6.0
-            nightly: true
-          - swift: 6.2
+          - swift: 6.3
             nightly: false
-          # Only test build-only for one swift version per ubuntu to reduce test matrix
-          - swift: 5.9
-            build-only: true
-          - swift: 5.10
-            build-only: true
-          - swift: 6.0
-            build-only: true
-          - swift: 6.2
-            build-only: true
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
@@ -518,9 +553,9 @@ jobs:
           - "6.0"
           - "6.1"
           - "6.2"
+          - "6.3"
         ubuntu:
           - jammy
-          - focal
           - noble
         nightly:
           - false
@@ -536,8 +571,10 @@ jobs:
             nightly: true
           - swift: 6.1
             nightly: true
-          # Only 6.2 has nightly
           - swift: 6.2
+            nightly: true
+          # Only 6.2 has nightly
+          - swift: 6.3
             nightly: false
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}

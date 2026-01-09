@@ -1,14 +1,14 @@
-import XCTest
+import Testing
 @testable import Utils
 
-final class StringUtilsTests: XCTestCase {
-    func testCapitalize() {
-        XCTAssertEqual(StringUtils.capitalize("hello"), "Hello")
-        XCTAssertEqual(StringUtils.capitalize("world"), "World")
+struct StringUtilsTests {
+    @Test func capitalize() {
+        #expect(StringUtils.capitalize("hello") == "Hello")
+        #expect(StringUtils.capitalize("world") == "World")
     }
     
-    func testReverse() {
-        XCTAssertEqual(StringUtils.reverse("hello"), "olleh")
-        XCTAssertEqual(StringUtils.reverse("world"), "dlrow")
+    @Test func reverse() {
+        #expect(StringUtils.reverse("hello") == "olleh")
+        #expect(StringUtils.reverse("world") == "dlrow")
     }
 } 
