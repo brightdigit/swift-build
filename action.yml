@@ -471,102 +471,6 @@ runs:
         echo "package-hash=$PACKAGE_HASH" >> $GITHUB_OUTPUT
         echo "Package.swift hash: $PACKAGE_HASH"
 
-    # WASM Swift Version Detection
-    # This step detects the installed Swift version and constructs the WASM SDK name.
-    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
-    #
-    # Outputs:
-    # - swift-version: The detected Swift version (e.g., "6.2.3")
-    # - wasm-sdk: The SDK name to use (e.g., "swift-6.2.3-RELEASE_wasm")
-    #
-    # The SDK name format is: swift-{VERSION}-RELEASE_{wasm|wasm-embedded}
-    # No version validation is performed - installation will fail naturally if version is unsupported.
-    - name: Detect Swift Version for WASM
-      if: steps.detect-os.outputs.os == 'wasm'
-      shell: bash
-      id: detect-swift-version
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        # Extract Swift version with full patch number (e.g., "6.2.3")
-        # swift --version outputs formats like:
-        #   "Swift version 6.2.3 (swift-6.2.3-RELEASE)"
-        #   "swift-driver version: 1.127.14.1 Swift version 6.2 (swift-6.2.3-RELEASE)"
-        SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
-        echo "Raw version output: $SWIFT_VERSION_RAW"
-
-        # Try to extract full version from the main "Swift version X.Y.Z" part first
-        if echo "$SWIFT_VERSION_RAW" | grep -qE 'Swift version [0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*Swift version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        # If that doesn't have patch, try to extract from parentheses like "(swift-6.2.3-RELEASE)"
-        elif echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swift-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        # Fallback: if we only have major.minor, we can't reliably determine patch version
-        else
-          echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
-          echo "WASM requires Swift 6.2.3+ with full version number in swift --version output"
-          exit 1
-        fi
-
-        # Construct SDK name - both wasm and wasm-embedded use the same SDK bundle
-        # The embedded variant is included in the wasm SDK package
-        # Format: swift-{VERSION}-RELEASE_wasm (contains both wasm and wasm-embedded)
-        WASM_VARIANT="${{ steps.detect-os.outputs.wasm-variant }}"
-        SDK_NAME="swift-${SWIFT_VERSION}-RELEASE_wasm"
-
-        echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
-        echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
-        echo "Detected Swift $SWIFT_VERSION, will use SDK: $SDK_NAME"
-
-    # WASM SDK Installation
-    # This step downloads and installs the WASM SDK bundle for the detected Swift version.
-    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
-    #
-    # Downloads using curl (preferred) or wget (fallback), then installs from local file.
-    # Installing from local file doesn't require a checksum (which isn't published by Swift.org).
-    # The installed SDK is cached for subsequent builds.
-    #
-    # SDK URL format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_{variant}.artifactbundle.tar.gz
-    - name: Install WASM SDK
-      if: steps.detect-os.outputs.os == 'wasm'
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        SDK_NAME="${{ steps.detect-swift-version.outputs.wasm-sdk }}"
-        SWIFT_VERSION="${{ steps.detect-swift-version.outputs.swift-version }}"
-
-        echo "Installing WASM SDK: $SDK_NAME"
-
-        # The SDK download URL pattern from Swift.org
-        # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_{variant}.artifactbundle.tar.gz
-        SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
-
-        echo "Downloading from: $SDK_URL"
-
-        # Install curl on Linux if not available (containers may not have it)
-        if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v curl >/dev/null 2>&1; then
-          echo "Installing curl..."
-          apt-get update -qq && apt-get install -y -qq curl
-        fi
-
-        # Download SDK (use wget if curl not available)
-        if command -v curl >/dev/null 2>&1; then
-          curl -L "$SDK_URL" -o /tmp/wasm-sdk.tar.gz
-        elif command -v wget >/dev/null 2>&1; then
-          wget -O /tmp/wasm-sdk.tar.gz "$SDK_URL"
-        else
-          echo "ERROR: Neither curl nor wget available to download WASM SDK"
-          exit 1
-        fi
-
-        # Install SDK from local file (doesn't require checksum)
-        swift sdk install /tmp/wasm-sdk.tar.gz
-
-        # Verify installation
-        echo "Installed SDKs:"
-        swift sdk list
-
-        echo "WASM SDK installed successfully"
-
     # macOS Xcode Configuration Steps
     # These steps only execute on macOS runners when Apple platform builds are requested.
     # They configure the Xcode toolchain, map platform types to SDK/simulator names,
@@ -660,6 +564,104 @@ runs:
             echo "SDK=macosx" >> $GITHUB_ENV
             ;;
         esac
+
+    # WASM Swift Version Detection
+    # This step detects the installed Swift version and constructs the WASM SDK name.
+    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
+    # IMPORTANT: This happens AFTER Xcode setup to use the correct Swift version.
+    #
+    # Outputs:
+    # - swift-version: The detected Swift version (e.g., "6.2.3")
+    # - wasm-sdk: The SDK name to use (e.g., "swift-6.2.3-RELEASE_wasm")
+    #
+    # The SDK name format is: swift-{VERSION}-RELEASE_wasm (both variants use same SDK)
+    # No version validation is performed - installation will fail naturally if version is unsupported.
+    - name: Detect Swift Version for WASM
+      if: steps.detect-os.outputs.os == 'wasm'
+      shell: bash
+      id: detect-swift-version
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        # Extract Swift version with full patch number (e.g., "6.2.3")
+        # swift --version outputs formats like:
+        #   "Swift version 6.2.3 (swift-6.2.3-RELEASE)"
+        #   "swift-driver version: 1.127.14.1 Swift version 6.2 (swift-6.2.3-RELEASE)"
+        SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
+        echo "Raw version output: $SWIFT_VERSION_RAW"
+
+        # Try to extract full version from the main "Swift version X.Y.Z" part first
+        if echo "$SWIFT_VERSION_RAW" | grep -qE 'Swift version [0-9]+\.[0-9]+\.[0-9]+'; then
+          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*Swift version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        # If that doesn't have patch, try to extract from parentheses like "(swift-6.2.3-RELEASE)"
+        elif echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+\.[0-9]+'; then
+          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swift-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        # Fallback: if we only have major.minor, we can't reliably determine patch version
+        else
+          echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
+          echo "WASM requires Swift 6.2.3+ with full version number in swift --version output"
+          exit 1
+        fi
+
+        # Construct SDK name - both wasm and wasm-embedded use the same SDK bundle
+        # The embedded variant is included in the wasm SDK package
+        # Format: swift-{VERSION}-RELEASE_wasm (contains both wasm and wasm-embedded)
+        WASM_VARIANT="${{ steps.detect-os.outputs.wasm-variant }}"
+        SDK_NAME="swift-${SWIFT_VERSION}-RELEASE_wasm"
+
+        echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
+        echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
+        echo "Detected Swift $SWIFT_VERSION, will use SDK: $SDK_NAME"
+
+    # WASM SDK Installation
+    # This step downloads and installs the WASM SDK bundle for the detected Swift version.
+    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
+    # Happens AFTER Xcode setup to ensure correct Swift toolchain is used.
+    #
+    # Downloads using curl (preferred) or wget (fallback), then installs from local file.
+    # Installing from local file doesn't require a checksum (which isn't published by Swift.org).
+    # The installed SDK is cached for subsequent builds.
+    #
+    # SDK URL format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
+    - name: Install WASM SDK
+      if: steps.detect-os.outputs.os == 'wasm'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        SDK_NAME="${{ steps.detect-swift-version.outputs.wasm-sdk }}"
+        SWIFT_VERSION="${{ steps.detect-swift-version.outputs.swift-version }}"
+
+        echo "Installing WASM SDK: $SDK_NAME"
+
+        # The SDK download URL pattern from Swift.org
+        # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
+        SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
+
+        echo "Downloading from: $SDK_URL"
+
+        # Install curl on Linux if not available (containers may not have it)
+        if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v curl >/dev/null 2>&1; then
+          echo "Installing curl..."
+          apt-get update -qq && apt-get install -y -qq curl
+        fi
+
+        # Download SDK (use wget if curl not available)
+        if command -v curl >/dev/null 2>&1; then
+          curl -L "$SDK_URL" -o /tmp/wasm-sdk.tar.gz
+        elif command -v wget >/dev/null 2>&1; then
+          wget -O /tmp/wasm-sdk.tar.gz "$SDK_URL"
+        else
+          echo "ERROR: Neither curl nor wget available to download WASM SDK"
+          exit 1
+        fi
+
+        # Install SDK from local file (doesn't require checksum)
+        swift sdk install /tmp/wasm-sdk.tar.gz
+
+        # Verify installation
+        echo "Installed SDKs:"
+        swift sdk list
+
+        echo "WASM SDK installed successfully"
 
     # Automatically download missing Apple platform support (optional)
     # This step executes only when download-platform is set to 'true' and runs
