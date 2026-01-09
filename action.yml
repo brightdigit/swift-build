@@ -1378,7 +1378,7 @@ runs:
           
           # Build tests (separate from running them, per WASI guide)
           echo "Building WASM tests..."
-          swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG
+          swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG --enable-code-coverage -Xlinker -lwasi-emulated-getpid
 
           # Find the actual test binary (may be .wasm or .xctest depending on Swift version)
           PACKAGE_NAME=$(basename "${{ inputs.working-directory }}")
@@ -1403,7 +1403,7 @@ runs:
           # Run tests using Wasmtime runtime (per Swift Testing WASI guide)
           echo "Running WASM tests with Wasmtime runtime..."
           echo "Test binary: $TEST_BINARY"
-          "$WASMTIME_BIN" "$TEST_BINARY" --testing-library swift-testing
+          "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing
         fi
 
     # Xcode Build and Test Execution (Apple Platform Testing)
