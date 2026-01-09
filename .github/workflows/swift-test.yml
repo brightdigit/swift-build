@@ -340,9 +340,9 @@ jobs:
           - "6.0"
           - "6.1"
           - "6.2"
+          - "6.3"
         ubuntu:
           - jammy
-          - focal
           - noble
         nightly:
           - false
@@ -359,7 +359,9 @@ jobs:
             nightly: true
           - swift: 6.0
             nightly: true
-          - swift: 6.2
+          - swift: 6.1
+            nightly: true            
+          - swift: 6.3
             nightly: false
           # Only test build-only for one swift version per ubuntu to reduce test matrix
           - swift: 5.9
@@ -368,7 +370,9 @@ jobs:
             build-only: true
           - swift: 6.0
             build-only: true
-          - swift: 6.2
+          - swift: 6.1
+            build-only: true
+          - swift: 6.3
             build-only: true
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
@@ -412,14 +416,11 @@ jobs:
           - "6.3"
         ubuntu:
           - jammy
-          - focal
           - noble
         nightly:
           - false
           - true
         exclude:
-          - swift: 5.9
-            nightly: false
           - swift: 6.3
             nightly: false
     container:
@@ -552,9 +553,9 @@ jobs:
           - "6.0"
           - "6.1"
           - "6.2"
+          - "6.3"
         ubuntu:
           - jammy
-          - focal
           - noble
         nightly:
           - false
@@ -570,8 +571,10 @@ jobs:
             nightly: true
           - swift: 6.1
             nightly: true
-          # Only 6.2 has nightly
           - swift: 6.2
+            nightly: true
+          # Only 6.2 has nightly
+          - swift: 6.3
             nightly: false
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
