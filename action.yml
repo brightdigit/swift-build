@@ -1406,7 +1406,13 @@ runs:
 
           while IFS= read -r TEST_BINARY; do
             echo "Running tests: $TEST_BINARY"
-            "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing
+            # Only use --testing-library swift-testing for .wasm binaries (Swift Testing framework)
+            # XCTest binaries (.xctest) should run without this flag
+            if [[ "$TEST_BINARY" == *.wasm ]]; then
+              "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing
+            else
+              "$WASMTIME_BIN" --dir . "$TEST_BINARY"
+            fi
           done <<< "$TEST_BINARIES"
         fi
 
