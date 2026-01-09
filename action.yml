@@ -486,6 +486,64 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: echo "DEVELOPER_DIR=${{ inputs.xcode }}/Contents/Developer" >> $GITHUB_ENV
 
+    # Setup Swift.org toolchain for WASM builds on macOS
+    # Xcode's Swift doesn't include WASM backend - must use Swift.org toolchain
+    - name: Setup Swift.org Toolchain for WASM (macOS)
+      if: steps.detect-os.outputs.os == 'wasm' && runner.os == 'macOS'
+      shell: bash
+      run: |
+        echo "Setting up Swift.org toolchain for WASM support..."
+
+        # First detect Swift version from Xcode to know which version to install
+        SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
+        echo "Xcode Swift version: $SWIFT_VERSION_RAW"
+
+        # Parse Swift version (same logic as "Detect Swift Version for WASM" step)
+        if echo "$SWIFT_VERSION_RAW" | grep -qE 'Swift version [0-9]+\.[0-9]+\.[0-9]+'; then
+          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*Swift version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        elif echo "$SWIFT_VERSION_RAW" | grep -qE 'Apple Swift version [0-9]+\.[0-9]+' && echo "$SWIFT_VERSION_RAW" | grep -qE '\(swiftlang-[0-9]+\.[0-9]+\.[0-9]+'; then
+          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swiftlang-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        elif echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+\.[0-9]+'; then
+          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swift-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        else
+          echo "ERROR: Could not parse Swift version from: $SWIFT_VERSION_RAW"
+          exit 1
+        fi
+
+        echo "Detected Swift version: $SWIFT_VERSION"
+        echo "Installing matching Swift.org toolchain..."
+
+        # Install swiftly if not present
+        if ! command -v swiftly &> /dev/null; then
+          echo "Installing swiftly..."
+          curl -L https://swift-server.github.io/swiftly/swiftly-install.sh | bash -s -- -y
+          export PATH="$HOME/.local/bin:$PATH"
+        else
+          echo "swiftly already installed"
+        fi
+
+        # Verify swiftly installation
+        swiftly --version
+
+        # Install Swift.org toolchain matching the Xcode version
+        echo "Installing Swift $SWIFT_VERSION via swiftly..."
+        swiftly install $SWIFT_VERSION
+
+        # Select and activate the installed toolchain for the current shell
+        # 'swiftly use' sets up PATH and makes this Swift version active
+        echo "Selecting Swift $SWIFT_VERSION toolchain..."
+        swiftly use $SWIFT_VERSION
+
+        # Unset DEVELOPER_DIR to ensure we use Swift.org toolchain, not Xcode
+        # This prevents Xcode's Swift from taking precedence
+        echo "Unsetting DEVELOPER_DIR to use Swift.org toolchain"
+        echo "DEVELOPER_DIR=" >> $GITHUB_ENV
+
+        # Verify Swift version from new toolchain
+        # Should now show Swift.org toolchain (not "Apple Swift version")
+        echo "Swift.org toolchain version:"
+        swift --version
+
     # Get Xcode version from the actual Xcode installation being used
     # This ensures accurate version detection regardless of path format
     # Uses DEVELOPER_DIR when available, falls back to system default
