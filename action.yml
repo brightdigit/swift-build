@@ -1284,13 +1284,39 @@ runs:
             # Ubuntu/Linux installation
             curl -L "https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.0/wasmtime-v26.0.0-x86_64-linux.tar.xz" -o /tmp/wasmtime.tar.xz
             cd /tmp && tar -xf wasmtime.tar.xz
-            sudo mv wasmtime-v26.0.0-x86_64-linux/wasmtime /usr/local/bin/
+            
+            # Install to /usr/local/bin if we have permission, otherwise use a local directory
+            if [ -w "/usr/local/bin" ] || [ "$EUID" -eq 0 ]; then
+              # We have write permission to /usr/local/bin or we're root (container)
+              mv wasmtime-v26.0.0-x86_64-linux/wasmtime /usr/local/bin/
+            elif command -v sudo >/dev/null 2>&1; then
+              # We have sudo available
+              sudo mv wasmtime-v26.0.0-x86_64-linux/wasmtime /usr/local/bin/
+            else
+              # Fallback: install to current directory and add to PATH
+              mkdir -p "$HOME/.local/bin"
+              mv wasmtime-v26.0.0-x86_64-linux/wasmtime "$HOME/.local/bin/"
+              echo "$HOME/.local/bin" >> $GITHUB_PATH
+            fi
             rm -rf wasmtime*
           elif [[ "$OSTYPE" == "darwin"* ]]; then
             # macOS installation
             curl -L "https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.0/wasmtime-v26.0.0-x86_64-macos.tar.xz" -o /tmp/wasmtime.tar.xz
             cd /tmp && tar -xf wasmtime.tar.xz
-            sudo mv wasmtime-v26.0.0-x86_64-macos/wasmtime /usr/local/bin/
+            
+            # Install to /usr/local/bin if we have permission, otherwise use sudo
+            if [ -w "/usr/local/bin" ] || [ "$EUID" -eq 0 ]; then
+              # We have write permission to /usr/local/bin or we're root
+              mv wasmtime-v26.0.0-x86_64-macos/wasmtime /usr/local/bin/
+            elif command -v sudo >/dev/null 2>&1; then
+              # We have sudo available
+              sudo mv wasmtime-v26.0.0-x86_64-macos/wasmtime /usr/local/bin/
+            else
+              # Fallback: install to user directory and add to PATH
+              mkdir -p "$HOME/.local/bin"
+              mv wasmtime-v26.0.0-x86_64-macos/wasmtime "$HOME/.local/bin/"
+              echo "$HOME/.local/bin" >> $GITHUB_PATH
+            fi
             rm -rf wasmtime*
           fi
           
