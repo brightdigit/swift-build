@@ -962,3 +962,145 @@ jobs:
           working-directory: test/DependencyPackage
           scheme: DependencyPackage
           skip-package-resolved: "true"
+
+  test-single-target-wasm:
+    name: Test Single Target Package (WASM)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu with WASM
+          - runs-on: ubuntu-latest
+            type: wasm
+            build-only: false
+
+          # Ubuntu with WASM-embedded
+          - runs-on: ubuntu-latest
+            type: wasm-embedded
+            build-only: false
+
+          # Ubuntu with WASM build-only
+          - runs-on: ubuntu-latest
+            type: wasm
+            build-only: true
+
+          # Ubuntu with WASM-embedded build-only
+          - runs-on: ubuntu-latest
+            type: wasm-embedded
+            build-only: true
+
+          # macOS with WASM
+          - runs-on: macos-latest
+            type: wasm
+            build-only: false
+
+          # macOS with WASM-embedded
+          - runs-on: macos-latest
+            type: wasm-embedded
+            build-only: false
+
+          # macOS with WASM build-only
+          - runs-on: macos-latest
+            type: wasm
+            build-only: true
+
+          # macOS with WASM-embedded build-only
+          - runs-on: macos-latest
+            type: wasm-embedded
+            build-only: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/SingleTargetPackage
+          scheme: SingleTargetPackage
+          type: ${{ matrix.type }}
+          skip-package-resolved: "true"
+          build-only: ${{ matrix.build-only }}
+
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == true
+        working-directory: test/SingleTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # Check for WASM test binaries in .build directory
+          if [ -d ".build" ]; then
+            # Look for WASM test binaries (typically have .wasm extension)
+            if find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null | grep -q .; then
+              echo "ERROR: WASM test binaries found in .build directory in build-only mode"
+              find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null
+              exit 1
+            fi
+          fi
+
+          echo "✓ Verified: No WASM test binaries created in build-only mode"
+          echo "✓ Build-only mode verification passed"
+
+  test-multi-target-wasm:
+    name: Test Multi-Target Package (WASM)
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Ubuntu with WASM
+          - runs-on: ubuntu-latest
+            type: wasm
+            build-only: false
+
+          # Ubuntu with WASM-embedded
+          - runs-on: ubuntu-latest
+            type: wasm-embedded
+            build-only: false
+
+          # Ubuntu with WASM build-only
+          - runs-on: ubuntu-latest
+            type: wasm
+            build-only: true
+
+          # macOS with WASM
+          - runs-on: macos-latest
+            type: wasm
+            build-only: false
+
+          # macOS with WASM-embedded
+          - runs-on: macos-latest
+            type: wasm-embedded
+            build-only: false
+
+          # macOS with WASM build-only
+          - runs-on: macos-latest
+            type: wasm
+            build-only: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          working-directory: test/MultiTargetPackage
+          scheme: MultiTargetPackage-Package
+          type: ${{ matrix.type }}
+          skip-package-resolved: "true"
+          build-only: ${{ matrix.build-only }}
+
+      - name: Verify tests were not run (build-only mode)
+        if: matrix.build-only == true
+        working-directory: test/MultiTargetPackage
+        shell: bash
+        run: |
+          echo "Verifying that tests were not executed in build-only mode..."
+
+          # Check for WASM test binaries in .build directory
+          if [ -d ".build" ]; then
+            # Look for WASM test binaries (typically have .wasm extension)
+            if find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null | grep -q .; then
+              echo "ERROR: WASM test binaries found in .build directory in build-only mode"
+              find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null
+              exit 1
+            fi
+          fi
+
+          echo "✓ Verified: No WASM test binaries created in build-only mode"
+          echo "✓ Build-only mode verification passed"
