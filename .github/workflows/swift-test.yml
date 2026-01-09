@@ -98,7 +98,7 @@ jobs:
           - type: watchos
             runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
-            deviceName: "Apple Watch Ultra 2 (49mm)"
+            deviceName: "Apple Watch Ultra 3 (49mm)"
             osVersion: "26.2"
             download-platform: "true"
             use-xcbeautify: "true"
