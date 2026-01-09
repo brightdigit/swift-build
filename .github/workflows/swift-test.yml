@@ -11,7 +11,6 @@ jobs:
   # This intentional difference optimizes readability and maintainability for each platform
 
   test-single-target-macos:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Single Target Package (macOS)
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -181,7 +180,6 @@ jobs:
           echo "✓ Build-only mode verification passed"
 
   test-multi-target-macos:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Multi-Target Package (macOS)
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -332,7 +330,6 @@ jobs:
           echo "✓ Build-only mode verification passed"
 
   test-single-target-ubuntu:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Single Target Package (Ubuntu)
     runs-on: ubuntu-latest
     strategy:
@@ -409,7 +406,6 @@ jobs:
           echo "✓ Build-only mode verification passed" 
 
   test-multi-target-ubuntu:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Multi-Target Package (Ubuntu)
     runs-on: ubuntu-latest
     strategy:
@@ -458,7 +454,6 @@ jobs:
           echo "✓ Verified: No test binaries created in build-only mode"
           echo "✓ Build-only mode verification passed"
   test-single-target-windows:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -504,7 +499,6 @@ jobs:
           echo "✓ Build-only mode verification passed" 
 
   test-multi-target-windows:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Multi-Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -550,7 +544,6 @@ jobs:
           echo "✓ Build-only mode verification passed"
 
   test-dependency-package-resolved-v3-success:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Dependency Package (Ubuntu, Swift 5.10+)
     runs-on: ubuntu-latest
     strategy:
@@ -594,7 +587,6 @@ jobs:
           use-xcbeautify: "true"
 
   test-dependency-package-resolved-v3-failure:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Dependency Package (Ubuntu, Swift 5.9 strict - EXPECTED TO FAIL)
     runs-on: ubuntu-latest
     strategy:
@@ -632,7 +624,6 @@ jobs:
           exit 1
 
   test-dependency-package-resolved-v3-floating:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Dependency Package (Ubuntu, Swift 5.x floating)
     runs-on: ubuntu-latest
     strategy:
@@ -656,7 +647,6 @@ jobs:
           skip-package-resolved: "true"
 
   test-dependency-package-windows:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Dependency Package (Windows)
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -680,7 +670,6 @@ jobs:
           skip-package-resolved: "false"
 
   test-dependency-package-macos:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Dependency Package (macOS)
     runs-on: macos-15
     steps:
@@ -694,7 +683,6 @@ jobs:
           skip-package-resolved: "false"
 
   test-single-target-android:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Single Target Package (Android)
     runs-on: ubuntu-latest
     strategy:
@@ -747,7 +735,6 @@ jobs:
           echo "Note: Android builds are handled by swift-android-action"
 
   test-multi-target-android:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Multi-Target Package (Android)
     runs-on: ubuntu-latest
     strategy:
@@ -800,7 +787,6 @@ jobs:
           echo "Note: Android builds are handled by swift-android-action"
 
   test-android-auto-detection:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Android Auto-Detection
     runs-on: ubuntu-latest
     strategy:
@@ -869,7 +855,6 @@ jobs:
           echo "Android build was successfully auto-detected and executed"
 
   test-explicit-type-precedence:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Explicit Type Precedence
     runs-on: ubuntu-latest
     steps:
@@ -893,7 +878,6 @@ jobs:
           echo "Android parameters were correctly ignored when type=macos was set"
 
   test-dependency-package-android:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Dependency Package (Android)
     runs-on: ubuntu-latest
     strategy:
@@ -928,7 +912,6 @@ jobs:
           skip-package-resolved: "false"
 
   test-cache-behavior-strict:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Cache Behavior (strict mode)
     runs-on: ubuntu-latest
     container:
@@ -953,7 +936,6 @@ jobs:
           skip-package-resolved: "false"
 
   test-cache-behavior-floating:
-    if: false  # Temporarily disabled to focus on WASM development
     name: Test Cache Behavior (floating mode)
     runs-on: ubuntu-latest
     container:
