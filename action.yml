@@ -507,14 +507,11 @@ runs:
           exit 1
         fi
 
-        # Construct SDK name based on variant
-        # Format: swift-{VERSION}-RELEASE_{wasm|wasm-embedded}
+        # Construct SDK name - both wasm and wasm-embedded use the same SDK bundle
+        # The embedded variant is included in the wasm SDK package
+        # Format: swift-{VERSION}-RELEASE_wasm (contains both wasm and wasm-embedded)
         WASM_VARIANT="${{ steps.detect-os.outputs.wasm-variant }}"
-        if [[ "$WASM_VARIANT" == "wasm" ]]; then
-          SDK_NAME="swift-${SWIFT_VERSION}-RELEASE_wasm"
-        else
-          SDK_NAME="swift-${SWIFT_VERSION}-RELEASE_wasm-embedded"
-        fi
+        SDK_NAME="swift-${SWIFT_VERSION}-RELEASE_wasm"
 
         echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
         echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
@@ -1278,8 +1275,31 @@ runs:
           swift build $SDK_FLAG --cache-path .cache $RESOLVED_FLAG
         else
           echo "Building and testing WASM package..."
+          
+          # Install Wasmtime for WASM test execution
+          echo "Installing Wasmtime WASM runtime..."
+          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            # Ubuntu/Linux installation
+            curl -L "https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.0/wasmtime-v26.0.0-x86_64-linux.tar.xz" -o /tmp/wasmtime.tar.xz
+            cd /tmp && tar -xf wasmtime.tar.xz
+            sudo mv wasmtime-v26.0.0-x86_64-linux/wasmtime /usr/local/bin/
+            rm -rf wasmtime*
+          elif [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS installation
+            curl -L "https://github.com/bytecodealliance/wasmtime/releases/download/v26.0.0/wasmtime-v26.0.0-x86_64-macos.tar.xz" -o /tmp/wasmtime.tar.xz
+            cd /tmp && tar -xf wasmtime.tar.xz
+            sudo mv wasmtime-v26.0.0-x86_64-macos/wasmtime /usr/local/bin/
+            rm -rf wasmtime*
+          fi
+          
+          # Build tests (separate from running them, per WASI guide)
+          echo "Building WASM tests..."
           swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG
-          swift test $SDK_FLAG --cache-path .cache $RESOLVED_FLAG
+          
+          # Run tests using Wasmtime runtime (per Swift Testing WASI guide)
+          echo "Running WASM tests with Wasmtime runtime..."
+          PACKAGE_NAME=$(basename "${{ inputs.working-directory }}")
+          wasmtime .build/debug/${PACKAGE_NAME}PackageTests.wasm --testing-library swift-testing
         fi
 
     # Xcode Build and Test Execution (Apple Platform Testing)
