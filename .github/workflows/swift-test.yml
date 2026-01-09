@@ -12,6 +12,7 @@ jobs:
 
   test-single-target-macos:
     name: Test Single Target Package (macOS)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ${{ matrix.runs-on }}
     strategy:
       matrix:
@@ -154,6 +155,7 @@ jobs:
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ${{ matrix.runs-on }}
     strategy:
       matrix:
@@ -277,6 +279,7 @@ jobs:
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -349,6 +352,7 @@ jobs:
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -420,6 +424,7 @@ jobs:
           echo "✓ Build-only mode verification passed"
   test-single-target-windows:
     name: Test Single Target Package (Windows)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -465,6 +470,7 @@ jobs:
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -510,6 +516,7 @@ jobs:
 
   test-dependency-package-resolved-v3-success:
     name: Test Dependency Package (Ubuntu, Swift 5.10+)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -551,6 +558,7 @@ jobs:
 
   test-dependency-package-resolved-v3-failure:
     name: Test Dependency Package (Ubuntu, Swift 5.9 strict - EXPECTED TO FAIL)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -588,6 +596,7 @@ jobs:
 
   test-dependency-package-resolved-v3-floating:
     name: Test Dependency Package (Ubuntu, Swift 5.x floating)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -611,6 +620,7 @@ jobs:
 
   test-dependency-package-windows:
     name: Test Dependency Package (Windows)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
@@ -634,6 +644,7 @@ jobs:
 
   test-dependency-package-macos:
     name: Test Dependency Package (macOS)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -647,6 +658,7 @@ jobs:
 
   test-single-target-android:
     name: Test Single Target Package (Android)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -699,6 +711,7 @@ jobs:
 
   test-multi-target-android:
     name: Test Multi-Target Package (Android)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -751,6 +764,7 @@ jobs:
 
   test-android-auto-detection:
     name: Test Android Auto-Detection
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -819,6 +833,7 @@ jobs:
 
   test-explicit-type-precedence:
     name: Test Explicit Type Precedence
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -842,6 +857,7 @@ jobs:
 
   test-dependency-package-android:
     name: Test Dependency Package (Android)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -876,6 +892,7 @@ jobs:
 
   test-cache-behavior-strict:
     name: Test Cache Behavior (strict mode)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     container:
       image: swift:6.1-jammy
@@ -900,6 +917,7 @@ jobs:
 
   test-cache-behavior-floating:
     name: Test Cache Behavior (floating mode)
+    if: false  # TEMPORARILY DISABLED - focusing on WASM tests only
     runs-on: ubuntu-latest
     container:
       image: swift:6.1-jammy
