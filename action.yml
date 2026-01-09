@@ -545,6 +545,12 @@ runs:
 
         echo "Downloading from: $SDK_URL"
 
+        # Install curl on Linux if not available (containers may not have it)
+        if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v curl >/dev/null 2>&1; then
+          echo "Installing curl..."
+          apt-get update -qq && apt-get install -y -qq curl
+        fi
+
         # Download SDK (use wget if curl not available)
         if command -v curl >/dev/null 2>&1; then
           curl -L "$SDK_URL" -o /tmp/wasm-sdk.tar.gz
