@@ -538,6 +538,10 @@ runs:
         echo "Selecting Swift $SWIFT_VERSION toolchain..."
         swiftly use $SWIFT_VERSION
 
+        # Export swiftly bin PATH for subsequent steps
+        # This ensures 'swift' command continues to use Swift.org toolchain
+        echo "$HOME/.swiftly/bin" >> $GITHUB_PATH
+
         # Unset DEVELOPER_DIR to ensure we use Swift.org toolchain, not Xcode
         # This prevents Xcode's Swift from taking precedence
         echo "Unsetting DEVELOPER_DIR to use Swift.org toolchain"
