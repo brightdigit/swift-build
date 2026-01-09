@@ -516,8 +516,12 @@ runs:
         # Install swiftly if not present
         if ! command -v swiftly &> /dev/null; then
           echo "Installing swiftly..."
-          curl -L https://swift-server.github.io/swiftly/swiftly-install.sh | bash -s -- -y
-          export PATH="$HOME/.local/bin:$PATH"
+          curl -O https://download.swift.org/swiftly/darwin/swiftly.pkg && \
+          installer -pkg swiftly.pkg -target CurrentUserHomeDirectory && \
+          ~/.swiftly/bin/swiftly init --quiet-shell-followup && \
+          . "${SWIFTLY_HOME_DIR:-$HOME/.swiftly}/env.sh" && \
+          hash -r
+          export PATH="$HOME/.swiftly/bin:$PATH"
         else
           echo "swiftly already installed"
         fi
