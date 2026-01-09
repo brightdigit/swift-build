@@ -1,9 +1,9 @@
-import Testing
+import XCTest
 @testable import SingleTargetPackage
 
-struct GreeterTests {
-    @Test func greeting() throws {
+final class GreeterTests: XCTestCase {
+    func testGreeting() throws {
         let greeter = Greeter()
-        #expect(greeter.greet("World") == "Hello, World!")
+        XCTAssertEqual(greeter.greet("World"), "Hello, World!")
     }
 } 
