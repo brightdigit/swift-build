@@ -1,13 +1,13 @@
-import XCTest
+import Testing
 @testable import Core
 
-final class MessageFormatterTests: XCTestCase {
-    func testFormatting() {
+struct MessageFormatterTests {
+    @Test func formatting() {
         let formatter = MessageFormatter()
         
-        XCTAssertEqual(formatter.format("hello"), "hello")
-        XCTAssertEqual(formatter.format("hello", capitalize: true), "Hello")
-        XCTAssertEqual(formatter.format("hello", reverse: true), "olleh")
-        XCTAssertEqual(formatter.format("hello", capitalize: true, reverse: true), "olleH")
+        #expect(formatter.format("hello") == "hello")
+        #expect(formatter.format("hello", capitalize: true) == "Hello")
+        #expect(formatter.format("hello", reverse: true) == "olleh")
+        #expect(formatter.format("hello", capitalize: true, reverse: true) == "olleH")
     }
 } 
