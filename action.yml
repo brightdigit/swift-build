@@ -508,7 +508,7 @@ runs:
         echo "Xcode Swift version: $SWIFT_VERSION_RAW"
 
         # Parse Swift version using centralized script
-        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | ${{ github.action_path }}/scripts/parse-swift-version.sh)
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "${{ github.action_path }}/scripts/parse-swift-version.sh")
         if [ $? -ne 0 ]; then
           echo "ERROR: Failed to parse Swift version"
           exit 1
@@ -661,7 +661,7 @@ runs:
 
         # Parse Swift version using centralized script
         # WASM requires Swift 6.2.3+ with full version number (major.minor.patch)
-        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | ${{ github.action_path }}/scripts/parse-swift-version.sh)
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "${{ github.action_path }}/scripts/parse-swift-version.sh")
         if [ $? -ne 0 ]; then
           echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
           echo "WASM requires Swift 6.2.3+ with full version number in swift --version output"
@@ -1360,25 +1360,72 @@ runs:
           
           # Install Wasmtime for WASM test execution
           echo "Installing Wasmtime WASM runtime..."
+          echo "Environment diagnostics:"
+          echo "  Runner OS: ${{ runner.os }}"
+          echo "  Runner arch: ${{ runner.arch }}"
+          echo "  OSTYPE: ${OSTYPE:-<unset>}"
+          echo "  uname: $(uname -s 2>/dev/null || echo '<unavailable>')"
 
-          # Determine platform and download URL
-          if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            WASMTIME_PLATFORM="x86_64-linux"
-          elif [[ "$OSTYPE" == "darwin"* ]]; then
-            WASMTIME_PLATFORM="x86_64-macos"
-          else
-            echo "ERROR: Unsupported platform for Wasmtime: $OSTYPE"
-            exit 1
+          # Determine platform for Wasmtime binary download
+          # Use multiple detection methods for Docker container compatibility
+          echo ""
+          echo "Detecting platform for Wasmtime binary..."
+
+          # Method 1: Use $OSTYPE if available (bash built-in, fastest)
+          if [[ -n "$OSTYPE" ]]; then
+            echo "Attempting detection via OSTYPE: $OSTYPE"
+            if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
+              WASMTIME_PLATFORM="x86_64-linux"
+            elif [[ "$OSTYPE" == "darwin"* ]]; then
+              WASMTIME_PLATFORM="x86_64-macos"
+            fi
           fi
+
+          # Method 2: Fallback to uname if OSTYPE didn't match or wasn't set
+          if [[ -z "$WASMTIME_PLATFORM" ]]; then
+            UNAME_OS=$(uname -s)
+            echo "Attempting detection via uname: $UNAME_OS"
+            case "$UNAME_OS" in
+              Linux*)
+                WASMTIME_PLATFORM="x86_64-linux"
+                ;;
+              Darwin*)
+                WASMTIME_PLATFORM="x86_64-macos"
+                ;;
+              *)
+                echo ""
+                echo "ERROR: Unsupported platform for Wasmtime"
+                echo "Platform detection failed with:"
+                echo "  OSTYPE: ${OSTYPE:-<unset>}"
+                echo "  uname -s: $UNAME_OS"
+                echo ""
+                echo "Supported platforms:"
+                echo "  - Linux (x86_64)"
+                echo "  - macOS (x86_64)"
+                exit 1
+                ;;
+            esac
+          fi
+
+          echo "Selected Wasmtime platform: $WASMTIME_PLATFORM"
+          echo ""
 
           WASMTIME_VERSION="${{ inputs.wasmtime-version }}"
           WASMTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
           WASMTIME_BIN="$WASMTIME_CACHE_DIR/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
 
+          echo "Wasmtime configuration:"
+          echo "  Version: $WASMTIME_VERSION"
+          echo "  Platform: $WASMTIME_PLATFORM"
+          echo "  Cache directory: $WASMTIME_CACHE_DIR"
+          echo "  Binary path: $WASMTIME_BIN"
+          echo ""
+
           # Check if already cached
           if [[ ! -f "$WASMTIME_BIN" ]]; then
-            echo "Downloading Wasmtime v${WASMTIME_VERSION}..."
+            echo "Downloading Wasmtime v${WASMTIME_VERSION} for ${WASMTIME_PLATFORM}..."
             WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
+            echo "Download URL: $WASMTIME_URL"
 
             mkdir -p "$WASMTIME_CACHE_DIR"
             curl -L "$WASMTIME_URL" -o "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
@@ -1390,10 +1437,16 @@ runs:
 
           # Verify installation
           if [[ ! -f "$WASMTIME_BIN" ]]; then
-            echo "ERROR: Failed to find wasmtime binary"
+            echo ""
+            echo "ERROR: Failed to find wasmtime binary at expected path"
+            echo "Expected: $WASMTIME_BIN"
+            echo "Cache directory contents:"
+            ls -la "$WASMTIME_CACHE_DIR" 2>/dev/null || echo "  <directory not found>"
             exit 1
           fi
-          echo "Wasmtime available at: $WASMTIME_BIN"
+
+          echo "Wasmtime successfully installed at: $WASMTIME_BIN"
+          echo ""
           
           # Build tests (separate from running them, per WASI guide)
           echo "Building WASM tests..."
