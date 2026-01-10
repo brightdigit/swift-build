@@ -63,6 +63,7 @@
 | `android-swift-test-flags` | Additional Swift test flags for Android | `null` | `--parallel` | Any valid Swift test flags | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-emulator-boot-timeout` | Emulator boot timeout (seconds) | `600` | `900` | Any positive integer | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-copy-files` | Additional files to copy to emulator for testing | `null` | `Tests/Resources/` | File paths or directories (space-separated) | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true`. Copies test resources, data files, or configurations to emulator before running tests |
+| `wasmtime-version` | Wasmtime version for WASM test execution | `26.0.0` | `27.0.0` | Any valid Wasmtime version | **WASM builds only** - Auto-cached per version to avoid ~500MB download per run. Change version to force new download/cache entry |
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
@@ -726,6 +727,37 @@ jobs:
 - Set `type: android` to activate Android mode
 - Set `android-run-tests: false` on ARM macOS runners
 - Ubuntu runners recommended for full testing with emulator
+
+### WebAssembly (WASM) Development Examples
+
+#### WASM with Custom Wasmtime Version
+```yaml
+name: WASM Custom Runtime
+on: [push, pull_request]
+
+jobs:
+  test-wasm-custom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v2
+        with:
+          scheme: MyPackage
+          type: wasm
+          wasmtime-version: '27.0.0'  # Custom Wasmtime version
+```
+
+**Wasmtime Caching:**
+- Wasmtime binaries (~500MB compressed) are automatically cached via GitHub Actions
+- **First run**: Downloads Wasmtime binary (~3-5 min)
+- **Subsequent runs**: Uses cached binary (<5 sec) - 99% faster
+- **Cache key**: Based on `wasmtime-version`, OS, and architecture
+- **Cache invalidation**: Automatic when `wasmtime-version` changes
+
+**Supported Swift versions:**
+- Swift 6.2+ (recommended)
+- WASM SDK is automatically downloaded and cached
+- Supports both `wasm32-unknown-wasi` and `wasm32-unknown-unknown-wasm` (embedded) targets
 
 ### Apple Platform Simulator Testing Examples
 
