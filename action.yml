@@ -1427,6 +1427,14 @@ runs:
             WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
             echo "Download URL: $WASMTIME_URL"
 
+            # Install xz-utils on Linux if not available (required to extract .tar.xz archives)
+            if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$(uname -s)" == "Linux" ]]; then
+              if ! command -v xz >/dev/null 2>&1; then
+                echo "Installing xz-utils for .tar.xz extraction..."
+                apt-get update -qq && apt-get install -y -qq xz-utils
+              fi
+            fi
+
             mkdir -p "$WASMTIME_CACHE_DIR"
             curl -L "$WASMTIME_URL" -o "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
             tar -xf "$WASMTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WASMTIME_CACHE_DIR"
