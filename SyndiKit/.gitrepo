@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:brightdigit/SyndiKit.git
+	branch = wasm-support
+	commit = f6f9cc8d1c905e67e66ba2822dd30299ead26867
+	parent = d8c3cf04cfb85e4f1fd932c8f51e160fe27d3e4e
+	method = merge
+	cmdver = 0.4.9
