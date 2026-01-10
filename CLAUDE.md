@@ -59,14 +59,18 @@ For WebAssembly platform testing:
 # Subsequent runs: uses cached binary (<5 seconds)
 
 # Configure via wasmtime-version parameter (default: '26.0.0')
-# Build and test
+# Build and test (NOTE: code coverage is NOT supported for WASM)
 swift build --build-tests --swift-sdk wasm32-unknown-wasi
 wasmtime run .build/wasm32-unknown-wasi/debug/MyPackageTests.wasm
 ```
 
 **Note:** Wasmtime binaries are cached per version to avoid repeated downloads. The action uses GitHub Actions cache with key: `wasmtime-{version}-{os}-{arch}`.
 
+**Code Coverage:** WASM builds do NOT support code coverage (Swift toolchain doesn't provide `libclang_rt.profile-wasm32.a`). Use the `contains-code-coverage` output to conditionally skip coverage collection for WASM builds.
+
 ## GitHub Action Usage
+
+### Inputs
 
 The action accepts these key inputs:
 - `scheme` (required) - The scheme to build and test
@@ -86,6 +90,19 @@ The action accepts these key inputs:
   - `wasmtime-version` - Wasmtime version for WASM test execution (default: '26.0.0')
     - Automatically cached to avoid ~500MB download per run
     - Change version to force new download/cache entry
+
+### Outputs
+
+The action provides these outputs:
+- `contains-code-coverage` - Whether this build contains code coverage data
+  - Returns `'true'` for SPM and Xcode builds with tests enabled
+  - Returns `'false'` for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  - Use this to conditionally run coverage collection actions:
+    ```yaml
+    - name: Generate Coverage
+      if: steps.build.outputs.contains-code-coverage == 'true'
+      uses: sersoft-gmbh/swift-coverage-action@v4
+    ```
 
 ## Platform Support Matrix
 

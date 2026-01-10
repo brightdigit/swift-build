@@ -9,7 +9,7 @@
 # - Intelligent caching: Platform-specific strategies for optimal performance
 # - Apple platform testing: iOS, watchOS, tvOS, visionOS, macOS with simulator support
 # - Android platform testing: Emulator-based testing with Swift Android SDK
-# - WebAssembly compilation: Standard WASM and WASM-embedded targets with WasmKit testing
+# - WebAssembly compilation: Standard WASM and WASM-embedded targets with Wasmtime testing (code coverage not supported)
 # - Automatic platform downloads for missing Apple platforms
 # - Windows Swift toolchain installation and configuration
 # - Android Swift SDK with NDK integration
@@ -57,6 +57,7 @@ inputs:
   # Apple platforms: 'ios', 'watchOS', 'visionOS', 'tvOS', 'macOS'
   # Android platform: 'android' (runs on ubuntu-* or macos-* runners)
   # WebAssembly platforms: 'wasm', 'wasm-embedded' (runs on ubuntu-* or macos-* runners)
+  #   Note: Code coverage is NOT supported for WASM builds
   # Omit this parameter for cross-platform SPM builds
   # Required when using deviceName/osVersion parameters (Apple platforms only)
   type:
@@ -261,6 +262,15 @@ inputs:
     description: 'Build without running tests'
     required: false
     default: 'false'
+
+outputs:
+  # Indicates whether this build contains code coverage data
+  # Returns 'true' for SPM and Xcode builds with tests enabled
+  # Returns 'false' for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  # Use this output to conditionally run coverage collection actions
+  contains-code-coverage:
+    description: 'Whether this build contains code coverage data'
+    value: ${{ steps.set-coverage-flag.outputs.enabled }}
 
 runs:
   using: "composite"
@@ -479,6 +489,30 @@ runs:
 
         echo "package-hash=$PACKAGE_HASH" >> $GITHUB_OUTPUT
         echo "Package.swift hash: $PACKAGE_HASH"
+
+    # Set Code Coverage Flag
+    # Determines whether code coverage will be collected for this build
+    # Coverage is NOT supported for:
+    # - WASM builds (no libclang_rt.profile-wasm32.a available)
+    # - Android builds (handled separately by swift-android-action)
+    # - Build-only mode (no tests run)
+    - name: Set Coverage Flag
+      shell: bash
+      id: set-coverage-flag
+      run: |
+        if [[ "${{ steps.detect-os.outputs.os }}" == "wasm" ]]; then
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Code coverage: disabled (WASM not supported)"
+        elif [[ "${{ steps.detect-os.outputs.os }}" == "android" ]]; then
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Code coverage: disabled (Android handled separately)"
+        elif [[ "${{ inputs.build-only }}" == "true" ]]; then
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Code coverage: disabled (build-only mode)"
+        else
+          echo "enabled=true" >> $GITHUB_OUTPUT
+          echo "Code coverage: enabled"
+        fi
 
     # macOS Xcode Configuration Steps
     # These steps only execute on macOS runners when Apple platform builds are requested.
@@ -1464,7 +1498,9 @@ runs:
           
           # Build tests (separate from running them, per WASI guide)
           echo "Building WASM tests..."
-          # Note: Code coverage is not supported for WASM targets (no libclang_rt.profile-wasm32.a)
+          # Note: Code coverage is NOT supported for WASM targets
+          # The Swift toolchain does not provide libclang_rt.profile-wasm32.a
+          # Use the 'contains-code-coverage' output to conditionally skip coverage actions
           # WASI emulation flags required for CoreFoundation and other system libraries:
           # - _WASI_EMULATED_SIGNAL: Required for signal.h support
           # - _WASI_EMULATED_MMAN: Required for mmap support
