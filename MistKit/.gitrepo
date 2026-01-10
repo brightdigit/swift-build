@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:brightdigit/MistKit.git
+	branch = wasm-support
+	commit = 80a677ad0cfecf1340ed410ad807873cc471a944
+	parent = 8adb146becc8655345d0bf849906bd9a26990331
+	method = merge
+	cmdver = 0.4.9

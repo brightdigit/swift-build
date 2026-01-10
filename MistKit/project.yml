@@ -1,0 +1,17 @@
+name: MistKit
+settings:
+  LINT_MODE: ${LINT_MODE}
+packages:
+  MistKit:
+    path: .
+  Bushel:
+    path: Examples/Bushel
+  Celestra:
+    path: Examples/Celestra
+aggregateTargets:
+  Lint:
+    buildScripts:
+      - path: Scripts/lint.sh
+        name: Lint
+        basedOnDependencyAnalysis: false
+    schemes: {}
