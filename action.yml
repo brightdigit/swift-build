@@ -508,7 +508,7 @@ runs:
         echo "Xcode Swift version: $SWIFT_VERSION_RAW"
 
         # Parse Swift version using centralized script
-        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "${{ github.action_path }}/scripts/parse-swift-version.sh")
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
         if [ $? -ne 0 ]; then
           echo "ERROR: Failed to parse Swift version"
           exit 1
@@ -661,7 +661,7 @@ runs:
 
         # Parse Swift version using centralized script
         # WASM requires Swift 6.2.3+ with full version number (major.minor.patch)
-        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "${{ github.action_path }}/scripts/parse-swift-version.sh")
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
         if [ $? -ne 0 ]; then
           echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
           echo "WASM requires Swift 6.2.3+ with full version number in swift --version output"
