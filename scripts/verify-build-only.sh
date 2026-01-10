@@ -9,6 +9,12 @@ set -euo pipefail
 PLATFORM="${1:-spm}"
 WORKING_DIR="${2:-.}"
 
+# Validate working directory exists and is a directory
+if [[ ! -d "$WORKING_DIR" ]]; then
+  echo "ERROR: Working directory does not exist or is not a directory: $WORKING_DIR" >&2
+  exit 1
+fi
+
 echo "Verifying build-only mode for platform: $PLATFORM"
 cd "$WORKING_DIR"
 
