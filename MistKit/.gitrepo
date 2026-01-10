@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:brightdigit/MistKit.git
 	branch = wasm-support
-	commit = 0b091ae3aeb9dd734704b7d5bdf364092f3ec31a
-	parent = eee1f26258f7c8cb25cc615ee9c49d4624c598c1
+	commit = 3bb07303b1fd66388de74c02f8c62bc416061835
+	parent = f187aad8abb48fb013530fe38f843d1748955a83
 	method = merge
 	cmdver = 0.4.9
