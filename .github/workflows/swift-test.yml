@@ -152,32 +152,11 @@ jobs:
         working-directory: test/SingleTargetPackage
         shell: bash
         run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # For SPM builds (when type is not specified)
           if [ -z "${{ matrix.type }}" ]; then
-            # Check for test executables in .build directory
-            if [ -d ".build" ]; then
-              # Look for test binaries (typically end with "PackageTests" or "Tests")
-              if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
-                echo "ERROR: Test binaries found in .build directory in build-only mode"
-                find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
-                exit 1
-              fi
-            fi
-            echo "✓ Verified: No SPM test binaries created in build-only mode"
+            ../../scripts/verify-build-only.sh spm .
           else
-            # For Xcode builds (when type is specified)
-            # Check for .xctest bundles which indicate tests were built/run
-            if find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null | grep -q .; then
-              echo "ERROR: .xctest bundles found in derived data in build-only mode"
-              find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null
-              exit 1
-            fi
-            echo "✓ Verified: No .xctest bundles created in build-only mode"
+            ../../scripts/verify-build-only.sh xcode .
           fi
-
-          echo "✓ Build-only mode verification passed"
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -302,32 +281,11 @@ jobs:
         working-directory: test/MultiTargetPackage
         shell: bash
         run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # For SPM builds (when type is not specified)
           if [ -z "${{ matrix.type }}" ]; then
-            # Check for test executables in .build directory
-            if [ -d ".build" ]; then
-              # Look for test binaries (typically end with "PackageTests" or "Tests")
-              if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
-                echo "ERROR: Test binaries found in .build directory in build-only mode"
-                find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
-                exit 1
-              fi
-            fi
-            echo "✓ Verified: No SPM test binaries created in build-only mode"
+            ../../scripts/verify-build-only.sh spm .
           else
-            # For Xcode builds (when type is specified)
-            # Check for .xctest bundles which indicate tests were built/run
-            if find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null | grep -q .; then
-              echo "ERROR: .xctest bundles found in derived data in build-only mode"
-              find "$RUNNER_TEMP/DerivedData" -name "*.xctest" 2>/dev/null
-              exit 1
-            fi
-            echo "✓ Verified: No .xctest bundles created in build-only mode"
+            ../../scripts/verify-build-only.sh xcode .
           fi
-
-          echo "✓ Build-only mode verification passed"
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -389,21 +347,7 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/SingleTargetPackage
         shell: bash
-        run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # Check for test executables in .build directory
-          if [ -d ".build" ]; then
-            # Look for test binaries (typically end with "PackageTests" or "Tests")
-            if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
-              echo "ERROR: Test binaries found in .build directory in build-only mode"
-              find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
-              exit 1
-            fi
-          fi
-
-          echo "✓ Verified: No test binaries created in build-only mode"
-          echo "✓ Build-only mode verification passed" 
+        run: ../../scripts/verify-build-only.sh spm .
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -438,21 +382,7 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/MultiTargetPackage
         shell: bash
-        run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # Check for test executables in .build directory
-          if [ -d ".build" ]; then
-            # Look for test binaries (typically end with "PackageTests" or "Tests")
-            if find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null | grep -q .; then
-              echo "ERROR: Test binaries found in .build directory in build-only mode"
-              find .build -type f -name "*Tests" -o -name "*PackageTests" 2>/dev/null
-              exit 1
-            fi
-          fi
-
-          echo "✓ Verified: No test binaries created in build-only mode"
-          echo "✓ Build-only mode verification passed"
+        run: ../../scripts/verify-build-only.sh spm .
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -481,22 +411,7 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/SingleTargetPackage
         shell: bash
-        run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # Check for test executables in .build directory
-          if [ -d ".build" ]; then
-            # Look for test binaries (typically end with "PackageTests" or "Tests")
-            # On Windows, executables have .exe extension
-            if find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null | grep -q .; then
-              echo "ERROR: Test binaries found in .build directory in build-only mode"
-              find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null
-              exit 1
-            fi
-          fi
-
-          echo "✓ Verified: No test binaries created in build-only mode"
-          echo "✓ Build-only mode verification passed" 
+        run: ../../scripts/verify-build-only.sh windows . 
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows)
@@ -526,22 +441,7 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/MultiTargetPackage
         shell: bash
-        run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # Check for test executables in .build directory
-          if [ -d ".build" ]; then
-            # Look for test binaries (typically end with "PackageTests" or "Tests")
-            # On Windows, executables have .exe extension
-            if find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null | grep -q .; then
-              echo "ERROR: Test binaries found in .build directory in build-only mode"
-              find .build -type f \( -name "*Tests.exe" -o -name "*PackageTests.exe" -o -name "*Tests" -o -name "*PackageTests" \) 2>/dev/null
-              exit 1
-            fi
-          fi
-
-          echo "✓ Verified: No test binaries created in build-only mode"
-          echo "✓ Build-only mode verification passed"
+        run: ../../scripts/verify-build-only.sh windows .
 
   test-dependency-package-resolved-v3-success:
     name: Test Dependency Package (Ubuntu, Swift 5.10+)
@@ -730,9 +630,7 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/SingleTargetPackage
         shell: bash
-        run: |
-          echo "✓ Build-only mode verification passed for Android"
-          echo "Note: Android builds are handled by swift-android-action"
+        run: ../../scripts/verify-build-only.sh android .
 
   test-multi-target-android:
     name: Test Multi-Target Package (Android)
@@ -782,9 +680,7 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/MultiTargetPackage
         shell: bash
-        run: |
-          echo "✓ Build-only mode verification passed for Android"
-          echo "Note: Android builds are handled by swift-android-action"
+        run: ../../scripts/verify-build-only.sh android .
 
   test-android-auto-detection:
     name: Test Android Auto-Detection
@@ -1009,21 +905,7 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/SingleTargetPackage
         shell: bash
-        run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # Check for WASM test binaries in .build directory
-          if [ -d ".build" ]; then
-            # Look for WASM test binaries (typically have .wasm extension)
-            if find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null | grep -q .; then
-              echo "ERROR: WASM test binaries found in .build directory in build-only mode"
-              find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null
-              exit 1
-            fi
-          fi
-
-          echo "✓ Verified: No WASM test binaries created in build-only mode"
-          echo "✓ Build-only mode verification passed"
+        run: ../../scripts/verify-build-only.sh wasm .
 
   test-multi-target-wasm:
     name: Test Multi-Target Package (WASM)
@@ -1071,18 +953,4 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/MultiTargetPackage
         shell: bash
-        run: |
-          echo "Verifying that tests were not executed in build-only mode..."
-
-          # Check for WASM test binaries in .build directory
-          if [ -d ".build" ]; then
-            # Look for WASM test binaries (typically have .wasm extension)
-            if find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null | grep -q .; then
-              echo "ERROR: WASM test binaries found in .build directory in build-only mode"
-              find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null
-              exit 1
-            fi
-          fi
-
-          echo "✓ Verified: No WASM test binaries created in build-only mode"
-          echo "✓ Build-only mode verification passed"
+        run: ../../scripts/verify-build-only.sh wasm .

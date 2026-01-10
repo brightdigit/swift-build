@@ -183,6 +183,15 @@ inputs:
     description: 'Additional files to copy to emulator for testing'
     required: false
 
+  # Wasmtime version for WASM test execution
+  # Wasmtime runtime is used to execute WASM test binaries
+  # Binary is automatically cached to avoid ~500MB download per run
+  # Default: '26.0.0' (latest tested version)
+  wasmtime-version:
+    description: 'Wasmtime version for WASM test execution'
+    required: false
+    default: '26.0.0'
+
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
   # Provides human-friendly, colored output and better CI integration
@@ -498,15 +507,10 @@ runs:
         SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
         echo "Xcode Swift version: $SWIFT_VERSION_RAW"
 
-        # Parse Swift version (same logic as "Detect Swift Version for WASM" step)
-        if echo "$SWIFT_VERSION_RAW" | grep -qE 'Swift version [0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*Swift version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        elif echo "$SWIFT_VERSION_RAW" | grep -qE 'Apple Swift version [0-9]+\.[0-9]+' && echo "$SWIFT_VERSION_RAW" | grep -qE '\(swiftlang-[0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swiftlang-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        elif echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swift-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        else
-          echo "ERROR: Could not parse Swift version from: $SWIFT_VERSION_RAW"
+        # Parse Swift version using centralized script
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | ${{ github.action_path }}/scripts/parse-swift-version.sh)
+        if [ $? -ne 0 ]; then
+          echo "ERROR: Failed to parse Swift version"
           exit 1
         fi
 
@@ -655,17 +659,10 @@ runs:
         SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
         echo "Raw version output: $SWIFT_VERSION_RAW"
 
-        # Try to extract full version from the main "Swift version X.Y.Z" part first
-        if echo "$SWIFT_VERSION_RAW" | grep -qE 'Swift version [0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*Swift version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        # Handle macOS Xcode format: "Apple Swift version 6.2 (swiftlang-6.2.0.19.9 ...)"
-        elif echo "$SWIFT_VERSION_RAW" | grep -qE 'Apple Swift version [0-9]+\.[0-9]+' && echo "$SWIFT_VERSION_RAW" | grep -qE '\(swiftlang-[0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swiftlang-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        # If that doesn't have patch, try to extract from parentheses like "(swift-6.2.3-RELEASE)"
-        elif echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+\.[0-9]+'; then
-          SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swift-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        # Fallback: if we only have major.minor, we can't reliably determine patch version
-        else
+        # Parse Swift version using centralized script
+        # WASM requires Swift 6.2.3+ with full version number (major.minor.patch)
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | ${{ github.action_path }}/scripts/parse-swift-version.sh)
+        if [ $? -ne 0 ]; then
           echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
           echo "WASM requires Swift 6.2.3+ with full version number in swift --version output"
           exit 1
@@ -1329,6 +1326,20 @@ runs:
     # - SDK caching provides fast subsequent builds (~30 seconds vs ~5-10 minutes first run)
     # - Build artifact caching reduces compilation time significantly
     # - WasmKit runtime enables fast test execution without external tools
+
+    # Cache Wasmtime binary to avoid ~500MB download per run
+    # Key includes version, OS, and architecture for platform-specific binaries
+    # First run: downloads binary (~3-5 min), subsequent runs use cache (<5 sec)
+    - name: Cache Wasmtime Binary
+      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true'
+      uses: actions/cache@v4
+      id: wasmtime-cache
+      with:
+        path: ${{ runner.temp }}/wasmtime
+        key: wasmtime-${{ inputs.wasmtime-version }}-${{ runner.os }}-${{ runner.arch }}
+        restore-keys: |
+          wasmtime-${{ inputs.wasmtime-version }}-${{ runner.os }}-
+
     - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (WASM)
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
@@ -1360,21 +1371,29 @@ runs:
             exit 1
           fi
 
-          WASMTIME_VERSION="26.0.0"
-          WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
+          WASMTIME_VERSION="${{ inputs.wasmtime-version }}"
+          WASMTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
+          WASMTIME_BIN="$WASMTIME_CACHE_DIR/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
 
-          # Download and extract to local .wasmtime directory
-          mkdir -p .wasmtime
-          curl -L "$WASMTIME_URL" -o .wasmtime/wasmtime.tar.xz
-          tar -xf .wasmtime/wasmtime.tar.xz -C .wasmtime
-          WASMTIME_BIN=".wasmtime/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
+          # Check if already cached
+          if [[ ! -f "$WASMTIME_BIN" ]]; then
+            echo "Downloading Wasmtime v${WASMTIME_VERSION}..."
+            WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
+
+            mkdir -p "$WASMTIME_CACHE_DIR"
+            curl -L "$WASMTIME_URL" -o "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
+            tar -xf "$WASMTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WASMTIME_CACHE_DIR"
+            rm "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
+          else
+            echo "Using cached Wasmtime v${WASMTIME_VERSION}"
+          fi
 
           # Verify installation
           if [[ ! -f "$WASMTIME_BIN" ]]; then
-            echo "ERROR: Failed to extract wasmtime binary"
+            echo "ERROR: Failed to find wasmtime binary"
             exit 1
           fi
-          echo "Wasmtime installed at: $WASMTIME_BIN"
+          echo "Wasmtime available at: $WASMTIME_BIN"
           
           # Build tests (separate from running them, per WASI guide)
           echo "Building WASM tests..."

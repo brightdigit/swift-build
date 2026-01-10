@@ -48,6 +48,24 @@ For Android platform testing (requires skiptools/swift-android-action):
 
 Note: Android builds delegate to skiptools/swift-android-action. See action.yml for full parameter documentation.
 
+### WebAssembly (WASM) Testing
+For WebAssembly platform testing:
+```bash
+# WASM builds use Swift WASM SDK + Wasmtime runtime
+# Supports: wasm32-unknown-wasi and wasm32-unknown-unknown-wasm (embedded)
+
+# Wasmtime binary is automatically cached to avoid ~500MB download per run
+# First run: downloads binary (~3-5 minutes)
+# Subsequent runs: uses cached binary (<5 seconds)
+
+# Configure via wasmtime-version parameter (default: '26.0.0')
+# Build and test
+swift build --build-tests --swift-sdk wasm32-unknown-wasi
+wasmtime run .build/wasm32-unknown-wasi/debug/MyPackageTests.wasm
+```
+
+**Note:** Wasmtime binaries are cached per version to avoid repeated downloads. The action uses GitHub Actions cache with key: `wasmtime-{version}-{os}-{arch}`.
+
 ## GitHub Action Usage
 
 The action accepts these key inputs:
@@ -64,6 +82,10 @@ The action accepts these key inputs:
   - `android-run-tests` - Run tests on emulator (default: true; use false for ARM macOS)
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
+- **WASM-specific parameters**:
+  - `wasmtime-version` - Wasmtime version for WASM test execution (default: '26.0.0')
+    - Automatically cached to avoid ~500MB download per run
+    - Change version to force new download/cache entry
 
 ## Platform Support Matrix
 
@@ -71,7 +93,8 @@ The action supports:
 - **Ubuntu**: Swift 5.9-6.2 across focal/jammy/noble distributions
 - **macOS**: Xcode 15.1+ with platform-specific simulator testing
 - **Android**: Swift 6.2+ with emulator testing (Ubuntu/Intel macOS) or build-only (ARM macOS)
-- **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds
+- **WebAssembly (WASM)**: Swift 6.2+ with Wasmtime runtime (auto-cached binaries)
+- **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds, with optimized Wasmtime binary caching
 
 ## Test Package Architecture
 
