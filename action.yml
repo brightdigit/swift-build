@@ -1546,10 +1546,11 @@ runs:
             echo "Running tests: $TEST_BINARY"
             # Only use --testing-library swift-testing for .wasm binaries (Swift Testing framework)
             # XCTest binaries (.xctest) should run without this flag
+            # Memory configuration: 512MB max to handle memory-intensive decoding tests
             if [[ "$TEST_BINARY" == *.wasm ]]; then
-              "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing
+              "$WASMTIME_BIN" --dir . --max-memory-size 536870912 "$TEST_BINARY" --testing-library swift-testing
             else
-              "$WASMTIME_BIN" --dir . "$TEST_BINARY"
+              "$WASMTIME_BIN" --dir . --max-memory-size 536870912 "$TEST_BINARY"
             fi
           done <<< "$TEST_BINARIES"
         fi
