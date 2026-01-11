@@ -1507,18 +1507,18 @@ runs:
           # - _WASI_EMULATED_GETPID: Required for getpid support
           #
           # WASM memory configuration:
-          # - --initial-memory: Set initial memory (1GB = 1073741824 bytes)
-          # - --max-memory: Set maximum memory (1GB = 1073741824 bytes)
+          # - --initial-memory: Set initial memory (512MB = 536870912 bytes)
+          # - --max-memory: Set maximum memory (512MB = 536870912 bytes)
           # Default WASM memory (~62MB) is insufficient for test suites with large datasets
-          # Increased to 1GB to handle memory-intensive XML decoding tests with large nested structures
+          # Set to 512MB to handle XML decoding tests while keeping memory usage reasonable
           swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG \
             -Xcc -D_WASI_EMULATED_SIGNAL \
             -Xcc -D_WASI_EMULATED_MMAN \
             -Xlinker -lwasi-emulated-signal \
             -Xlinker -lwasi-emulated-mman \
             -Xlinker -lwasi-emulated-getpid \
-            -Xlinker --initial-memory=1073741824 \
-            -Xlinker --max-memory=1073741824
+            -Xlinker --initial-memory=536870912 \
+            -Xlinker --max-memory=536870912
 
           # Find all WASM test binaries dynamically (supports any test target name)
           echo "Searching for WASM test binaries..."
