@@ -1385,7 +1385,7 @@ runs:
       run: |
         REQUESTED_VERSION="${{ inputs.wasmtime-version }}"
         if [[ "$REQUESTED_VERSION" == "latest" ]]; then
-          VERSION_FILE="${{ runner.temp }}/wasmtime-version.txt"
+          VERSION_FILE="${RUNNER_TEMP}/wasmtime-version.txt"
 
           # Try to use cached version first
           if [[ -f "$VERSION_FILE" ]]; then
@@ -1473,7 +1473,8 @@ runs:
 
             echo "Latest Wasmtime version: $WASMTIME_VERSION"
 
-            # Save to cache file
+            # Save to cache file (ensure directory exists first for container environments)
+            mkdir -p "$(dirname "$VERSION_FILE")"
             echo "$WASMTIME_VERSION" > "$VERSION_FILE"
           fi
         else
