@@ -9,7 +9,7 @@
 # - Intelligent caching: Platform-specific strategies for optimal performance
 # - Apple platform testing: iOS, watchOS, tvOS, visionOS, macOS with simulator support
 # - Android platform testing: Emulator-based testing with Swift Android SDK
-# - WebAssembly compilation: Standard WASM and WASM-embedded targets with Wasmtime testing (code coverage not supported)
+# - WebAssembly compilation: Standard WASM and WASM-embedded targets with Wasmtime testing, configurable compiler flags (code coverage not supported)
 # - Automatic platform downloads for missing Apple platforms
 # - Windows Swift toolchain installation and configuration
 # - Android Swift SDK with NDK integration
@@ -182,6 +182,15 @@ inputs:
   # Maps to 'copy-files' parameter in skiptools/swift-android-action
   android-copy-files:
     description: 'Additional files to copy to emulator for testing'
+    required: false
+
+  # Additional Swift compiler/linker flags for WASM
+  # Examples: '-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-mman -Xlinker --initial-memory=536870912'
+  # Only used when type is 'wasm' or 'wasm-embedded'
+  # Note: WASI emulation flags are required for projects using Foundation/CoreFoundation
+  # Memory configuration flags may be needed for test suites with large datasets
+  wasm-swift-flags:
+    description: 'Additional Swift compiler/linker flags for WASM builds'
     required: false
 
   # Wasmtime version for WASM test execution
@@ -1511,13 +1520,7 @@ runs:
 
         if [[ "${{ inputs.build-only }}" == "true" ]]; then
           echo "Building WASM package (build-only mode)..."
-          # WASI emulation flags required for CoreFoundation and other system libraries
-          swift build $SDK_FLAG --cache-path .cache $RESOLVED_FLAG \
-            -Xcc -D_WASI_EMULATED_SIGNAL \
-            -Xcc -D_WASI_EMULATED_MMAN \
-            -Xlinker -lwasi-emulated-signal \
-            -Xlinker -lwasi-emulated-mman \
-            -Xlinker -lwasi-emulated-getpid
+          swift build $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
         else
           echo "Building and testing WASM package..."
           
@@ -1634,24 +1637,7 @@ runs:
           # Note: Code coverage is NOT supported for WASM targets
           # The Swift toolchain does not provide libclang_rt.profile-wasm32.a
           # Use the 'contains-code-coverage' output to conditionally skip coverage actions
-          # WASI emulation flags required for CoreFoundation and other system libraries:
-          # - _WASI_EMULATED_SIGNAL: Required for signal.h support
-          # - _WASI_EMULATED_MMAN: Required for mmap support
-          # - _WASI_EMULATED_GETPID: Required for getpid support
-          #
-          # WASM memory configuration:
-          # - --initial-memory: Set initial memory (512MB = 536870912 bytes)
-          # - --max-memory: Set maximum memory (512MB = 536870912 bytes)
-          # Default WASM memory (~62MB) is insufficient for test suites with large datasets
-          # Set to 512MB to handle XML decoding tests while keeping memory usage reasonable
-          swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG \
-            -Xcc -D_WASI_EMULATED_SIGNAL \
-            -Xcc -D_WASI_EMULATED_MMAN \
-            -Xlinker -lwasi-emulated-signal \
-            -Xlinker -lwasi-emulated-mman \
-            -Xlinker -lwasi-emulated-getpid \
-            -Xlinker --initial-memory=536870912 \
-            -Xlinker --max-memory=536870912
+          swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
 
           # Find all WASM test binaries dynamically (supports any test target name)
           echo "Searching for WASM test binaries..."

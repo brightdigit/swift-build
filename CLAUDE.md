@@ -88,6 +88,11 @@ The action accepts these key inputs:
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
 - **WASM-specific parameters**:
+  - `wasm-swift-flags` - Additional Swift compiler/linker flags for WASM builds (required for most projects)
+    - Example: `-Xcc -D_WASI_EMULATED_SIGNAL -Xcc -D_WASI_EMULATED_MMAN -Xlinker -lwasi-emulated-signal -Xlinker -lwasi-emulated-mman -Xlinker -lwasi-emulated-getpid -Xlinker --initial-memory=536870912 -Xlinker --max-memory=536870912`
+    - WASI emulation flags are required for projects using Foundation/CoreFoundation
+    - Memory configuration flags often required for test suites with large datasets (default WASM memory ~62MB)
+    - Must be explicitly configured (no defaults provided)
   - `wasmtime-version` - Wasmtime version for WASM test execution (default: 'latest')
     - Automatically fetches and uses the latest Wasmtime release
     - Can specify a specific version for reproducibility (e.g., '40.0.1')
@@ -119,6 +124,54 @@ The action supports:
 
 - **SingleTargetPackage**: Simple single-target Swift package for basic validation
 - **MultiTargetPackage**: Multi-target package with Core depending on Utils, demonstrating target dependencies
+
+## WASM Migration Guide
+
+**Breaking Change (v2.0)**: WASM compiler flags are now explicitly configured via input parameters instead of being hardcoded.
+
+### Migration Steps
+
+**Before (v1.x - implicit flags)**:
+```yaml
+- uses: YourOrg/swift-build@v1
+  with:
+    type: wasm
+```
+
+**After (v2.0 - explicit flags)**:
+```yaml
+- uses: YourOrg/swift-build@v2
+  with:
+    type: wasm
+    wasm-swift-flags: >-
+      -Xcc -D_WASI_EMULATED_SIGNAL
+      -Xcc -D_WASI_EMULATED_MMAN
+      -Xlinker -lwasi-emulated-signal
+      -Xlinker -lwasi-emulated-mman
+      -Xlinker -lwasi-emulated-getpid
+      -Xlinker --initial-memory=536870912
+      -Xlinker --max-memory=536870912
+```
+
+### Common Flag Patterns
+
+**WASI Emulation Flags** (required for Foundation/CoreFoundation):
+- `-Xcc -D_WASI_EMULATED_SIGNAL` - Required for signal.h support
+- `-Xcc -D_WASI_EMULATED_MMAN` - Required for mmap support
+- `-Xlinker -lwasi-emulated-signal` - Link against WASI signal emulation library
+- `-Xlinker -lwasi-emulated-mman` - Link against WASI mmap emulation library
+- `-Xlinker -lwasi-emulated-getpid` - Link against WASI getpid emulation library
+
+**Memory Configuration Flags** (for test suites with large datasets):
+- `-Xlinker --initial-memory=536870912` - Set initial memory to 512MB (default: ~62MB)
+- `-Xlinker --max-memory=536870912` - Set maximum memory to 512MB
+- Adjust values based on your test suite requirements (values in bytes)
+
+**When to Use Which Flags**:
+- Most Swift projects using Foundation/CoreFoundation will need WASI emulation flags
+- Test suites processing large data (XML, JSON, images) will need memory configuration
+- Pure Swift code without Foundation dependencies may work without flags
+- Start with the example configuration above and adjust as needed
 
 ## Task Master AI Instructions
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
