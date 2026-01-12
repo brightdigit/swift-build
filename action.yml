@@ -1379,11 +1379,20 @@ runs:
             apt-get update -qq && apt-get install -y -qq curl
           fi
 
-          # Fetch latest release version from GitHub API
-          WASMTIME_VERSION=$(curl -s https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          # Fetch latest release version from GitHub API with retry logic
+          # -s: silent, -f: fail on HTTP errors, --retry: retry on transient failures
+          WASMTIME_VERSION=$(curl -sf --retry 3 --retry-delay 2 https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
 
           if [[ -z "$WASMTIME_VERSION" ]]; then
-            echo "ERROR: Failed to fetch latest Wasmtime version"
+            echo "ERROR: Failed to fetch latest Wasmtime version from GitHub API"
+            echo "This may be due to:"
+            echo "  - GitHub API rate limiting"
+            echo "  - Network connectivity issues"
+            echo "  - API format changes"
+            echo ""
+            echo "Workaround: Specify an explicit version instead of 'latest'"
+            echo "Example: wasmtime-version: '40.0.1'"
+            echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
             exit 1
           fi
           echo "Latest Wasmtime version: $WASMTIME_VERSION"
@@ -1485,6 +1494,15 @@ runs:
 
           # Use resolved version from earlier step (handles "latest" → actual version)
           WASMTIME_VERSION="${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}"
+
+          if [[ -z "$WASMTIME_VERSION" ]]; then
+            echo "ERROR: Wasmtime version was not resolved in the earlier step"
+            echo "This is an internal error - the resolve step should have set the version"
+            exit 1
+          fi
+
+          echo "Using Wasmtime version: $WASMTIME_VERSION"
+
           WASMTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
           WASMTIME_BIN="$WASMTIME_CACHE_DIR/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
 
