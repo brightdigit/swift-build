@@ -187,11 +187,12 @@ inputs:
   # Wasmtime version for WASM test execution
   # Wasmtime runtime is used to execute WASM test binaries
   # Binary is automatically cached to avoid ~500MB download per run
-  # Default: '26.0.0' (latest tested version)
+  # Default: 'latest' (automatically fetches the latest release)
+  # Can also specify a specific version like '26.0.0' for reproducibility
   wasmtime-version:
-    description: 'Wasmtime version for WASM test execution'
+    description: 'Wasmtime version for WASM test execution (use "latest" or specific version like "26.0.0")'
     required: false
-    default: '26.0.0'
+    default: 'latest'
 
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
@@ -1361,8 +1362,40 @@ runs:
     # - Build artifact caching reduces compilation time significantly
     # - WasmKit runtime enables fast test execution without external tools
 
+    # Resolve Wasmtime version before caching
+    # If "latest" is requested, fetch the actual version from GitHub
+    # This ensures cache keys use the specific version number
+    - name: Resolve Wasmtime Version
+      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true'
+      shell: bash
+      id: resolve-wasmtime-version
+      run: |
+        REQUESTED_VERSION="${{ inputs.wasmtime-version }}"
+        if [[ "$REQUESTED_VERSION" == "latest" ]]; then
+          echo "Fetching latest Wasmtime version from GitHub..."
+          # Install curl on Linux if not available
+          if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v curl >/dev/null 2>&1; then
+            echo "Installing curl..."
+            apt-get update -qq && apt-get install -y -qq curl
+          fi
+
+          # Fetch latest release version from GitHub API
+          WASMTIME_VERSION=$(curl -s https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+
+          if [[ -z "$WASMTIME_VERSION" ]]; then
+            echo "ERROR: Failed to fetch latest Wasmtime version"
+            exit 1
+          fi
+          echo "Latest Wasmtime version: $WASMTIME_VERSION"
+        else
+          WASMTIME_VERSION="$REQUESTED_VERSION"
+          echo "Using specified Wasmtime version: $WASMTIME_VERSION"
+        fi
+
+        echo "wasmtime-version=$WASMTIME_VERSION" >> $GITHUB_OUTPUT
+
     # Cache Wasmtime binary to avoid ~500MB download per run
-    # Key includes version, OS, and architecture for platform-specific binaries
+    # Key includes resolved version, OS, and architecture for platform-specific binaries
     # First run: downloads binary (~3-5 min), subsequent runs use cache (<5 sec)
     - name: Cache Wasmtime Binary
       if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true'
@@ -1370,9 +1403,9 @@ runs:
       id: wasmtime-cache
       with:
         path: ${{ runner.temp }}/wasmtime
-        key: wasmtime-${{ inputs.wasmtime-version }}-${{ runner.os }}-${{ runner.arch }}
+        key: wasmtime-${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-${{ runner.arch }}
         restore-keys: |
-          wasmtime-${{ inputs.wasmtime-version }}-${{ runner.os }}-
+          wasmtime-${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-
 
     - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (WASM)
       if: steps.detect-os.outputs.os == 'wasm'
@@ -1450,7 +1483,8 @@ runs:
           echo "Selected Wasmtime platform: $WASMTIME_PLATFORM"
           echo ""
 
-          WASMTIME_VERSION="${{ inputs.wasmtime-version }}"
+          # Use resolved version from earlier step (handles "latest" → actual version)
+          WASMTIME_VERSION="${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}"
           WASMTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
           WASMTIME_BIN="$WASMTIME_CACHE_DIR/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
 

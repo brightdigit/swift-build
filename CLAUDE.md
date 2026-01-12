@@ -58,7 +58,8 @@ For WebAssembly platform testing:
 # First run: downloads binary (~3-5 minutes)
 # Subsequent runs: uses cached binary (<5 seconds)
 
-# Configure via wasmtime-version parameter (default: '26.0.0')
+# Configure via wasmtime-version parameter (default: 'latest' - auto-fetches latest release)
+# Can also specify a specific version for reproducibility (e.g., '26.0.0')
 # Build and test (NOTE: code coverage is NOT supported for WASM)
 swift build --build-tests --swift-sdk wasm32-unknown-wasi
 wasmtime run .build/wasm32-unknown-wasi/debug/MyPackageTests.wasm
@@ -87,9 +88,10 @@ The action accepts these key inputs:
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
 - **WASM-specific parameters**:
-  - `wasmtime-version` - Wasmtime version for WASM test execution (default: '26.0.0')
+  - `wasmtime-version` - Wasmtime version for WASM test execution (default: 'latest')
+    - Automatically fetches and uses the latest Wasmtime release
+    - Can specify a specific version for reproducibility (e.g., '26.0.0')
     - Automatically cached to avoid ~500MB download per run
-    - Change version to force new download/cache entry
 
 ### Outputs
 
