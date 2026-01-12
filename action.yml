@@ -1380,10 +1380,14 @@ runs:
           fi
 
           # Fetch latest release version from GitHub API with retry logic
-          # -s: silent, -f: fail on HTTP errors, --retry: retry on transient failures
-          WASMTIME_VERSION=$(curl -sf --retry 3 --retry-delay 2 https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          # -s: silent, --retry: retry on transient failures
+          # Don't use -f flag to avoid immediate failure on HTTP errors
+          set +e  # Temporarily disable exit on error to capture curl result
+          WASMTIME_VERSION=$(curl -s --retry 3 --retry-delay 2 https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest 2>&1 | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          CURL_EXIT=$?
+          set -e  # Re-enable exit on error
 
-          if [[ -z "$WASMTIME_VERSION" ]]; then
+          if [[ $CURL_EXIT -ne 0 ]] || [[ -z "$WASMTIME_VERSION" ]]; then
             echo "ERROR: Failed to fetch latest Wasmtime version from GitHub API"
             echo "This may be due to:"
             echo "  - GitHub API rate limiting"
