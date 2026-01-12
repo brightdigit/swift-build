@@ -1385,7 +1385,9 @@ runs:
           set +e  # Temporarily disable exit on error
 
           # Capture HTTP response with status code
+          # Use GitHub token for authentication to get higher rate limit (1,000 vs 60 requests/hour)
           HTTP_RESPONSE=$(curl -s --retry 3 --retry-delay 2 \
+            -H "Authorization: Bearer ${{ github.token }}" \
             -w "\nHTTP_STATUS:%{http_code}" \
             https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest 2>&1)
           CURL_EXIT=$?
@@ -1415,7 +1417,8 @@ runs:
             echo "ERROR: GitHub API rate limit exceeded"
             echo "API Response: $API_BODY"
             echo ""
-            echo "GitHub limits unauthenticated API requests to 60/hour"
+            echo "GitHub API rate limit exceeded (1,000 requests/hour for authenticated requests)"
+            echo "This is unusual - consider pinning to a specific version to reduce API calls"
             echo "Workaround: Specify an explicit version instead of 'latest'"
             echo "Example: wasmtime-version: '40.0.1'"
             echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
