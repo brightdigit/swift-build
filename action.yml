@@ -722,6 +722,32 @@ runs:
         echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
         echo "Detected Swift $SWIFT_VERSION, will use SDK: $SDK_NAME"
 
+    # Install required Linux packages for WASM operations
+    # This step installs curl and xz-utils needed for WASM SDK and Wasmtime operations.
+    # Runs once early in the WASM workflow to avoid redundant apt-get updates.
+    # Only executes on Linux systems when WASM type is detected.
+    - name: Install WASM Dependencies
+      if: steps.detect-os.outputs.os == 'wasm' && (runner.os == 'Linux' || startsWith(runner.os, 'linux'))
+      shell: bash
+      run: |
+        # Check if packages are already installed
+        MISSING_PACKAGES=""
+        if ! command -v curl >/dev/null 2>&1; then
+          MISSING_PACKAGES="$MISSING_PACKAGES curl"
+        fi
+        if ! command -v xz >/dev/null 2>&1; then
+          MISSING_PACKAGES="$MISSING_PACKAGES xz-utils"
+        fi
+
+        # Install missing packages in single apt-get update
+        if [[ -n "$MISSING_PACKAGES" ]]; then
+          echo "Installing required packages:$MISSING_PACKAGES"
+          apt-get update -qq
+          apt-get install -y -qq $MISSING_PACKAGES
+        else
+          echo "All required packages (curl, xz-utils) are already installed"
+        fi
+
     # WASM SDK Installation
     # This step downloads and installs the WASM SDK bundle for the detected Swift version.
     # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
@@ -747,12 +773,6 @@ runs:
         SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
 
         echo "Downloading from: $SDK_URL"
-
-        # Install curl on Linux if not available (containers may not have it)
-        if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v curl >/dev/null 2>&1; then
-          echo "Installing curl..."
-          apt-get update -qq && apt-get install -y -qq curl
-        fi
 
         # Download SDK (use wget if curl not available)
         if command -v curl >/dev/null 2>&1; then
@@ -1372,15 +1392,22 @@ runs:
     # - WasmKit runtime enables fast test execution without external tools
 
     # Cache resolved Wasmtime version to avoid repeated GitHub API calls
-    # Cache refreshes daily (using date in key) to pick up new releases
+    # Cache refreshes weekly (using ISO week in key) to pick up new releases
     # This significantly reduces API calls when using "latest"
+    - name: Get ISO Week for Cache
+      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true' && inputs.wasmtime-version == 'latest'
+      id: iso-week
+      shell: bash
+      run: |
+        echo "week=$(date -u +%Y-W%V)" >> $GITHUB_OUTPUT
+
     - name: Cache Wasmtime Latest Version
       if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true' && inputs.wasmtime-version == 'latest'
       uses: actions/cache@v4
       id: wasmtime-version-cache
       with:
         path: ${{ runner.temp }}/wasmtime-version.txt
-        key: wasmtime-latest-version-${{ runner.os }}-${{ github.run_id }}
+        key: wasmtime-latest-version-${{ runner.os }}-${{ steps.iso-week.outputs.week }}
         restore-keys: |
           wasmtime-latest-version-${{ runner.os }}-
 
@@ -1402,12 +1429,6 @@ runs:
             echo "Using cached Wasmtime version: $WASMTIME_VERSION"
           else
             echo "Fetching latest Wasmtime version from GitHub..."
-
-            # Install curl on Linux if not available
-            if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v curl >/dev/null 2>&1; then
-              echo "Installing curl..."
-              apt-get update -qq && apt-get install -y -qq curl
-            fi
 
             # Fetch latest release version from GitHub API with retry logic
             # Separate curl execution from parsing to properly diagnose failures
@@ -1602,14 +1623,6 @@ runs:
             echo "Downloading Wasmtime v${WASMTIME_VERSION} for ${WASMTIME_PLATFORM}..."
             WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
             echo "Download URL: $WASMTIME_URL"
-
-            # Install xz-utils on Linux if not available (required to extract .tar.xz archives)
-            if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$(uname -s)" == "Linux" ]]; then
-              if ! command -v xz >/dev/null 2>&1; then
-                echo "Installing xz-utils for .tar.xz extraction..."
-                apt-get update -qq && apt-get install -y -qq xz-utils
-              fi
-            fi
 
             mkdir -p "$WASMTIME_CACHE_DIR"
             curl -L "$WASMTIME_URL" -o "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"

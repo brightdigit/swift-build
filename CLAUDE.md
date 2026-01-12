@@ -98,6 +98,9 @@ The action accepts these key inputs:
     - Can specify a specific version for reproducibility (e.g., '40.0.1')
     - Automatically cached to avoid ~500MB download per run
 
+**Security Considerations:**
+- **`wasm-swift-flags` Input Sanitization**: The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to `wasm-swift-flags`. Never pass untrusted user input directly to this parameter.
+
 ### Outputs
 
 The action provides these outputs:
