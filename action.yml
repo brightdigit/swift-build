@@ -1373,6 +1373,7 @@ runs:
         REQUESTED_VERSION="${{ inputs.wasmtime-version }}"
         if [[ "$REQUESTED_VERSION" == "latest" ]]; then
           echo "Fetching latest Wasmtime version from GitHub..."
+
           # Install curl on Linux if not available
           if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v curl >/dev/null 2>&1; then
             echo "Installing curl..."
@@ -1380,25 +1381,73 @@ runs:
           fi
 
           # Fetch latest release version from GitHub API with retry logic
-          # -s: silent, --retry: retry on transient failures
-          # Don't use -f flag to avoid immediate failure on HTTP errors
-          set +e  # Temporarily disable exit on error to capture curl result
-          WASMTIME_VERSION=$(curl -s --retry 3 --retry-delay 2 https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest 2>&1 | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          # Separate curl execution from parsing to properly diagnose failures
+          set +e  # Temporarily disable exit on error
+
+          # Capture HTTP response with status code
+          HTTP_RESPONSE=$(curl -s --retry 3 --retry-delay 2 \
+            -w "\nHTTP_STATUS:%{http_code}" \
+            https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest 2>&1)
           CURL_EXIT=$?
+
           set -e  # Re-enable exit on error
 
-          if [[ $CURL_EXIT -ne 0 ]] || [[ -z "$WASMTIME_VERSION" ]]; then
-            echo "ERROR: Failed to fetch latest Wasmtime version from GitHub API"
+          # Check if curl itself failed (network error, DNS failure, etc.)
+          if [[ $CURL_EXIT -ne 0 ]]; then
+            echo "ERROR: Network failure while fetching Wasmtime version (curl exit code: $CURL_EXIT)"
             echo "This may be due to:"
-            echo "  - GitHub API rate limiting"
             echo "  - Network connectivity issues"
-            echo "  - API format changes"
+            echo "  - DNS resolution failures"
+            echo "  - SSL/TLS certificate issues"
             echo ""
             echo "Workaround: Specify an explicit version instead of 'latest'"
             echo "Example: wasmtime-version: '40.0.1'"
             echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
             exit 1
           fi
+
+          # Extract HTTP status code and API response body
+          HTTP_STATUS=$(echo "$HTTP_RESPONSE" | grep "HTTP_STATUS:" | sed 's/HTTP_STATUS://')
+          API_BODY=$(echo "$HTTP_RESPONSE" | sed '/HTTP_STATUS:/d')
+
+          # Check for rate limiting or other HTTP errors
+          if [[ "$HTTP_STATUS" == "403" ]]; then
+            echo "ERROR: GitHub API rate limit exceeded"
+            echo "API Response: $API_BODY"
+            echo ""
+            echo "GitHub limits unauthenticated API requests to 60/hour"
+            echo "Workaround: Specify an explicit version instead of 'latest'"
+            echo "Example: wasmtime-version: '40.0.1'"
+            echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
+            exit 1
+          elif [[ "$HTTP_STATUS" != "200" ]]; then
+            echo "ERROR: GitHub API returned unexpected status: $HTTP_STATUS"
+            echo "API Response: $API_BODY"
+            echo ""
+            echo "Workaround: Specify an explicit version instead of 'latest'"
+            echo "Example: wasmtime-version: '40.0.1'"
+            exit 1
+          fi
+
+          # Parse version from JSON response
+          WASMTIME_VERSION=$(echo "$API_BODY" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+
+          # Validate parsed version
+          if [[ -z "$WASMTIME_VERSION" ]]; then
+            echo "ERROR: Failed to parse version from GitHub API response"
+            echo "API returned HTTP $HTTP_STATUS but version extraction failed"
+            echo "This may be due to API format changes"
+            echo ""
+            echo "API Response (first 500 chars):"
+            echo "$API_BODY" | head -c 500
+            echo ""
+            echo ""
+            echo "Workaround: Specify an explicit version instead of 'latest'"
+            echo "Example: wasmtime-version: '40.0.1'"
+            echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
+            exit 1
+          fi
+
           echo "Latest Wasmtime version: $WASMTIME_VERSION"
         else
           WASMTIME_VERSION="$REQUESTED_VERSION"
