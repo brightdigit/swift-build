@@ -61,8 +61,8 @@ For WebAssembly platform testing:
 # Configure via wasmtime-version parameter (default: 'latest' - auto-fetches latest release)
 # Can also specify a specific version for reproducibility (e.g., '26.0.0')
 # Build and test (NOTE: code coverage is NOT supported for WASM)
-swift build --build-tests --swift-sdk wasm32-unknown-wasi
-wasmtime run .build/wasm32-unknown-wasi/debug/MyPackageTests.wasm
+swift build --build-tests --swift-sdk swift-6.2.3-RELEASE_wasm
+wasmtime run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm
 ```
 
 **Note:** Wasmtime binaries are cached per version to avoid repeated downloads. The action uses GitHub Actions cache with key: `wasmtime-{version}-{os}-{arch}`.
@@ -90,7 +90,7 @@ The action accepts these key inputs:
 - **WASM-specific parameters**:
   - `wasmtime-version` - Wasmtime version for WASM test execution (default: 'latest')
     - Automatically fetches and uses the latest Wasmtime release
-    - Can specify a specific version for reproducibility (e.g., '26.0.0')
+    - Can specify a specific version for reproducibility (e.g., '40.0.1')
     - Automatically cached to avoid ~500MB download per run
 
 ### Outputs

@@ -68,7 +68,24 @@
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
 
+### Outputs
 
+| Output | Description | Example Values | Usage |
+|--------|-------------|----------------|-------|
+| `contains-code-coverage` | Whether this build contains code coverage data | `'true'`, `'false'` | Returns `'true'` for SPM and Xcode builds with tests enabled. Returns `'false'` for WASM builds (not supported), Android builds (handled separately), and build-only mode. Use this to conditionally run coverage collection actions. |
+
+**Usage Example**:
+```yaml
+- name: Build and Test
+  id: build-step
+  uses: brightdigit/swift-build@v1
+  with:
+    scheme: MyPackage-Package
+
+- name: Generate Coverage
+  if: steps.build-step.outputs.contains-code-coverage == 'true'
+  uses: sersoft-gmbh/swift-coverage-action@v4
+```
 
 ### Parameter Combinations & Interactions
 
