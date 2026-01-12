@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:brightdigit/SyndiKit.git
 	branch = wasm-support
-	commit = 0830bd86f970f64b5d94cf689da1beed21f65a3b
-	parent = 29fb813cb46258397bf2a8093da1e347d69fa940
+	commit = 27db5be05df67417b8213f1e5ebe07f2206c0ea5
+	parent = 0e65a3188135a2a7461d6efd1fe6a794b09ed512
 	method = merge
 	cmdver = 0.4.9
