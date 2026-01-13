@@ -48,7 +48,30 @@ For Android platform testing (requires skiptools/swift-android-action):
 
 Note: Android builds delegate to skiptools/swift-android-action. See action.yml for full parameter documentation.
 
+### WebAssembly (WASM) Testing
+For WebAssembly platform testing:
+```bash
+# WASM builds use Swift WASM SDK + Wasmtime runtime
+# Supports: wasm32-unknown-wasi and wasm32-unknown-unknown-wasm (embedded)
+
+# Wasmtime binary is automatically cached to avoid ~500MB download per run
+# First run: downloads binary (~3-5 minutes)
+# Subsequent runs: uses cached binary (<5 seconds)
+
+# Configure via wasmtime-version parameter (default: 'latest' - auto-fetches latest release)
+# Can also specify a specific version for reproducibility (e.g., '26.0.0')
+# Build and test (NOTE: code coverage is NOT supported for WASM)
+swift build --build-tests --swift-sdk swift-6.2.3-RELEASE_wasm
+wasmtime run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm
+```
+
+**Note:** Wasmtime binaries are cached per version to avoid repeated downloads. The action uses GitHub Actions cache with key: `wasmtime-{version}-{os}-{arch}`.
+
+**Code Coverage:** WASM builds do NOT support code coverage (Swift toolchain doesn't provide `libclang_rt.profile-wasm32.a`). Use the `contains-code-coverage` output to conditionally skip coverage collection for WASM builds.
+
 ## GitHub Action Usage
+
+### Inputs
 
 The action accepts these key inputs:
 - `scheme` (required) - The scheme to build and test
@@ -64,6 +87,32 @@ The action accepts these key inputs:
   - `android-run-tests` - Run tests on emulator (default: true; use false for ARM macOS)
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
+- **WASM-specific parameters**:
+  - `wasm-swift-flags` - Additional Swift compiler/linker flags for WASM builds (required for most projects)
+    - Example: `-Xcc -D_WASI_EMULATED_SIGNAL -Xcc -D_WASI_EMULATED_MMAN -Xlinker -lwasi-emulated-signal -Xlinker -lwasi-emulated-mman -Xlinker -lwasi-emulated-getpid -Xlinker --initial-memory=536870912 -Xlinker --max-memory=536870912`
+    - WASI emulation flags are required for projects using Foundation/CoreFoundation
+    - Memory configuration flags often required for test suites with large datasets (default WASM memory ~62MB)
+    - Must be explicitly configured (no defaults provided)
+  - `wasmtime-version` - Wasmtime version for WASM test execution (default: 'latest')
+    - Automatically fetches and uses the latest Wasmtime release
+    - Can specify a specific version for reproducibility (e.g., '40.0.1')
+    - Automatically cached to avoid ~500MB download per run
+
+**Security Considerations:**
+- **`wasm-swift-flags` Input Sanitization**: The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to `wasm-swift-flags`. Never pass untrusted user input directly to this parameter.
+
+### Outputs
+
+The action provides these outputs:
+- `contains-code-coverage` - Whether this build contains code coverage data
+  - Returns `'true'` for SPM and Xcode builds with tests enabled
+  - Returns `'false'` for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  - Use this to conditionally run coverage collection actions:
+    ```yaml
+    - name: Generate Coverage
+      if: steps.build.outputs.contains-code-coverage == 'true'
+      uses: sersoft-gmbh/swift-coverage-action@v4
+    ```
 
 ## Platform Support Matrix
 
@@ -71,12 +120,61 @@ The action supports:
 - **Ubuntu**: Swift 5.9-6.2 across focal/jammy/noble distributions
 - **macOS**: Xcode 15.1+ with platform-specific simulator testing
 - **Android**: Swift 6.2+ with emulator testing (Ubuntu/Intel macOS) or build-only (ARM macOS)
-- **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds
+- **WebAssembly (WASM)**: Swift 6.2+ with Wasmtime runtime (auto-cached binaries)
+- **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds, with optimized Wasmtime binary caching
 
 ## Test Package Architecture
 
 - **SingleTargetPackage**: Simple single-target Swift package for basic validation
 - **MultiTargetPackage**: Multi-target package with Core depending on Utils, demonstrating target dependencies
+
+## WASM Migration Guide
+
+**Breaking Change (v2.0)**: WASM compiler flags are now explicitly configured via input parameters instead of being hardcoded.
+
+### Migration Steps
+
+**Before (v1.x - implicit flags)**:
+```yaml
+- uses: YourOrg/swift-build@v1
+  with:
+    type: wasm
+```
+
+**After (v2.0 - explicit flags)**:
+```yaml
+- uses: YourOrg/swift-build@v2
+  with:
+    type: wasm
+    wasm-swift-flags: >-
+      -Xcc -D_WASI_EMULATED_SIGNAL
+      -Xcc -D_WASI_EMULATED_MMAN
+      -Xlinker -lwasi-emulated-signal
+      -Xlinker -lwasi-emulated-mman
+      -Xlinker -lwasi-emulated-getpid
+      -Xlinker --initial-memory=536870912
+      -Xlinker --max-memory=536870912
+```
+
+### Common Flag Patterns
+
+**WASI Emulation Flags** (required for Foundation/CoreFoundation):
+- `-Xcc -D_WASI_EMULATED_SIGNAL` - Required for signal.h support
+- `-Xcc -D_WASI_EMULATED_MMAN` - Required for mmap support
+- `-Xlinker -lwasi-emulated-signal` - Link against WASI signal emulation library
+- `-Xlinker -lwasi-emulated-mman` - Link against WASI mmap emulation library
+- `-Xlinker -lwasi-emulated-getpid` - Link against WASI getpid emulation library
+
+**Memory Configuration Flags** (for test suites with large datasets):
+- `-Xlinker --initial-memory=536870912` - Set initial memory to 512MB (default: ~62MB)
+- `-Xlinker --max-memory=536870912` - Set maximum memory to 512MB
+- Adjust values based on your test suite requirements (values in bytes)
+
+**When to Use Which Flags**:
+- Most Swift projects using Foundation/CoreFoundation will need WASI emulation flags
+- Test suites processing large data (XML, JSON, images) will need memory configuration
+- Pure Swift code without Foundation dependencies may work without flags
+- Start with the example configuration above and adjust as needed
 
 ## Task Master AI Instructions
 **Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
