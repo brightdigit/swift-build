@@ -60,14 +60,18 @@ For WebAssembly platform testing:
 
 # Configure via wasmtime-version parameter (default: 'latest' - auto-fetches latest release)
 # Can also specify a specific version for reproducibility (e.g., '26.0.0')
-# Build and test (NOTE: code coverage is NOT supported for WASM)
-swift build --build-tests --swift-sdk swift-6.2.3-RELEASE_wasm
+# Build and test with code coverage (Swift 6.1+ required)
+swift build --build-tests --swift-sdk swift-6.2.3-RELEASE_wasm --enable-code-coverage -Xlinker -lwasi-emulated-getpid
 wasmtime run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm
+
+# After tests run, collect coverage data
+llvm-profdata merge default.profraw -o default.profdata
+llvm-cov export --format=lcov --instr-profile=default.profdata .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm > coverage.lcov
 ```
 
 **Note:** Wasmtime binaries are cached per version to avoid repeated downloads. The action uses GitHub Actions cache with key: `wasmtime-{version}-{os}-{arch}`.
 
-**Code Coverage:** WASM builds do NOT support code coverage (Swift toolchain doesn't provide `libclang_rt.profile-wasm32.a`). Use the `contains-code-coverage` output to conditionally skip coverage collection for WASM builds.
+**Code Coverage:** WASM builds fully support code coverage with Swift 6.1+. The action automatically enables code coverage for WASM builds using `--enable-code-coverage` and `-Xlinker -lwasi-emulated-getpid` flags. Coverage data is exported to LCOV format for easy integration with tools like Codecov. The `contains-code-coverage` output returns `true` for WASM builds.
 
 ## GitHub Action Usage
 
@@ -105,14 +109,15 @@ The action accepts these key inputs:
 
 The action provides these outputs:
 - `contains-code-coverage` - Whether this build contains code coverage data
-  - Returns `'true'` for SPM and Xcode builds with tests enabled
-  - Returns `'false'` for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  - Returns `'true'` for SPM, Xcode, and WASM builds (Swift 6.1+) with tests enabled
+  - Returns `'false'` for Android builds (handled separately) and build-only mode
   - Use this to conditionally run coverage collection actions:
     ```yaml
     - name: Generate Coverage
       if: steps.build.outputs.contains-code-coverage == 'true'
       uses: sersoft-gmbh/swift-coverage-action@v4
     ```
+  - For WASM builds, coverage is automatically collected and exported to `coverage.lcov` in the working directory
 
 ## Platform Support Matrix
 

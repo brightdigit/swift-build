@@ -275,8 +275,8 @@ inputs:
 
 outputs:
   # Indicates whether this build contains code coverage data
-  # Returns 'true' for SPM and Xcode builds with tests enabled
-  # Returns 'false' for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  # Returns 'true' for SPM, Xcode, and WASM builds (Swift 6.1+) with tests enabled
+  # Returns 'false' for Android builds (handled separately) and build-only mode
   # Use this output to conditionally run coverage collection actions
   contains-code-coverage:
     description: 'Whether this build contains code coverage data'
@@ -503,16 +503,18 @@ runs:
     # Set Code Coverage Flag
     # Determines whether code coverage will be collected for this build
     # Coverage is NOT supported for:
-    # - WASM builds (no libclang_rt.profile-wasm32.a available)
     # - Android builds (handled separately by swift-android-action)
     # - Build-only mode (no tests run)
+    # Coverage IS supported for:
+    # - WASM builds (Swift 6.1+ with --enable-code-coverage and -Xlinker -lwasi-emulated-getpid)
+    # - SPM and Xcode builds
     - name: Set Coverage Flag
       shell: bash
       id: set-coverage-flag
       run: |
         if [[ "${{ steps.detect-os.outputs.os }}" == "wasm" ]]; then
-          echo "enabled=false" >> $GITHUB_OUTPUT
-          echo "Code coverage: disabled (WASM not supported)"
+          echo "enabled=true" >> $GITHUB_OUTPUT
+          echo "Code coverage: enabled (WASM with Swift 6.1+)"
         elif [[ "${{ steps.detect-os.outputs.os }}" == "android" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
           echo "Code coverage: disabled (Android handled separately)"
@@ -1646,11 +1648,10 @@ runs:
           echo ""
           
           # Build tests (separate from running them, per WASI guide)
-          echo "Building WASM tests..."
-          # Note: Code coverage is NOT supported for WASM targets
-          # The Swift toolchain does not provide libclang_rt.profile-wasm32.a
-          # Use the 'contains-code-coverage' output to conditionally skip coverage actions
-          swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
+          echo "Building WASM tests with code coverage..."
+          # Note: Code coverage IS supported for WASM targets with Swift 6.1+
+          # Requires: --enable-code-coverage and -Xlinker -lwasi-emulated-getpid
+          swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG --enable-code-coverage -Xlinker -lwasi-emulated-getpid ${{ inputs.wasm-swift-flags }}
 
           # Find all WASM test binaries dynamically (supports any test target name)
           echo "Searching for WASM test binaries..."
@@ -1686,6 +1687,32 @@ runs:
               "$WASMTIME_BIN" --dir . "$TEST_BINARY"
             fi
           done <<< "$TEST_BINARIES"
+
+          # Collect code coverage data
+          echo ""
+          echo "Collecting code coverage..."
+
+          # Check if profraw file exists
+          if [[ ! -f "default.profraw" ]]; then
+            echo "WARNING: No default.profraw file found. Coverage data not collected."
+          else
+            echo "Found default.profraw ($(du -h default.profraw | cut -f1))"
+
+            # Merge profraw data
+            llvm-profdata merge default.profraw -o default.profdata
+            echo "Created default.profdata ($(du -h default.profdata | cut -f1))"
+
+            # Export to LCOV format for easy consumption
+            TEST_BINARY=$(echo "$TEST_BINARIES" | head -n 1)
+            llvm-cov export \
+              --format=lcov \
+              --instr-profile=default.profdata \
+              "$TEST_BINARY" \
+              > coverage.lcov
+
+            echo "Generated coverage.lcov ($(du -h coverage.lcov | cut -f1))"
+            echo "Coverage collection complete"
+          fi
         fi
 
     # Xcode Build and Test Execution (Apple Platform Testing)
