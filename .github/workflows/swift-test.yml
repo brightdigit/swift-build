@@ -871,24 +871,56 @@ jobs:
             container: swift:6.2-jammy
             type: wasm
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
 
           # Ubuntu with WASM-embedded
           - runs-on: ubuntu-latest
             container: swift:6.2-jammy
             type: wasm-embedded
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
 
           # macOS 26 with WASM and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
 
           # macOS 26 with WASM-embedded and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm-embedded
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
@@ -899,6 +931,7 @@ jobs:
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           skip-package-resolved: "true"
+          wasm-swift-flags: ${{ matrix.wasm-swift-flags }}
           build-only: ${{ matrix.build-only }}
 
       - name: Verify tests were not run (build-only mode)
@@ -919,24 +952,56 @@ jobs:
             container: swift:6.2-jammy
             type: wasm
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
 
           # Ubuntu with WASM-embedded
           - runs-on: ubuntu-latest
             container: swift:6.2-jammy
             type: wasm-embedded
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
 
           # macOS 26 with WASM and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
 
           # macOS 26 with WASM-embedded and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm-embedded
             build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
@@ -947,6 +1012,7 @@ jobs:
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           skip-package-resolved: "true"
+          wasm-swift-flags: ${{ matrix.wasm-swift-flags }}
           build-only: ${{ matrix.build-only }}
 
       - name: Verify tests were not run (build-only mode)

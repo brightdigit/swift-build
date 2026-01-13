@@ -63,12 +63,30 @@
 | `android-swift-test-flags` | Additional Swift test flags for Android | `null` | `--parallel` | Any valid Swift test flags | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-emulator-boot-timeout` | Emulator boot timeout (seconds) | `600` | `900` | Any positive integer | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-copy-files` | Additional files to copy to emulator for testing | `null` | `Tests/Resources/` | File paths or directories (space-separated) | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true`. Copies test resources, data files, or configurations to emulator before running tests |
-| `wasmtime-version` | Wasmtime version for WASM test execution | `26.0.0` | `27.0.0` | Any valid Wasmtime version | **WASM builds only** - Auto-cached per version to avoid ~500MB download per run. Change version to force new download/cache entry |
+| `wasmtime-version` | Wasmtime version for WASM test execution | `latest` | `27.0.0`, `26.0.0` | `latest` or any valid Wasmtime version | **WASM builds only** - Defaults to `latest` (auto-fetches latest release). Specify a version for reproducibility. Auto-cached per version to avoid ~500MB download per run |
+| `wasm-swift-flags` | Additional Swift compiler/linker flags for WASM builds | `null` | `-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-signal` | Any valid Swift compiler flags | **WASM builds only** - Required for most projects using Foundation/CoreFoundation. Configures WASI emulation and memory limits. See [WASM Compiler Flags Configuration](#wasm-compiler-flags-configuration) for common patterns |
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
 
+### Outputs
 
+| Output | Description | Example Values | Usage |
+|--------|-------------|----------------|-------|
+| `contains-code-coverage` | Whether this build contains code coverage data | `'true'`, `'false'` | Returns `'true'` for SPM and Xcode builds with tests enabled. Returns `'false'` for WASM builds (not supported), Android builds (handled separately), and build-only mode. Use this to conditionally run coverage collection actions. |
+
+**Usage Example**:
+```yaml
+- name: Build and Test
+  id: build-step
+  uses: brightdigit/swift-build@v1
+  with:
+    scheme: MyPackage-Package
+
+- name: Generate Coverage
+  if: steps.build-step.outputs.contains-code-coverage == 'true'
+  uses: sersoft-gmbh/swift-coverage-action@v4
+```
 
 ### Parameter Combinations & Interactions
 
@@ -758,6 +776,76 @@ jobs:
 - Swift 6.2+ (recommended)
 - WASM SDK is automatically downloaded and cached
 - Supports both `wasm32-unknown-wasi` and `wasm32-unknown-unknown-wasm` (embedded) targets
+
+#### WASM Compiler Flags Configuration
+
+**Breaking Change (v2.0)**: WASM compiler flags are now explicitly configured via the `wasm-swift-flags` parameter instead of being hardcoded. This gives you full control over WASI emulation and memory configuration.
+
+Most Swift projects using Foundation/CoreFoundation will require WASI emulation flags:
+
+```yaml
+name: WASM with Compiler Flags
+on: [push, pull_request]
+
+jobs:
+  test-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v2
+        with:
+          scheme: MyPackage
+          type: wasm
+          wasm-swift-flags: >-
+            -Xcc -D_WASI_EMULATED_SIGNAL
+            -Xcc -D_WASI_EMULATED_MMAN
+            -Xlinker -lwasi-emulated-signal
+            -Xlinker -lwasi-emulated-mman
+            -Xlinker -lwasi-emulated-getpid
+            -Xlinker --initial-memory=536870912
+            -Xlinker --max-memory=536870912
+```
+
+**Common Flag Patterns:**
+
+**WASI Emulation Flags** (required for Foundation/CoreFoundation):
+- `-Xcc -D_WASI_EMULATED_SIGNAL` - Enable signal.h support
+- `-Xcc -D_WASI_EMULATED_MMAN` - Enable memory mapping (mmap) support
+- `-Xlinker -lwasi-emulated-signal` - Link WASI signal emulation library
+- `-Xlinker -lwasi-emulated-mman` - Link WASI mmap emulation library
+- `-Xlinker -lwasi-emulated-getpid` - Link WASI getpid emulation library
+
+**Memory Configuration Flags** (for large test suites):
+- `-Xlinker --initial-memory=536870912` - Set initial WASM memory to 512MB (default: ~62MB)
+- `-Xlinker --max-memory=536870912` - Set maximum WASM memory to 512MB
+- Adjust values based on your test data size (values are in bytes)
+
+**When to Use Which Flags:**
+- **Foundation/CoreFoundation projects**: Always use WASI emulation flags
+- **Large test suites** (processing XML, JSON, images): Add memory configuration flags
+- **Pure Swift code** (no Foundation): May work without flags - test first
+- **Starting point**: Use the example above and adjust based on build/test failures
+
+**Migration from v1.x:**
+```yaml
+# Before (v1.x - implicit flags)
+- uses: brightdigit/swift-build@v1
+  with:
+    type: wasm
+
+# After (v2.0 - explicit flags required)
+- uses: brightdigit/swift-build@v2
+  with:
+    type: wasm
+    wasm-swift-flags: >-
+      -Xcc -D_WASI_EMULATED_SIGNAL
+      -Xcc -D_WASI_EMULATED_MMAN
+      -Xlinker -lwasi-emulated-signal
+      -Xlinker -lwasi-emulated-mman
+      -Xlinker -lwasi-emulated-getpid
+```
+
+**Security Note**: The `wasm-swift-flags` parameter is directly passed to Swift compiler commands. Only use trusted values from your workflow YAML. See [Security Considerations](#security-considerations) for details.
 
 ### Apple Platform Simulator Testing Examples
 
@@ -3491,7 +3579,41 @@ scheme: MyApp
 type: androidOS  # Invalid platform type
 ```
 
+## Security Considerations
 
+### Input Parameter Sanitization
+
+The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. This design is intentional and safe for standard GitHub Actions usage because:
+
+1. **Trusted Source**: GitHub Actions input parameters come from workflow YAML files, which require repository write access to modify
+2. **Controlled Environment**: If an attacker can modify workflow files, they already have full control of the CI environment
+3. **Performance**: No validation overhead for the common trusted case
+
+**If you're building reusable workflows** that accept external inputs (e.g., `workflow_call` with inputs from untrusted sources):
+- ⚠️ **Never** pass untrusted user input directly to `wasm-swift-flags`
+- Validate and sanitize external inputs before using them
+- Consider allowlisting known-safe flag patterns
+
+**Example - Safe Reusable Workflow:**
+```yaml
+# .github/workflows/reusable-wasm-build.yml
+on:
+  workflow_call:
+    inputs:
+      enable-wasi-emulation:
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: brightdigit/swift-build@v2
+        with:
+          type: wasm
+          # Safe: Conditional uses trusted hardcoded values
+          wasm-swift-flags: ${{ inputs.enable-wasi-emulation && '-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-signal' || '' }}
+```
 
 ### Troubleshooting Configuration Examples
 
