@@ -51,23 +51,33 @@ Note: Android builds delegate to skiptools/swift-android-action. See action.yml 
 ### WebAssembly (Wasm) Testing
 For WebAssembly platform testing:
 ```bash
-# Wasm builds use Swift Wasm SDK + Wasmtime runtime
+# Wasm builds use Swift Wasm SDK + WasmKit runtime (default, bundled with Swift 6.2.3+)
+# Wasmtime available as optional fallback via wasmtime-version parameter
 # Supports: wasm32-unknown-wasi and wasm32-unknown-unknown-wasm (embedded)
 
-# Wasmtime binary is automatically cached to avoid ~500MB download per run
-# First run: downloads binary (~3-5 minutes)
-# Subsequent runs: uses cached binary (<5 seconds)
-
-# Configure via wasmtime-version parameter (default: 'latest' - auto-fetches latest release)
-# Can also specify a specific version for reproducibility (e.g., '26.0.0')
-# Build and test (NOTE: code coverage is NOT supported for Wasm)
+# Build and test with WasmKit (default - no downloads required)
 swift build --build-tests --swift-sdk swift-6.2.3-RELEASE_wasm
-wasmtime run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm
+wasmkit run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm --testing-library swift-testing
+
+# OPTIONAL: Wasmtime fallback for older Swift versions
+# Configure via wasmtime-version parameter (e.g., '27.0.0', '26.0.0')
+# Breaking Change (v2.0): 'latest' is no longer supported - use specific versions
+# Wasmtime binary is automatically cached to avoid ~500MB download per run
+# First run with Wasmtime: downloads binary (~3-5 minutes)
+# Subsequent runs: uses cached binary (<5 seconds)
 ```
 
-**Note:** Wasmtime binaries are cached per version to avoid repeated downloads. The action uses GitHub Actions cache with key: `wasmtime-{version}-{os}-{arch}`.
+**WasmKit (Default):**
+- Bundled with Swift 6.2.3+ toolchains - no external downloads
+- Instant test execution (no download delays)
+- No caching overhead (~500MB saved compared to Wasmtime)
 
-**Code Coverage:** Wasm builds do NOT support code coverage (Swift toolchain doesn't provide `libclang_rt.profile-wasm32.a`). Use the `contains-code-coverage` output to conditionally skip coverage collection for Wasm builds.
+**Wasmtime (Fallback):**
+- Used when `wasmtime-version` parameter is explicitly specified
+- Wasmtime binaries are cached per version to avoid repeated downloads
+- Cache key: `wasmtime-{version}-{os}-{arch}`
+
+**Code Coverage:** Wasm builds do NOT support code coverage (neither WasmKit nor Wasmtime provide coverage support). Use the `contains-code-coverage` output to conditionally skip coverage collection for Wasm builds.
 
 ## GitHub Action Usage
 
@@ -93,10 +103,11 @@ The action accepts these key inputs:
     - WASI emulation flags are required for projects using Foundation/CoreFoundation
     - Memory configuration flags often required for test suites with large datasets (default Wasm memory ~62MB)
     - Must be explicitly configured (no defaults provided)
-  - `wasmtime-version` - Wasmtime version for Wasm test execution (default: 'latest')
-    - Automatically fetches and uses the latest Wasmtime release
-    - Can specify a specific version for reproducibility (e.g., '40.0.1')
-    - Automatically cached to avoid ~500MB download per run
+  - `wasmtime-version` - Optional Wasmtime runtime fallback (default: WasmKit)
+    - Default: Uses WasmKit runtime (bundled with Swift 6.2.3+ toolchains)
+    - Specify a specific version to use Wasmtime fallback: '27.0.0', '26.0.0', etc. (X.Y.Z format)
+    - Breaking Change (v2.0): 'latest' is no longer supported - use specific version numbers
+    - Automatically cached when using Wasmtime to avoid ~500MB download per run
 
 **Security Considerations:**
 - **`wasm-swift-flags` Input Sanitization**: The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to `wasm-swift-flags`. Never pass untrusted user input directly to this parameter.
