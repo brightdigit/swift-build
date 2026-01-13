@@ -2,14 +2,14 @@
 #
 # A comprehensive GitHub Action for building and testing Swift packages across multiple platforms.
 # Provides intelligent caching, multi-platform support, and optimized workflows for both
-# Swift Package Manager (SPM) and Xcode-based builds.
+# Swift Package Manager (SwiftPM) and Xcode-based builds.
 #
 # Key Features:
 # - Multi-platform support: Ubuntu (Swift 5.9-6.2), macOS (Xcode 15.1+), Windows (Swift 6.1+), Android (Swift 6.2+), and WebAssembly (Swift 6.2.3+)
 # - Intelligent caching: Platform-specific strategies for optimal performance
 # - Apple platform testing: iOS, watchOS, tvOS, visionOS, macOS with simulator support
 # - Android platform testing: Emulator-based testing with Swift Android SDK
-# - WebAssembly compilation: Standard WASM and WASM-embedded targets with Wasmtime testing, configurable compiler flags (code coverage not supported)
+# - WebAssembly compilation: Standard Wasm and Wasm-embedded targets with Wasmtime testing, configurable compiler flags (code coverage not supported)
 # - Automatic platform downloads for missing Apple platforms
 # - Windows Swift toolchain installation and configuration
 # - Android Swift SDK with NDK integration
@@ -57,8 +57,8 @@ inputs:
   # Apple platforms: 'ios', 'watchOS', 'visionOS', 'tvOS', 'macOS'
   # Android platform: 'android' (runs on ubuntu-* or macos-* runners)
   # WebAssembly platforms: 'wasm', 'wasm-embedded' (runs on ubuntu-* or macos-* runners)
-  #   Note: Code coverage is NOT supported for WASM builds
-  # Omit this parameter for cross-platform SPM builds
+  #   Note: Code coverage is NOT supported for Wasm builds
+  # Omit this parameter for cross-platform SwiftPM builds
   # Required when using deviceName/osVersion parameters (Apple platforms only)
   type:
     description: 'Build type (ios, watchos, visionos, tvos, macos, android, wasm, wasm-embedded)'
@@ -184,22 +184,22 @@ inputs:
     description: 'Additional files to copy to emulator for testing'
     required: false
 
-  # Additional Swift compiler/linker flags for WASM
+  # Additional Swift compiler/linker flags for Wasm
   # Examples: '-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-mman -Xlinker --initial-memory=536870912'
   # Only used when type is 'wasm' or 'wasm-embedded'
   # Note: WASI emulation flags are required for projects using Foundation/CoreFoundation
   # Memory configuration flags may be needed for test suites with large datasets
   wasm-swift-flags:
-    description: 'Additional Swift compiler/linker flags for WASM builds'
+    description: 'Additional Swift compiler/linker flags for Wasm builds'
     required: false
 
-  # Wasmtime version for WASM test execution
-  # Wasmtime runtime is used to execute WASM test binaries
+  # Wasmtime version for Wasm test execution
+  # Wasmtime runtime is used to execute Wasm test binaries
   # Binary is automatically cached to avoid ~500MB download per run
   # Default: 'latest' (automatically fetches the latest release)
   # Can also specify a specific version like '26.0.0' for reproducibility
   wasmtime-version:
-    description: 'Wasmtime version for WASM test execution (use "latest" or specific version like "26.0.0")'
+    description: 'Wasmtime version for Wasm test execution (use "latest" or specific version like "26.0.0")'
     required: false
     default: 'latest'
 
@@ -266,7 +266,7 @@ inputs:
   # Build-only mode (skip running tests)
   # When enabled, only builds the package/scheme without running tests
   # Useful for validation builds, binary distribution, or CI pipelines that separate build and test stages
-  # Works with both SPM builds and Xcode builds
+  # Works with both SwiftPM builds and Xcode builds
   # Default: 'false' (run tests as normal)
   build-only:
     description: 'Build without running tests'
@@ -275,8 +275,8 @@ inputs:
 
 outputs:
   # Indicates whether this build contains code coverage data
-  # Returns 'true' for SPM and Xcode builds with tests enabled
-  # Returns 'false' for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  # Returns 'true' for SwiftPM and Xcode builds with tests enabled
+  # Returns 'false' for Wasm builds (not supported), Android builds (handled separately), and build-only mode
   # Use this output to conditionally run coverage collection actions
   contains-code-coverage:
     description: 'Whether this build contains code coverage data'
@@ -326,22 +326,22 @@ runs:
             echo "Detected Android build mode (type: android)"
           fi
         elif [[ "$EFFECTIVE_TYPE" == "wasm" ]] || [[ "$EFFECTIVE_TYPE" == "wasm-embedded" ]]; then
-          # WASM builds use Swift Package Manager with --swift-sdk flag
+          # Wasm builds use Swift Package Manager with --swift-sdk flag
           # Runs on ubuntu-* or macos-* runners (Windows not supported but will fail naturally)
           echo "os=wasm" >> $GITHUB_OUTPUT
           echo "wasm-variant=$EFFECTIVE_TYPE" >> $GITHUB_OUTPUT
-          echo "Detected WASM build mode (type: $EFFECTIVE_TYPE)"
+          echo "Detected Wasm build mode (type: $EFFECTIVE_TYPE)"
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
-          # macOS runners support both SPM and Xcode builds
+          # macOS runners support both SwiftPM and Xcode builds
           # Set up derived data path for optimal Xcode build performance and caching
           echo "os=macos" >> $GITHUB_OUTPUT
           echo "DERIVED_DATA_PATH=$RUNNER_TEMP/DerivedData" >> $GITHUB_ENV
         elif [[ "$RUNNER_OS" == "Windows" ]]; then
-          # Windows runners support SPM builds with custom Swift toolchain installation
+          # Windows runners support SwiftPM builds with custom Swift toolchain installation
           # Will use Swift Package Manager with Windows-specific caching strategies
           echo "os=windows" >> $GITHUB_OUTPUT
         elif [[ "$RUNNER_OS" == "Linux" ]]; then
-          # Ubuntu runners only support SPM builds (no Xcode available)
+          # Ubuntu runners only support SwiftPM builds (no Xcode available)
           # Will use standard Swift Package Manager build and cache directories
           echo "os=ubuntu" >> $GITHUB_OUTPUT
         else
@@ -503,7 +503,7 @@ runs:
     # Set Code Coverage Flag
     # Determines whether code coverage will be collected for this build
     # Coverage is NOT supported for:
-    # - WASM builds (no libclang_rt.profile-wasm32.a available)
+    # - Wasm builds (no libclang_rt.profile-wasm32.a available)
     # - Android builds (handled separately by swift-android-action)
     # - Build-only mode (no tests run)
     - name: Set Coverage Flag
@@ -512,7 +512,7 @@ runs:
       run: |
         if [[ "${{ steps.detect-os.outputs.os }}" == "wasm" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
-          echo "Code coverage: disabled (WASM not supported)"
+          echo "Code coverage: disabled (Wasm not supported)"
         elif [[ "${{ steps.detect-os.outputs.os }}" == "android" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
           echo "Code coverage: disabled (Android handled separately)"
@@ -539,13 +539,13 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: echo "DEVELOPER_DIR=${{ inputs.xcode }}/Contents/Developer" >> $GITHUB_ENV
 
-    # Setup Swift.org toolchain for WASM builds on macOS
-    # Xcode's Swift doesn't include WASM backend - must use Swift.org toolchain
-    - name: Setup Swift.org Toolchain for WASM (macOS)
+    # Setup Swift.org toolchain for Wasm builds on macOS
+    # Xcode's Swift doesn't include Wasm backend - must use Swift.org toolchain
+    - name: Setup Swift.org Toolchain for Wasm (macOS)
       if: steps.detect-os.outputs.os == 'wasm' && runner.os == 'macOS'
       shell: bash
       run: |
-        echo "Setting up Swift.org toolchain for WASM support..."
+        echo "Setting up Swift.org toolchain for Wasm support..."
 
         # First detect Swift version from Xcode to know which version to install
         SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
@@ -679,9 +679,9 @@ runs:
             ;;
         esac
 
-    # WASM Swift Version Detection
-    # This step detects the installed Swift version and constructs the WASM SDK name.
-    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
+    # Wasm Swift Version Detection
+    # This step detects the installed Swift version and constructs the Swift Wasm SDK name.
+    # Only executes for Wasm builds (when type is 'wasm' or 'wasm-embedded').
     # IMPORTANT: This happens AFTER Xcode setup to use the correct Swift version.
     #
     # Outputs:
@@ -690,7 +690,7 @@ runs:
     #
     # The SDK name format is: swift-{VERSION}-RELEASE_wasm (both variants use same SDK)
     # No version validation is performed - installation will fail naturally if version is unsupported.
-    - name: Detect Swift Version for WASM
+    - name: Detect Swift Version for Wasm
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
       id: detect-swift-version
@@ -704,11 +704,11 @@ runs:
         echo "Raw version output: $SWIFT_VERSION_RAW"
 
         # Parse Swift version using centralized script
-        # WASM requires Swift 6.2.3+ with full version number (major.minor.patch)
+        # Wasm requires Swift 6.2.3+ with full version number (major.minor.patch)
         SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
         if [ $? -ne 0 ]; then
           echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
-          echo "WASM requires Swift 6.2.3+ with full version number in swift --version output"
+          echo "Wasm requires Swift 6.2.3+ with full version number in swift --version output"
           exit 1
         fi
 
@@ -722,11 +722,11 @@ runs:
         echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
         echo "Detected Swift $SWIFT_VERSION, will use SDK: $SDK_NAME"
 
-    # Install required Linux packages for WASM operations
-    # This step installs curl and xz-utils needed for WASM SDK and Wasmtime operations.
-    # Runs once early in the WASM workflow to avoid redundant apt-get updates.
-    # Only executes on Linux systems when WASM type is detected.
-    - name: Install WASM Dependencies
+    # Install required Linux packages for Wasm operations
+    # This step installs curl and xz-utils needed for Swift Wasm SDK and Wasmtime operations.
+    # Runs once early in the Wasm workflow to avoid redundant apt-get updates.
+    # Only executes on Linux systems when Wasm type is detected.
+    - name: Install Wasm Dependencies
       if: steps.detect-os.outputs.os == 'wasm' && (runner.os == 'Linux' || startsWith(runner.os, 'linux'))
       shell: bash
       run: |
@@ -748,9 +748,9 @@ runs:
           echo "All required packages (curl, xz-utils) are already installed"
         fi
 
-    # WASM SDK Installation
-    # This step downloads and installs the WASM SDK bundle for the detected Swift version.
-    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
+    # Swift Wasm SDK Installation
+    # This step downloads and installs the Swift Wasm SDK bundle for the detected Swift version.
+    # Only executes for Wasm builds (when type is 'wasm' or 'wasm-embedded').
     # Happens AFTER Xcode setup to ensure correct Swift toolchain is used.
     #
     # Downloads using curl (preferred) or wget (fallback), then installs from local file.
@@ -758,7 +758,7 @@ runs:
     # The installed SDK is cached for subsequent builds.
     #
     # SDK URL format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
-    - name: Install WASM SDK
+    - name: Install Swift Wasm SDK
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -766,7 +766,7 @@ runs:
         SDK_NAME="${{ steps.detect-swift-version.outputs.wasm-sdk }}"
         SWIFT_VERSION="${{ steps.detect-swift-version.outputs.swift-version }}"
 
-        echo "Installing WASM SDK: $SDK_NAME"
+        echo "Installing Swift Wasm SDK: $SDK_NAME"
 
         # The SDK download URL pattern from Swift.org
         # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
@@ -780,7 +780,7 @@ runs:
         elif command -v wget >/dev/null 2>&1; then
           wget -O /tmp/wasm-sdk.tar.gz "$SDK_URL"
         else
-          echo "ERROR: Neither curl nor wget available to download WASM SDK"
+          echo "ERROR: Neither curl nor wget available to download Swift Wasm SDK"
           exit 1
         fi
 
@@ -791,7 +791,7 @@ runs:
         echo "Installed SDKs:"
         swift sdk list
 
-        echo "WASM SDK installed successfully"
+        echo "Swift Wasm SDK installed successfully"
 
     # Automatically download missing Apple platform support (optional)
     # This step executes only when download-platform is set to 'true' and runs
@@ -1076,7 +1076,7 @@ runs:
     #    - Leverages derived data caching for optimal performance
     #    - Required for Apple platform testing with specific simulators
     #
-    # 2. SPM Builds (when 'type' is omitted):
+    # 2. SwiftPM Builds (when 'type' is omitted):
     #    - Uses swift build/test commands directly
     #    - Cross-platform compatible (works on both macOS and Ubuntu)
     #    - Uses standard .build directory caching
@@ -1165,19 +1165,19 @@ runs:
     #   - Most efficient for iOS/watchOS/tvOS/visionOS/macOS testing
     #   - Achieves 70-85% build time reduction
     #
-    # Strategy 2a: macOS SPM Caching (Cross-platform packages on macOS)
+    # Strategy 2a: macOS SwiftPM Caching (Cross-platform packages on macOS)
     #   - Uses actions/cache for .build directory
-    #   - Simpler than derived data, focused on SPM artifacts
+    #   - Simpler than derived data, focused on SwiftPM artifacts
     #   - Optimal for packages without Apple platform dependencies
     #   - Achieves 60-75% build time reduction
     #
-    # Strategy 2b: Ubuntu SPM Caching (Linux builds)
+    # Strategy 2b: Ubuntu SwiftPM Caching (Linux builds)
     #   - Uses actions/cache with comprehensive directory coverage
     #   - Includes .build, .swiftpm, and .cache directories
     #   - Handles Ubuntu-specific Swift toolchain artifacts
     #   - Achieves 65-80% build time reduction
     #
-    # Strategy 2c: Windows SPM Caching (Windows builds)
+    # Strategy 2c: Windows SwiftPM Caching (Windows builds)
     #   - Uses actions/cache with comprehensive directory coverage
     #   - Includes .build, .swiftpm, and .cache directories
     #   - Handles Windows-specific Swift toolchain artifacts
@@ -1190,10 +1190,10 @@ runs:
     # - Exact commit SHA ensures build reproducibility
 
     # Intelligent Caching Strategy 2: Swift Package Manager Builds
-    # These caching steps use the standard actions/cache for SPM builds, which is optimal
+    # These caching steps use the standard actions/cache for SwiftPM builds, which is optimal
     # for cross-platform Swift packages that don't require Apple platform simulators.
 
-    # Intelligent Caching Strategy 2a: macOS SPM Cache (Cross-Platform Packages)
+    # Intelligent Caching Strategy 2a: macOS SwiftPM Cache (Cross-Platform Packages)
     # Used when building Swift packages on macOS without specific Apple platform targeting.
     # Focuses on .build directory which contains Swift Package Manager compilation artifacts.
     #
@@ -1213,8 +1213,8 @@ runs:
         path: ${{ inputs.working-directory }}/.build
         key: spm-${{ runner.os }}-${{ env.XCODE_NAME }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ inputs.build-only }}
 
-    # Intelligent Caching Strategy 2b: Ubuntu SPM Cache (Linux Builds)
-    # Comprehensive caching for Ubuntu Swift builds covering all SPM directories.
+    # Intelligent Caching Strategy 2b: Ubuntu SwiftPM Cache (Linux Builds)
+    # Comprehensive caching for Ubuntu Swift builds covering all SwiftPM directories.
     # Includes additional .swiftpm and .cache directories that Swift uses for metadata.
     #
     # Cache Key Strategy:
@@ -1242,8 +1242,8 @@ runs:
           ${{ inputs.working-directory }}/.cache
         key: spm-${{ env.OS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ inputs.build-only }}
 
-    # Intelligent Caching Strategy 2c: Windows SPM Cache (Windows Builds)
-    # Comprehensive caching for Windows Swift builds covering all SPM directories.
+    # Intelligent Caching Strategy 2c: Windows SwiftPM Cache (Windows Builds)
+    # Comprehensive caching for Windows Swift builds covering all SwiftPM directories.
     # Similar to Ubuntu but with Windows-specific Swift toolchain considerations.
     #
     # Cache Key Strategy:
@@ -1272,8 +1272,8 @@ runs:
           ${{ inputs.working-directory }}/.cache
         key: spm-${{ env.WINDOWS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ inputs.build-only }}
 
-    # Intelligent Caching Strategy 2d: WASM Build Cache (WebAssembly Builds)
-    # Comprehensive caching for WASM builds covering SPM directories and installed SDKs.
+    # Intelligent Caching Strategy 2d: Wasm Build Cache (WebAssembly Builds)
+    # Comprehensive caching for Wasm builds covering SwiftPM directories and installed SDKs.
     #
     # Cache Key Strategy:
     # - Pattern: wasm-{OS}-{SwiftVersion}-{WasmVariant}-{PackageHash}-{ResolvedHash}-{BuildOnly}
@@ -1285,16 +1285,16 @@ runs:
     # - BuildOnly: Separates build-only from test builds to prevent test binary contamination
     #
     # Cached Directories Explained:
-    # - .build: Compiled WASM modules and intermediate build artifacts
+    # - .build: Compiled Wasm modules and intermediate build artifacts
     # - .swiftpm: Swift Package Manager metadata and configuration cache
     # - .cache: Local cache directory used by swift build --cache-path flag
-    # - ~/.swiftpm/swift-sdks: Installed WASM SDK (avoids re-downloading on subsequent runs)
+    # - ~/.swiftpm/swift-sdks: Installed Swift Wasm SDK (avoids re-downloading on subsequent runs)
     #
     # Performance:
     # - First run: ~5-10 minutes (includes SDK download and installation)
     # - Subsequent runs: ~30 seconds (SDK restored from cache)
-    # - Build time: Similar to SPM builds, significantly faster with cache
-    - name: Cache WASM Build
+    # - Build time: Similar to SwiftPM builds, significantly faster with cache
+    - name: Cache Wasm Build
       if: steps.detect-os.outputs.os == 'wasm'
       uses: actions/cache@v4
       with:
@@ -1315,7 +1315,7 @@ runs:
     # providing optimized performance for each build scenario.
     #
     # Path Selection Logic:
-    # 1. SPM Build Path: Used when 'type' parameter is omitted
+    # 1. SwiftPM Build Path: Used when 'type' parameter is omitted
     #    - Cross-platform compatible (Ubuntu + macOS)
     #    - Uses swift build/test commands directly
     #    - Faster for packages without Apple platform dependencies
@@ -1327,7 +1327,7 @@ runs:
     #    - Required for iOS/watchOS/tvOS/visionOS simulator testing
     #    - Enables comprehensive Apple ecosystem validation
 
-    # SPM Build and Test Execution (Cross-Platform Swift Packages)
+    # SwiftPM Build and Test Execution (Cross-Platform Swift Packages)
     # This step handles standard Swift Package Manager builds for packages that work across
     # multiple platforms without requiring Apple platform simulators or specific Xcode versions.
     #
@@ -1371,17 +1371,17 @@ runs:
           swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
         fi
 
-    # WASM Build and Test Execution (WebAssembly Builds)
-    # This step handles WASM-based builds for Swift packages targeting WebAssembly.
-    # Uses Swift Package Manager with the --swift-sdk flag to specify WASM or WASM-embedded target.
+    # Wasm Build and Test Execution (WebAssembly Builds)
+    # This step handles Wasm-based builds for Swift packages targeting WebAssembly.
+    # Uses Swift Package Manager with the --swift-sdk flag to specify Wasm or Wasm-embedded target.
     #
     # Build Strategy:
-    # - Uses the WASM SDK installed in the earlier step
+    # - Uses the Swift Wasm SDK installed in the earlier step
     # - Tests run via WasmKit runtime (included in Swift 6.2.3+ toolchains)
     # - Build-only mode skips test execution
     #
     # Command Parameters Explained:
-    # - --swift-sdk: Specifies the WASM SDK to use (e.g., swift-6.2.3-RELEASE_wasm)
+    # - --swift-sdk: Specifies the Swift Wasm SDK to use (e.g., swift-6.2.3-RELEASE_wasm)
     # - --cache-path: Uses local cache directory for build artifacts
     # - --force-resolved-versions: Enforces strict dependency pinning (omitted when skip-package-resolved=true)
     # - --build-tests: Compiles test targets (only in test mode)
@@ -1527,7 +1527,7 @@ runs:
         restore-keys: |
           wasmtime-${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-
 
-    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (WASM)
+    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (Wasm)
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -1540,13 +1540,13 @@ runs:
         fi
 
         if [[ "${{ inputs.build-only }}" == "true" ]]; then
-          echo "Building WASM package (build-only mode)..."
+          echo "Building Wasm package (build-only mode)..."
           swift build $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
         else
-          echo "Building and testing WASM package..."
+          echo "Building and testing Wasm package..."
           
-          # Install Wasmtime for WASM test execution
-          echo "Installing Wasmtime WASM runtime..."
+          # Install Wasmtime for Wasm test execution
+          echo "Installing Wasmtime Wasm runtime..."
           echo "Environment diagnostics:"
           echo "  Runner OS: ${{ runner.os }}"
           echo "  Runner arch: ${{ runner.arch }}"
@@ -1646,14 +1646,14 @@ runs:
           echo ""
           
           # Build tests (separate from running them, per WASI guide)
-          echo "Building WASM tests..."
-          # Note: Code coverage is NOT supported for WASM targets
+          echo "Building Wasm tests..."
+          # Note: Code coverage is NOT supported for Wasm targets
           # The Swift toolchain does not provide libclang_rt.profile-wasm32.a
           # Use the 'contains-code-coverage' output to conditionally skip coverage actions
           swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
 
-          # Find all WASM test binaries dynamically (supports any test target name)
-          echo "Searching for WASM test binaries..."
+          # Find all Wasm test binaries dynamically (supports any test target name)
+          echo "Searching for Wasm test binaries..."
           TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
 
           # Fallback to .xctest if no .wasm found
@@ -1664,7 +1664,7 @@ runs:
 
           # Error if no test binaries found
           if [[ -z "$TEST_BINARIES" ]]; then
-            echo "ERROR: No WASM test binaries found"
+            echo "ERROR: No Wasm test binaries found"
             echo "Contents of .build/:"
             find .build -type f 2>/dev/null || echo "No files found"
             exit 1

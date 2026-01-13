@@ -6,7 +6,7 @@ on:
 jobs:
   # Matrix Strategy Note:
   # - macOS tests use explicit include entries due to complex platform configurations
-  #   (SPM, macos, ios, watchos, tvos, visionos) with varying parameters
+  #   (SwiftPM, macos, ios, watchos, tvos, visionos) with varying parameters
   # - Ubuntu and Windows tests use matrix dimensions for their uniform configurations
   # This intentional difference optimizes readability and maintainability for each platform
 
@@ -16,12 +16,12 @@ jobs:
     strategy:
       matrix:
         include:
-          # SPM Build Matrix
+          # SwiftPM Build Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
 
-          # SPM Build-Only Matrix
+          # SwiftPM Build-Only Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
@@ -164,13 +164,13 @@ jobs:
     strategy:
       matrix:
         include:
-          # SPM Build Matrix
+          # SwiftPM Build Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
 
-          # SPM Build-Only Matrix
+          # SwiftPM Build-Only Matrix
           - runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
@@ -767,7 +767,7 @@ jobs:
           android-run-tests: "false"
           skip-package-resolved: "true"
 
-      - name: Verify SPM build was used (not Android)
+      - name: Verify SwiftPM build was used (not Android)
         shell: bash
         run: |
           echo "✓ Explicit type precedence test passed"
@@ -860,13 +860,13 @@ jobs:
           skip-package-resolved: "true"
 
   test-single-target-wasm:
-    name: Test Single Target Package (WASM)
+    name: Test Single Target Package (Wasm)
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Ubuntu with WASM (requires Swift 6.2.3+)
+          # Ubuntu with Wasm (requires Swift 6.2.3+)
           - runs-on: ubuntu-latest
             container: swift:6.2-jammy
             type: wasm
@@ -880,7 +880,7 @@ jobs:
               -Xlinker --initial-memory=536870912
               -Xlinker --max-memory=536870912
 
-          # Ubuntu with WASM-embedded
+          # Ubuntu with Wasm-embedded
           - runs-on: ubuntu-latest
             container: swift:6.2-jammy
             type: wasm-embedded
@@ -894,7 +894,7 @@ jobs:
               -Xlinker --initial-memory=536870912
               -Xlinker --max-memory=536870912
 
-          # macOS 26 with WASM and Xcode 26.2
+          # macOS 26 with Wasm and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm
@@ -908,7 +908,7 @@ jobs:
               -Xlinker --initial-memory=536870912
               -Xlinker --max-memory=536870912
 
-          # macOS 26 with WASM-embedded and Xcode 26.2
+          # macOS 26 with Wasm-embedded and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm-embedded
@@ -941,13 +941,13 @@ jobs:
         run: ../../scripts/verify-build-only.sh wasm .
 
   test-multi-target-wasm:
-    name: Test Multi-Target Package (WASM)
+    name: Test Multi-Target Package (Wasm)
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Ubuntu with WASM (requires Swift 6.2.3+)
+          # Ubuntu with Wasm (requires Swift 6.2.3+)
           - runs-on: ubuntu-latest
             container: swift:6.2-jammy
             type: wasm
@@ -961,7 +961,7 @@ jobs:
               -Xlinker --initial-memory=536870912
               -Xlinker --max-memory=536870912
 
-          # Ubuntu with WASM-embedded
+          # Ubuntu with Wasm-embedded
           - runs-on: ubuntu-latest
             container: swift:6.2-jammy
             type: wasm-embedded
@@ -975,7 +975,7 @@ jobs:
               -Xlinker --initial-memory=536870912
               -Xlinker --max-memory=536870912
 
-          # macOS 26 with WASM and Xcode 26.2
+          # macOS 26 with Wasm and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm
@@ -989,7 +989,7 @@ jobs:
               -Xlinker --initial-memory=536870912
               -Xlinker --max-memory=536870912
 
-          # macOS 26 with WASM-embedded and Xcode 26.2
+          # macOS 26 with Wasm-embedded and Xcode 26.2
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             type: wasm-embedded
