@@ -136,7 +136,7 @@ swift-build/
 ### Core Components
 
 - **action.yml**: Defines inputs, outputs, and build logic
-- **Platform detection**: Automatically chooses build tools (SPM vs Xcode)
+- **Platform detection**: Automatically chooses build tools (SwiftPM vs Xcode)
 - **Caching strategies**: Different approaches for Ubuntu vs macOS
 - **Error handling**: Comprehensive validation and error reporting
 
