@@ -716,7 +716,7 @@ runs:
         # Construct SDK name - both wasm and wasm-embedded use the same SDK bundle
         # The embedded variant is included in the wasm SDK package
         # Format: swift-{VERSION}-RELEASE_wasm (contains both wasm and wasm-embedded)
-        Wasm_VARIANT="${{ steps.detect-os.outputs.wasm-variant }}"
+        WASM_VARIANT="${{ steps.detect-os.outputs.wasm-variant }}"
         SDK_NAME="swift-${SWIFT_VERSION}-RELEASE_wasm"
 
         echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
