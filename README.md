@@ -63,7 +63,7 @@
 | `android-swift-test-flags` | Additional Swift test flags for Android | `null` | `--parallel` | Any valid Swift test flags | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-emulator-boot-timeout` | Emulator boot timeout (seconds) | `600` | `900` | Any positive integer | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-copy-files` | Additional files to copy to emulator for testing | `null` | `Tests/Resources/` | File paths or directories (space-separated) | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true`. Copies test resources, data files, or configurations to emulator before running tests |
-| `wasmtime-version` | Wasmtime version for Wasm test execution | `latest` | `27.0.0`, `26.0.0` | `latest` or any valid Wasmtime version | **Wasm builds only** - Defaults to `latest` (auto-fetches latest release). Specify a version for reproducibility. Auto-cached per version to avoid ~500MB download per run |
+| `wasmtime-version` | Optional Wasmtime runtime fallback for Wasm test execution | Empty (uses WasmKit) | `27.0.0`, `26.0.0` | Specific version (X.Y.Z format) or empty | **Wasm builds only** - **Default**: WasmKit runtime (bundled with Swift 6.2.3+, no downloads). Specify a specific version to use Wasmtime fallback. **Note**: `latest` is no longer supported - use specific version numbers. Auto-cached per version to avoid ~500MB download when using Wasmtime |
 | `wasm-swift-flags` | Additional Swift compiler/linker flags for Wasm builds | `null` | `-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-signal` | Any valid Swift compiler flags | **Wasm builds only** - Required for most projects using Foundation/CoreFoundation. Configures WASI emulation and memory limits. See [Wasm Compiler Flags Configuration](#wasm-compiler-flags-configuration) for common patterns |
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
@@ -748,33 +748,86 @@ jobs:
 
 ### WebAssembly (Wasm) Development Examples
 
-#### Wasm with Custom Wasmtime Version
+#### Wasm with Default Runtime (WasmKit)
+
+**WasmKit** is now the default runtime - bundled with Swift 6.2.3+, no external downloads required!
+
 ```yaml
-name: Wasm Custom Runtime
+name: Wasm Default Runtime
 on: [push, pull_request]
 
 jobs:
-  test-wasm-custom:
+  test-wasm-default:
     runs-on: ubuntu-latest
+    container: swift:6.2-jammy
     steps:
       - uses: actions/checkout@v4
       - uses: brightdigit/swift-build@v2
         with:
           scheme: MyPackage
           type: wasm
-          wasmtime-version: '27.0.0'  # Custom Wasmtime version
+          wasm-swift-flags: >-
+            -Xcc -D_WASI_EMULATED_SIGNAL
+            -Xcc -D_WASI_EMULATED_MMAN
+            -Xlinker -lwasi-emulated-signal
+            -Xlinker -lwasi-emulated-mman
+            -Xlinker -lwasi-emulated-getpid
+            -Xlinker --initial-memory=536870912
+            -Xlinker --max-memory=536870912
+```
+
+**Performance Benefits:**
+- **No downloads**: WasmKit is bundled with Swift toolchain
+- **Instant startup**: Tests start immediately (no ~3-5 min Wasmtime download)
+- **Simpler caching**: No runtime binary caching needed (~500MB saved)
+- **First run**: ~30-60 seconds (build + test only)
+- **Subsequent runs**: ~5-10 seconds (cached build artifacts)
+
+**Requirements:**
+- Swift 6.2.3 or later toolchain
+- For older Swift versions, use Wasmtime fallback (see below)
+
+#### Wasm with Wasmtime Fallback
+
+For older Swift versions (<6.2.3) or specific Wasmtime requirements:
+
+```yaml
+name: Wasm Wasmtime Fallback
+on: [push, pull_request]
+
+jobs:
+  test-wasm-wasmtime:
+    runs-on: ubuntu-latest
+    container: swift:6.1-jammy  # Older Swift version
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v2
+        with:
+          scheme: MyPackage
+          type: wasm
+          wasmtime-version: '27.0.0'  # Triggers Wasmtime fallback
+          wasm-swift-flags: >-
+            -Xcc -D_WASI_EMULATED_SIGNAL
+            -Xcc -D_WASI_EMULATED_MMAN
+            -Xlinker -lwasi-emulated-signal
+            -Xlinker -lwasi-emulated-mman
+            -Xlinker -lwasi-emulated-getpid
+            -Xlinker --initial-memory=536870912
+            -Xlinker --max-memory=536870912
 ```
 
 **Wasmtime Caching:**
 - Wasmtime binaries (~500MB compressed) are automatically cached via GitHub Actions
-- **First run**: Downloads Wasmtime binary (~3-5 min)
-- **Subsequent runs**: Uses cached binary (<5 sec) - 99% faster
+- **First run**: Downloads Wasmtime binary (~3-5 min) + build + test
+- **Subsequent runs**: Uses cached binary (<5 sec) + test
 - **Cache key**: Based on `wasmtime-version`, OS, and architecture
-- **Cache invalidation**: Automatic when `wasmtime-version` changes
+
+**Breaking Change (v2.0)**: `wasmtime-version: 'latest'` is no longer supported. Specify an exact version like `'27.0.0'` for reproducibility and to avoid GitHub API rate limiting.
 
 **Supported Swift versions:**
-- Swift 6.2+ (recommended)
-- Swift Wasm SDK is automatically downloaded and cached
+- Swift 6.2+ (recommended - includes WasmKit)
+- Swift 6.0-6.2.2 (requires Wasmtime fallback)
+- Wasm SDK is automatically downloaded and cached
 - Supports both `wasm32-unknown-wasi` and `wasm32-unknown-unknown-wasm` (embedded) targets
 
 #### Wasm Compiler Flags Configuration
