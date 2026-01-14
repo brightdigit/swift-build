@@ -1458,6 +1458,14 @@ runs:
           RESOLVED_FLAG="--force-resolved-versions"
         fi
 
+        # Ensure temp directory exists and is writable (needed for containers)
+        if [ "${{ inputs.parse-test-results }}" = "true" ]; then
+          mkdir -p "$RUNNER_TEMP" || {
+            echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
+            export RUNNER_TEMP="/tmp"
+          }
+        fi
+
         if [ "${{ inputs.build-only }}" = "true" ]; then
           swift build --cache-path .cache $RESOLVED_FLAG
         else
@@ -1465,7 +1473,7 @@ runs:
 
           # Capture test output when parsing enabled
           if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG 2>&1 | tee ./test-output.txt
+            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG 2>&1 | tee "$RUNNER_TEMP/test-output.txt"
           else
             swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
           fi
@@ -1749,6 +1757,14 @@ runs:
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
 
+            # Ensure temp directory exists and is writable (needed for containers)
+            if [ "${{ inputs.parse-test-results }}" = "true" ]; then
+              mkdir -p "$RUNNER_TEMP" || {
+                echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
+                export RUNNER_TEMP="/tmp"
+              }
+            fi
+
             while IFS= read -r TEST_BINARY; do
               echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
 
@@ -1857,6 +1873,14 @@ runs:
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
 
+            # Ensure temp directory exists and is writable (needed for containers)
+            if [ "${{ inputs.parse-test-results }}" = "true" ]; then
+              mkdir -p "$RUNNER_TEMP" || {
+                echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
+                export RUNNER_TEMP="/tmp"
+              }
+            fi
+
             while IFS= read -r TEST_BINARY; do
               echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
 
@@ -1865,7 +1889,7 @@ runs:
                   # Swift Testing only
                   echo "  Using Swift Testing framework"
                   if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee -a "./test-output.txt"
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee -a "$RUNNER_TEMP/test-output.txt"
                   else
                     wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
                   fi
@@ -1875,7 +1899,7 @@ runs:
                   # XCTest only (no --testing-library flag)
                   echo "  Using XCTest framework"
                   if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "./test-output.txt"
+                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$RUNNER_TEMP/test-output.txt"
                   else
                     wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
                   fi
@@ -1886,7 +1910,7 @@ runs:
                   echo "  Running with Swift Testing framework..."
                   SWIFT_TESTING_EXIT=0
                   if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "./test-output-swift-testing.txt" || SWIFT_TESTING_EXIT=$?
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$RUNNER_TEMP/test-output-swift-testing.txt" || SWIFT_TESTING_EXIT=$?
                   else
                     wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
                   fi
@@ -1894,14 +1918,14 @@ runs:
                   echo "  Running with XCTest framework..."
                   XCTEST_EXIT=0
                   if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "./test-output-xctest.txt" || XCTEST_EXIT=$?
+                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$RUNNER_TEMP/test-output-xctest.txt" || XCTEST_EXIT=$?
                   else
                     wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
                   fi
 
                   # Merge outputs for parser (both mode)
                   if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    cat "./test-output-swift-testing.txt" "./test-output-xctest.txt" > "./test-output.txt"
+                    cat "$RUNNER_TEMP/test-output-swift-testing.txt" "$RUNNER_TEMP/test-output-xctest.txt" > "$RUNNER_TEMP/test-output.txt"
                   fi
 
                   # Fail if either framework failed
@@ -1915,7 +1939,7 @@ runs:
                   # No testing library flags (for custom test harnesses)
                   echo "  Running without testing library flags"
                   if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "./test-output.txt"
+                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$RUNNER_TEMP/test-output.txt"
                   else
                     wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
                   fi
@@ -1972,6 +1996,14 @@ runs:
           DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
         fi
 
+        # Ensure temp directory exists and is writable (needed for containers)
+        if [ "${{ inputs.parse-test-results }}" = "true" ]; then
+          mkdir -p "$RUNNER_TEMP" || {
+            echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
+            export RUNNER_TEMP="/tmp"
+          }
+        fi
+
         # Build xcodebuild command based on build-only mode
         if [ "${{ inputs.build-only }}" = "true" ]; then
           # Build-only mode: compile without running tests
@@ -2007,7 +2039,7 @@ runs:
           set -o pipefail
           # Capture test output when parsing enabled
           if [ "${{ inputs.parse-test-results }}" = "true" ] && [ "${{ inputs.build-only }}" != "true" ]; then
-            eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD | tee ./test-output.txt"
+            eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD | tee $RUNNER_TEMP/test-output.txt"
           else
             eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
           fi
@@ -2021,7 +2053,7 @@ runs:
           # Execute without xcbeautify
           # Capture test output when parsing enabled
           if [ "${{ inputs.parse-test-results }}" = "true" ] && [ "${{ inputs.build-only }}" != "true" ]; then
-            eval "$XCODEBUILD_CMD 2>&1 | tee ./test-output.txt"
+            eval "$XCODEBUILD_CMD 2>&1 | tee $RUNNER_TEMP/test-output.txt"
           else
             eval "$XCODEBUILD_CMD"
           fi
@@ -2054,7 +2086,7 @@ runs:
         echo "Parsing test output (platform: $PLATFORM)"
 
         # Run parser script
-        PARSER_OUTPUT=$("$GITHUB_ACTION_PATH/scripts/parse-test-output.sh" "$PLATFORM" "./test-output.txt" "${{ inputs.expected-test-count }}")
+        PARSER_OUTPUT=$("$GITHUB_ACTION_PATH/scripts/parse-test-output.sh" "$PLATFORM" "$RUNNER_TEMP/test-output.txt" "${{ inputs.expected-test-count }}")
         PARSER_EXIT=$?
 
         if [[ $PARSER_EXIT -eq 0 ]]; then
