@@ -204,6 +204,28 @@ inputs:
     required: false
     default: ''
 
+  # Testing library detection mode for Wasm test execution
+  # Auto-detects testing framework by scanning test sources for import statements
+  # Values: 'auto' (default), 'swift-testing', 'xctest', 'both', 'none'
+  # - auto: Automatically detect by scanning test sources for 'import Testing' vs 'import XCTest'
+  # - swift-testing: Force Swift Testing framework (adds --testing-library swift-testing flag)
+  # - xctest: Force XCTest framework (no testing library flag)
+  # - both: Run tests twice (once for each framework, fails if either fails)
+  # - none: Run without testing library flags (for custom test harnesses)
+  wasm-testing-library:
+    description: 'Testing library detection mode for Wasm tests (auto, swift-testing, xctest, both, none). Default: auto (automatically detect)'
+    required: false
+    default: 'auto'
+
+  # Additional flags passed to test runner (WasmKit or Wasmtime) during Wasm test execution
+  # Examples: '--parallel', '--filter TestSuiteName'
+  # Applied after --testing-library flag
+  # Security: Only use trusted values (YAML-defined). Never pass untrusted user input.
+  wasm-swift-test-flags:
+    description: 'Additional flags passed to Wasm test runner (WasmKit/Wasmtime). Example: --parallel'
+    required: false
+    default: ''
+
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
   # Provides human-friendly, colored output and better CI integration
@@ -1451,6 +1473,65 @@ runs:
         restore-keys: |
           wasmtime-${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-
 
+    # Detect Wasm testing framework (Swift Testing vs XCTest)
+    # Automatically scans test sources for 'import Testing' vs 'import XCTest' statements
+    # Outputs: mode = 'swift-testing', 'xctest', 'both', or 'none'
+    # Can be overridden via wasm-testing-library input parameter
+    - name: Detect Wasm Testing Framework
+      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true'
+      shell: bash
+      id: detect-wasm-testing
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        MODE="${{ inputs.wasm-testing-library }}"
+
+        if [[ "$MODE" == "auto" ]]; then
+          echo "Auto-detecting testing framework from source files..."
+
+          # Check if Tests/ directory exists
+          if [[ ! -d "Tests/" ]]; then
+            echo "Warning: Tests/ directory not found, defaulting to 'none' mode"
+            echo "mode=none" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check for Swift Testing imports
+          if grep -r "import Testing" Tests/ --include="*.swift" >/dev/null 2>&1; then
+            HAS_SWIFT_TESTING=true
+            echo "  ✓ Found Swift Testing imports"
+          else
+            HAS_SWIFT_TESTING=false
+          fi
+
+          # Check for XCTest imports
+          if grep -r "import XCTest" Tests/ --include="*.swift" >/dev/null 2>&1; then
+            HAS_XCTEST=true
+            echo "  ✓ Found XCTest imports"
+          else
+            HAS_XCTEST=false
+          fi
+
+          # Determine mode based on what was found
+          if [[ "$HAS_SWIFT_TESTING" == "true" ]] && [[ "$HAS_XCTEST" == "true" ]]; then
+            DETECTED_MODE="both"
+            echo "Detected: Both Swift Testing and XCTest (will run tests twice)"
+          elif [[ "$HAS_SWIFT_TESTING" == "true" ]]; then
+            DETECTED_MODE="swift-testing"
+            echo "Detected: Swift Testing only"
+          elif [[ "$HAS_XCTEST" == "true" ]]; then
+            DETECTED_MODE="xctest"
+            echo "Detected: XCTest only"
+          else
+            DETECTED_MODE="none"
+            echo "Warning: No testing framework imports found, running without testing library flags"
+          fi
+
+          echo "mode=$DETECTED_MODE" >> $GITHUB_OUTPUT
+        else
+          echo "Using explicit mode: $MODE"
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+        fi
+
     - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (Wasm)
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
@@ -1587,13 +1668,54 @@ runs:
             echo "$TEST_BINARIES"
             echo ""
 
+            # Determine test execution strategy from detection step
+            TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
+            EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
+
             while IFS= read -r TEST_BINARY; do
-              echo "Running tests with Wasmtime: $TEST_BINARY"
-              if [[ "$TEST_BINARY" == *.wasm ]]; then
-                "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing
-              else
-                "$WasmTIME_BIN" --dir . "$TEST_BINARY"
-              fi
+              echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
+
+              case "$TEST_MODE" in
+                swift-testing)
+                  # Swift Testing only
+                  echo "  Using Swift Testing framework"
+                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                  ;;
+
+                xctest)
+                  # XCTest only (no --testing-library flag)
+                  echo "  Using XCTest framework"
+                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  ;;
+
+                both)
+                  # Run twice - once for each framework (fail if either fails)
+                  echo "  Running with Swift Testing framework..."
+                  SWIFT_TESTING_EXIT=0
+                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+
+                  echo "  Running with XCTest framework..."
+                  XCTEST_EXIT=0
+                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+
+                  # Fail if either framework failed
+                  if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
+                    echo "ERROR: Tests failed (Swift Testing exit: $SWIFT_TESTING_EXIT, XCTest exit: $XCTEST_EXIT)"
+                    exit 1
+                  fi
+                  ;;
+
+                none)
+                  # No testing library flags (for custom test harnesses)
+                  echo "  Running without testing library flags"
+                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  ;;
+
+                *)
+                  echo "ERROR: Invalid testing mode: $TEST_MODE"
+                  exit 1
+                  ;;
+              esac
             done <<< "$TEST_BINARIES"
 
           else
@@ -1654,16 +1776,54 @@ runs:
             echo "$TEST_BINARIES"
             echo ""
 
+            # Determine test execution strategy from detection step
+            TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
+            EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
+
             while IFS= read -r TEST_BINARY; do
-              echo "Running tests with WasmKit: $TEST_BINARY"
-              # Only use --testing-library swift-testing for .wasm binaries (Swift Testing framework)
-              # XCTest binaries (.xctest) should run without this flag
-              # Memory is configured at build time via -Xlinker flags (see wasm-swift-flags parameter)
-              if [[ "$TEST_BINARY" == *.wasm ]]; then
-                wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing
-              else
-                wasmkit run --dir . "$TEST_BINARY"
-              fi
+              echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
+
+              case "$TEST_MODE" in
+                swift-testing)
+                  # Swift Testing only
+                  echo "  Using Swift Testing framework"
+                  wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                  ;;
+
+                xctest)
+                  # XCTest only (no --testing-library flag)
+                  echo "  Using XCTest framework"
+                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  ;;
+
+                both)
+                  # Run twice - once for each framework (fail if either fails)
+                  echo "  Running with Swift Testing framework..."
+                  SWIFT_TESTING_EXIT=0
+                  wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+
+                  echo "  Running with XCTest framework..."
+                  XCTEST_EXIT=0
+                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+
+                  # Fail if either framework failed
+                  if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
+                    echo "ERROR: Tests failed (Swift Testing exit: $SWIFT_TESTING_EXIT, XCTest exit: $XCTEST_EXIT)"
+                    exit 1
+                  fi
+                  ;;
+
+                none)
+                  # No testing library flags (for custom test harnesses)
+                  echo "  Running without testing library flags"
+                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  ;;
+
+                *)
+                  echo "ERROR: Invalid testing mode: $TEST_MODE"
+                  exit 1
+                  ;;
+              esac
             done <<< "$TEST_BINARIES"
           fi
         fi

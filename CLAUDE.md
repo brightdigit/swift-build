@@ -77,6 +77,21 @@ wasmkit run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm --testing-
 - Wasmtime binaries are cached per version to avoid repeated downloads
 - Cache key: `wasmtime-{version}-{os}-{arch}`
 
+**Testing Framework Detection (NEW):**
+The action automatically detects which testing framework your Wasm tests use:
+- **Swift Testing** (`import Testing`) → runs with `--testing-library swift-testing`
+- **XCTest** (`import XCTest`) → runs without testing library flag
+- **Both frameworks** → runs tests twice (once for each framework)
+
+Override auto-detection with the `wasm-testing-library` parameter:
+```yaml
+- uses: YourOrg/swift-build@v2
+  with:
+    type: wasm
+    wasm-testing-library: 'swift-testing'  # Force Swift Testing
+    wasm-swift-test-flags: '--parallel'    # Optional test runner flags
+```
+
 **Code Coverage:** Wasm builds do NOT support code coverage (neither WasmKit nor Wasmtime provide coverage support). Use the `contains-code-coverage` output to conditionally skip coverage collection for Wasm builds.
 
 ## GitHub Action Usage
@@ -108,9 +123,18 @@ The action accepts these key inputs:
     - Specify a specific version to use Wasmtime fallback: '27.0.0', '26.0.0', etc. (X.Y.Z format)
     - Breaking Change (v2.0): 'latest' is no longer supported - use specific version numbers
     - Automatically cached when using Wasmtime to avoid ~500MB download per run
+  - `wasm-testing-library` - Testing library detection mode for Wasm tests (default: 'auto')
+    - `auto`: Automatically detect by scanning test sources for `import Testing` vs `import XCTest`
+    - `swift-testing`: Force Swift Testing framework (adds `--testing-library swift-testing` flag)
+    - `xctest`: Force XCTest framework (no testing library flag)
+    - `both`: Run tests twice (once for each framework, fails if either fails)
+    - `none`: Run without testing library flags (for custom test harnesses)
+  - `wasm-swift-test-flags` - Additional flags passed to test runner (WasmKit/Wasmtime)
+    - Examples: `'--parallel'`, `'--filter TestSuiteName'`
+    - Applied after `--testing-library` flag
 
 **Security Considerations:**
-- **`wasm-swift-flags` Input Sanitization**: The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to `wasm-swift-flags`. Never pass untrusted user input directly to this parameter.
+- **`wasm-swift-flags` and `wasm-swift-test-flags` Input Sanitization**: These parameters are directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to these parameters. Never pass untrusted user input directly to these parameters.
 
 ### Outputs
 
