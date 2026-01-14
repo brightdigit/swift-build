@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:brightdigit/SyndiKit.git
 	branch = swift-build-v1.5.0-beta.1
-	commit = dcabb156934ac138847c99020b0d07391f086071
-	parent = 98a215b2be7074120d35c0771295e7fb23f2992d
+	commit = 2ebbba7a6226d657b9f88c3039017cd738318882
+	parent = 370c56fb03dc0f5c3b1150228e78544b592affb7
 	method = merge
 	cmdver = 0.4.9
