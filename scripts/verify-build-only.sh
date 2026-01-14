@@ -28,7 +28,7 @@ case "$PLATFORM" in
         exit 1
       fi
     fi
-    echo "✓ Verified: No SPM test binaries"
+    echo "✓ Verified: No SwiftPM test binaries"
     ;;
 
   xcode)
@@ -62,11 +62,11 @@ case "$PLATFORM" in
     # Check for .wasm test binaries
     if [ -d ".build" ]; then
       if find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null | grep -q .; then
-        echo "ERROR: WASM test binaries found"
+        echo "ERROR: Wasm test binaries found"
         exit 1
       fi
     fi
-    echo "✓ Verified: No WASM test binaries"
+    echo "✓ Verified: No Wasm test binaries"
     ;;
 
   *)

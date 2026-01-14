@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a GitHub Action for building and testing Swift packages across multiple platforms. The action supports Swift Package Manager (SPM) builds, Xcode builds for Apple platforms (iOS, macOS, watchOS, tvOS, visionOS), and Android builds using the Swift Android SDK.
+This is a GitHub Action for building and testing Swift packages across multiple platforms. The action supports Swift Package Manager (SwiftPM) builds, Xcode builds for Apple platforms (iOS, macOS, watchOS, tvOS, visionOS), and Android builds using the Swift Android SDK.
 
 ## Project Structure
 
@@ -48,26 +48,51 @@ For Android platform testing (requires skiptools/swift-android-action):
 
 Note: Android builds delegate to skiptools/swift-android-action. See action.yml for full parameter documentation.
 
-### WebAssembly (WASM) Testing
+### WebAssembly (Wasm) Testing
 For WebAssembly platform testing:
 ```bash
-# WASM builds use Swift WASM SDK + Wasmtime runtime
+# Wasm builds use Swift Wasm SDK + WasmKit runtime (default, bundled with Swift 6.2.3+)
+# Wasmtime available as optional fallback via wasmtime-version parameter
 # Supports: wasm32-unknown-wasi and wasm32-unknown-unknown-wasm (embedded)
 
-# Wasmtime binary is automatically cached to avoid ~500MB download per run
-# First run: downloads binary (~3-5 minutes)
-# Subsequent runs: uses cached binary (<5 seconds)
-
-# Configure via wasmtime-version parameter (default: 'latest' - auto-fetches latest release)
-# Can also specify a specific version for reproducibility (e.g., '26.0.0')
-# Build and test (NOTE: code coverage is NOT supported for WASM)
+# Build and test with WasmKit (default - no downloads required)
 swift build --build-tests --swift-sdk swift-6.2.3-RELEASE_wasm
-wasmtime run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm
+wasmkit run .build/swift-6.2.3-RELEASE_wasm/debug/MyPackageTests.wasm --testing-library swift-testing
+
+# OPTIONAL: Wasmtime fallback for older Swift versions
+# Configure via wasmtime-version parameter (e.g., '27.0.0', '26.0.0')
+# Breaking Change (v2.0): 'latest' is no longer supported - use specific versions
+# Wasmtime binary is automatically cached to avoid ~500MB download per run
+# First run with Wasmtime: downloads binary (~3-5 minutes)
+# Subsequent runs: uses cached binary (<5 seconds)
 ```
 
-**Note:** Wasmtime binaries are cached per version to avoid repeated downloads. The action uses GitHub Actions cache with key: `wasmtime-{version}-{os}-{arch}`.
+**WasmKit (Default):**
+- Bundled with Swift 6.2.3+ toolchains - no external downloads
+- Instant test execution (no download delays)
+- No caching overhead (~500MB saved compared to Wasmtime)
 
-**Code Coverage:** WASM builds do NOT support code coverage (Swift toolchain doesn't provide `libclang_rt.profile-wasm32.a`). Use the `contains-code-coverage` output to conditionally skip coverage collection for WASM builds.
+**Wasmtime (Fallback):**
+- Used when `wasmtime-version` parameter is explicitly specified
+- Wasmtime binaries are cached per version to avoid repeated downloads
+- Cache key: `wasmtime-{version}-{os}-{arch}`
+
+**Testing Framework Detection (NEW):**
+The action automatically detects which testing framework your Wasm tests use:
+- **Swift Testing** (`import Testing`) → runs with `--testing-library swift-testing`
+- **XCTest** (`import XCTest`) → runs without testing library flag
+- **Both frameworks** → runs tests twice (once for each framework)
+
+Override auto-detection with the `wasm-testing-library` parameter:
+```yaml
+- uses: YourOrg/swift-build@v2
+  with:
+    type: wasm
+    wasm-testing-library: 'swift-testing'  # Force Swift Testing
+    wasm-swift-test-flags: '--parallel'    # Optional test runner flags
+```
+
+**Code Coverage:** Wasm builds do NOT support code coverage (neither WasmKit nor Wasmtime provide coverage support). Use the `contains-code-coverage` output to conditionally skip coverage collection for Wasm builds.
 
 ## GitHub Action Usage
 
@@ -87,26 +112,50 @@ The action accepts these key inputs:
   - `android-run-tests` - Run tests on emulator (default: true; use false for ARM macOS)
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
-- **WASM-specific parameters**:
-  - `wasm-swift-flags` - Additional Swift compiler/linker flags for WASM builds (required for most projects)
+- **Wasm-specific parameters**:
+  - `wasm-swift-flags` - Additional Swift compiler/linker flags for Wasm builds (required for most projects)
     - Example: `-Xcc -D_WASI_EMULATED_SIGNAL -Xcc -D_WASI_EMULATED_MMAN -Xlinker -lwasi-emulated-signal -Xlinker -lwasi-emulated-mman -Xlinker -lwasi-emulated-getpid -Xlinker --initial-memory=536870912 -Xlinker --max-memory=536870912`
     - WASI emulation flags are required for projects using Foundation/CoreFoundation
-    - Memory configuration flags often required for test suites with large datasets (default WASM memory ~62MB)
+    - Memory configuration flags often required for test suites with large datasets (default Wasm memory ~62MB)
     - Must be explicitly configured (no defaults provided)
-  - `wasmtime-version` - Wasmtime version for WASM test execution (default: 'latest')
-    - Automatically fetches and uses the latest Wasmtime release
-    - Can specify a specific version for reproducibility (e.g., '40.0.1')
-    - Automatically cached to avoid ~500MB download per run
+  - `wasmtime-version` - Optional Wasmtime runtime fallback (default: WasmKit)
+    - Default: Uses WasmKit runtime (bundled with Swift 6.2.3+ toolchains)
+    - Specify a specific version to use Wasmtime fallback: '27.0.0', '26.0.0', etc. (X.Y.Z format)
+    - Breaking Change (v2.0): 'latest' is no longer supported - use specific version numbers
+    - Automatically cached when using Wasmtime to avoid ~500MB download per run
+  - `wasm-testing-library` - Testing library detection mode for Wasm tests (default: 'auto')
+    - `auto`: Automatically detect by scanning test sources for `import Testing` vs `import XCTest`
+    - `swift-testing`: Force Swift Testing framework (adds `--testing-library swift-testing` flag)
+    - `xctest`: Force XCTest framework (no testing library flag)
+    - `both`: Run tests twice (once for each framework, fails if either fails)
+    - `none`: Run without testing library flags (for custom test harnesses)
+      - **When to use:**
+        - Custom test frameworks (not XCTest or Swift Testing)
+        - Test harnesses that provide their own command-line interface
+        - Debugging test execution without framework-specific flags
+        - Binary testing tools that don't expect testing library arguments
+      - **Example:**
+        ```yaml
+        - uses: YourOrg/swift-build@v2
+          with:
+            type: wasm
+            wasm-testing-library: 'none'  # No --testing-library flag
+            wasm-swift-test-flags: '--custom-flag --verbose'  # Custom harness flags
+        ```
+      - **Note:** Most projects should use `auto` mode instead. Only use `none` if you have a custom test framework.
+  - `wasm-swift-test-flags` - Additional flags passed to test runner (WasmKit/Wasmtime)
+    - Examples: `'--parallel'`, `'--filter TestSuiteName'`
+    - Applied after `--testing-library` flag
 
 **Security Considerations:**
-- **`wasm-swift-flags` Input Sanitization**: The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to `wasm-swift-flags`. Never pass untrusted user input directly to this parameter.
+- **`wasm-swift-flags` and `wasm-swift-test-flags` Input Sanitization**: These parameters are directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to these parameters. Never pass untrusted user input directly to these parameters.
 
 ### Outputs
 
 The action provides these outputs:
 - `contains-code-coverage` - Whether this build contains code coverage data
-  - Returns `'true'` for SPM and Xcode builds with tests enabled
-  - Returns `'false'` for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  - Returns `'true'` for SwiftPM and Xcode builds with tests enabled
+  - Returns `'false'` for Wasm builds (not supported), Android builds (handled separately), and build-only mode
   - Use this to conditionally run coverage collection actions:
     ```yaml
     - name: Generate Coverage
@@ -120,17 +169,38 @@ The action supports:
 - **Ubuntu**: Swift 5.9-6.2 across focal/jammy/noble distributions
 - **macOS**: Xcode 15.1+ with platform-specific simulator testing
 - **Android**: Swift 6.2+ with emulator testing (Ubuntu/Intel macOS) or build-only (ARM macOS)
-- **WebAssembly (WASM)**: Swift 6.2+ with Wasmtime runtime (auto-cached binaries)
+- **WebAssembly (Wasm)**: Swift 6.2+ with Wasmtime runtime (auto-cached binaries)
 - **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds, with optimized Wasmtime binary caching
+
+## Latest Platform Versions
+
+**Current Stable Release: Xcode 26.2** (Released: December 12, 2025)
+- **Swift Version:** 6.2.3
+- **Xcode Version:** 26.2 (Build 17C52)
+- **System Requirements:** macOS 15.6 or later
+
+**SDK Versions:**
+- **iOS:** 26.2 (Build 23C53)
+- **macOS:** 26.2 (Build 25C57)
+- **watchOS:** 26.2 (Build 23S303)
+- **tvOS:** 26.2 (Build 23K50)
+- **visionOS:** 26.2 (Build 23N301)
+
+**Recent Stable Releases:**
+- **Xcode 26.1.1** - Swift 6.2.1 (November 11, 2025)
+- **Xcode 26.1** - Swift 6.2.1 (November 3, 2025)
+- **Xcode 26.0.1** - Swift 6.2 (September 22, 2025)
+
+**Note:** Version information sourced from [xcodereleases.com](https://xcodereleases.com). For the most current releases and beta versions, refer to the live data.
 
 ## Test Package Architecture
 
 - **SingleTargetPackage**: Simple single-target Swift package for basic validation
 - **MultiTargetPackage**: Multi-target package with Core depending on Utils, demonstrating target dependencies
 
-## WASM Migration Guide
+## Wasm Migration Guide
 
-**Breaking Change (v2.0)**: WASM compiler flags are now explicitly configured via input parameters instead of being hardcoded.
+**Breaking Change (v2.0)**: Wasm compiler flags are now explicitly configured via input parameters instead of being hardcoded.
 
 ### Migration Steps
 
