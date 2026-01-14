@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:brightdigit/MistKit.git
+	branch = swift-build-1.5.0-beta.2
+	commit = 7ae45ca456f5825ae0ad9273e0f43626c2fe96b8
+	parent = 345e79b4fe0fd96b2e1ec1300f04f04a8b83d182
+	method = merge
+	cmdver = 0.4.9
