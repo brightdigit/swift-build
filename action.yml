@@ -1456,15 +1456,7 @@ runs:
           RESOLVED_FLAG=""
         else
           RESOLVED_FLAG="--force-resolved-versions"
-        fi
-
-        # Ensure temp directory exists and is writable (needed for containers)
-        if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-          mkdir -p "$RUNNER_TEMP" || {
-            echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
-            export RUNNER_TEMP="/tmp"
-          }
-        fi
+        fi        
 
         if [ "${{ inputs.build-only }}" = "true" ]; then
           swift build --cache-path .cache $RESOLVED_FLAG
@@ -1757,14 +1749,6 @@ runs:
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
 
-            # Ensure temp directory exists and is writable (needed for containers)
-            if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-              mkdir -p "$RUNNER_TEMP" || {
-                echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
-                export RUNNER_TEMP="/tmp"
-              }
-            fi
-
             while IFS= read -r TEST_BINARY; do
               echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
 
@@ -1872,14 +1856,6 @@ runs:
             # Determine test execution strategy from detection step
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
-
-            # Ensure temp directory exists and is writable (needed for containers)
-            if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-              mkdir -p "$RUNNER_TEMP" || {
-                echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
-                export RUNNER_TEMP="/tmp"
-              }
-            fi
 
             while IFS= read -r TEST_BINARY; do
               echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
@@ -1994,14 +1970,6 @@ runs:
           DESTINATION="platform=macOS"
         else
           DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
-        fi
-
-        # Ensure temp directory exists and is writable (needed for containers)
-        if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-          mkdir -p "$RUNNER_TEMP" || {
-            echo "WARNING: Cannot create $RUNNER_TEMP, using /tmp instead"
-            export RUNNER_TEMP="/tmp"
-          }
         fi
 
         # Build xcodebuild command based on build-only mode

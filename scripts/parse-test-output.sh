@@ -118,53 +118,10 @@ parse_xcodebuild() {
     fi
   fi
 
-  # Check if both frameworks are present (mixed framework package)
-  HAS_SWIFT_TESTING=$(echo "$OUTPUT" | grep -c "Test run with" || echo "0")
-  HAS_XCTEST=$(echo "$OUTPUT" | grep -c "Executed.*tests" || echo "0")
-
-  if [[ "$HAS_SWIFT_TESTING" -gt 0 ]] && [[ "$HAS_XCTEST" -gt 0 ]]; then
-    # Both frameworks present - sum results like wasm-both mode
-    parse_wasm_both || return 1
-  elif [[ "$HAS_XCTEST" -gt 0 ]]; then
-    # XCTest only - but need to sum all non-zero results for multi-target
-    # Get all "Executed X tests" lines, filter out zeros, sum them
-    TOTALS=$(echo "$OUTPUT" | grep -oE "Executed [0-9]+ test" | grep -oE "[0-9]+" || echo "")
-
-    if [[ -z "$TOTALS" ]]; then
-      echo "ERROR: Cannot parse Xcode XCTest output" >&2
-      return 1
-    fi
-
-    # Sum all non-zero test counts
-    TOTAL=0
-    while IFS= read -r COUNT; do
-      if [[ "$COUNT" -gt 0 ]]; then
-        TOTAL=$((TOTAL + COUNT))
-      fi
-    done <<< "$TOTALS"
-
-    if [[ "$TOTAL" -eq 0 ]]; then
-      echo "ERROR: All test counts are zero in Xcode output" >&2
-      return 1
-    fi
-
-    # Sum all failure counts
-    FAILURES=$(echo "$OUTPUT" | grep -oE "with [0-9]+ failure" | grep -oE "[0-9]+" || echo "")
-    FAILED=0
-    while IFS= read -r COUNT; do
-      if [[ -n "$COUNT" ]]; then
-        FAILED=$((FAILED + COUNT))
-      fi
-    done <<< "$FAILURES"
-
-    SKIPPED="0"
-    PASSED=$((TOTAL - FAILED))
-  else
-    echo "ERROR: Cannot detect test framework from Xcode output" >&2
-    return 1
-  fi
-
-  return 0
+  # Fallback to raw xcodebuild format (same as XCTest SPM)
+  # Pattern: "Executed 17 tests, with 0 failures (0 unexpected) in 0.123 (0.456) seconds"
+  parse_xctest_spm
+  return $?
 }
 
 # Parse Wasm "both" mode output (or mixed SPM output)
