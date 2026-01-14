@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:brightdigit/SyndiKit.git
+	branch = swift-build-v1.5.0-beta.1
+	commit = dcabb156934ac138847c99020b0d07391f086071
+	parent = 98a215b2be7074120d35c0771295e7fb23f2992d
+	method = merge
+	cmdver = 0.4.9
