@@ -9,7 +9,7 @@
 # - Intelligent caching: Platform-specific strategies for optimal performance
 # - Apple platform testing: iOS, watchOS, tvOS, visionOS, macOS with simulator support
 # - Android platform testing: Emulator-based testing with Swift Android SDK
-# - WebAssembly compilation: Standard WASM and WASM-embedded targets with Wasmtime testing, configurable compiler flags (code coverage not supported)
+# - WebAssembly compilation: Standard Wasm and Wasm-embedded targets with Wasmtime testing, configurable compiler flags (code coverage not supported)
 # - Automatic platform downloads for missing Apple platforms
 # - Windows Swift toolchain installation and configuration
 # - Android Swift SDK with NDK integration
@@ -57,7 +57,7 @@ inputs:
   # Apple platforms: 'ios', 'watchOS', 'visionOS', 'tvOS', 'macOS'
   # Android platform: 'android' (runs on ubuntu-* or macos-* runners)
   # WebAssembly platforms: 'wasm', 'wasm-embedded' (runs on ubuntu-* or macos-* runners)
-  #   Note: Code coverage is NOT supported for WASM builds
+  #   Note: Code coverage is NOT supported for Wasm builds
   # Omit this parameter for cross-platform SPM builds
   # Required when using deviceName/osVersion parameters (Apple platforms only)
   type:
@@ -184,24 +184,25 @@ inputs:
     description: 'Additional files to copy to emulator for testing'
     required: false
 
-  # Additional Swift compiler/linker flags for WASM
+  # Additional Swift compiler/linker flags for Wasm
   # Examples: '-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-mman -Xlinker --initial-memory=536870912'
   # Only used when type is 'wasm' or 'wasm-embedded'
   # Note: WASI emulation flags are required for projects using Foundation/CoreFoundation
   # Memory configuration flags may be needed for test suites with large datasets
   wasm-swift-flags:
-    description: 'Additional Swift compiler/linker flags for WASM builds'
+    description: 'Additional Swift compiler/linker flags for Wasm builds'
     required: false
 
-  # Wasmtime version for WASM test execution
-  # Wasmtime runtime is used to execute WASM test binaries
-  # Binary is automatically cached to avoid ~500MB download per run
-  # Default: 'latest' (automatically fetches the latest release)
-  # Can also specify a specific version like '26.0.0' for reproducibility
+  # Wasmtime version for Wasm test execution (optional fallback)
+  # Default: Uses WasmKit runtime (bundled with Swift 6.2.3+ toolchains)
+  # WasmKit provides instant test execution without external downloads
+  # Wasmtime fallback: Specify a specific version (e.g., '27.0.0') to use Wasmtime instead
+  # Note: 'latest' is no longer supported - use specific version numbers for reproducibility
+  # Binary is automatically cached to avoid ~500MB download per run when using Wasmtime
   wasmtime-version:
-    description: 'Wasmtime version for WASM test execution (use "latest" or specific version like "26.0.0")'
+    description: 'Optional: Use Wasmtime runtime fallback (specify specific version like "27.0.0"). Default: Uses WasmKit runtime (bundled with Swift 6.2.3+). Note: "latest" is no longer supported.'
     required: false
-    default: 'latest'
+    default: ''
 
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
@@ -276,7 +277,7 @@ inputs:
 outputs:
   # Indicates whether this build contains code coverage data
   # Returns 'true' for SPM and Xcode builds with tests enabled
-  # Returns 'false' for WASM builds (not supported), Android builds (handled separately), and build-only mode
+  # Returns 'false' for Wasm builds (not supported), Android builds (handled separately), and build-only mode
   # Use this output to conditionally run coverage collection actions
   contains-code-coverage:
     description: 'Whether this build contains code coverage data'
@@ -326,11 +327,11 @@ runs:
             echo "Detected Android build mode (type: android)"
           fi
         elif [[ "$EFFECTIVE_TYPE" == "wasm" ]] || [[ "$EFFECTIVE_TYPE" == "wasm-embedded" ]]; then
-          # WASM builds use Swift Package Manager with --swift-sdk flag
+          # Wasm builds use Swift Package Manager with --swift-sdk flag
           # Runs on ubuntu-* or macos-* runners (Windows not supported but will fail naturally)
           echo "os=wasm" >> $GITHUB_OUTPUT
           echo "wasm-variant=$EFFECTIVE_TYPE" >> $GITHUB_OUTPUT
-          echo "Detected WASM build mode (type: $EFFECTIVE_TYPE)"
+          echo "Detected Wasm build mode (type: $EFFECTIVE_TYPE)"
         elif [[ "$RUNNER_OS" == "macOS" ]]; then
           # macOS runners support both SPM and Xcode builds
           # Set up derived data path for optimal Xcode build performance and caching
@@ -503,7 +504,7 @@ runs:
     # Set Code Coverage Flag
     # Determines whether code coverage will be collected for this build
     # Coverage is NOT supported for:
-    # - WASM builds (no libclang_rt.profile-wasm32.a available)
+    # - Wasm builds (no libclang_rt.profile-wasm32.a available)
     # - Android builds (handled separately by swift-android-action)
     # - Build-only mode (no tests run)
     - name: Set Coverage Flag
@@ -512,7 +513,7 @@ runs:
       run: |
         if [[ "${{ steps.detect-os.outputs.os }}" == "wasm" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
-          echo "Code coverage: disabled (WASM not supported)"
+          echo "Code coverage: disabled (Wasm not supported)"
         elif [[ "${{ steps.detect-os.outputs.os }}" == "android" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
           echo "Code coverage: disabled (Android handled separately)"
@@ -539,13 +540,13 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: echo "DEVELOPER_DIR=${{ inputs.xcode }}/Contents/Developer" >> $GITHUB_ENV
 
-    # Setup Swift.org toolchain for WASM builds on macOS
-    # Xcode's Swift doesn't include WASM backend - must use Swift.org toolchain
-    - name: Setup Swift.org Toolchain for WASM (macOS)
+    # Setup Swift.org toolchain for Wasm builds on macOS
+    # Xcode's Swift doesn't include Wasm backend - must use Swift.org toolchain
+    - name: Setup Swift.org Toolchain for Wasm (macOS)
       if: steps.detect-os.outputs.os == 'wasm' && runner.os == 'macOS'
       shell: bash
       run: |
-        echo "Setting up Swift.org toolchain for WASM support..."
+        echo "Setting up Swift.org toolchain for Wasm support..."
 
         # First detect Swift version from Xcode to know which version to install
         SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
@@ -679,9 +680,9 @@ runs:
             ;;
         esac
 
-    # WASM Swift Version Detection
-    # This step detects the installed Swift version and constructs the WASM SDK name.
-    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
+    # Wasm Swift Version Detection
+    # This step detects the installed Swift version and constructs the Wasm SDK name.
+    # Only executes for Wasm builds (when type is 'wasm' or 'wasm-embedded').
     # IMPORTANT: This happens AFTER Xcode setup to use the correct Swift version.
     #
     # Outputs:
@@ -690,7 +691,7 @@ runs:
     #
     # The SDK name format is: swift-{VERSION}-RELEASE_wasm (both variants use same SDK)
     # No version validation is performed - installation will fail naturally if version is unsupported.
-    - name: Detect Swift Version for WASM
+    - name: Detect Swift Version for Wasm
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
       id: detect-swift-version
@@ -704,11 +705,11 @@ runs:
         echo "Raw version output: $SWIFT_VERSION_RAW"
 
         # Parse Swift version using centralized script
-        # WASM requires Swift 6.2.3+ with full version number (major.minor.patch)
+        # Wasm requires Swift 6.2.3+ with full version number (major.minor.patch)
         SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
         if [ $? -ne 0 ]; then
           echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
-          echo "WASM requires Swift 6.2.3+ with full version number in swift --version output"
+          echo "Wasm requires Swift 6.2.3+ with full version number in swift --version output"
           exit 1
         fi
 
@@ -722,11 +723,11 @@ runs:
         echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
         echo "Detected Swift $SWIFT_VERSION, will use SDK: $SDK_NAME"
 
-    # Install required Linux packages for WASM operations
-    # This step installs curl and xz-utils needed for WASM SDK and Wasmtime operations.
-    # Runs once early in the WASM workflow to avoid redundant apt-get updates.
-    # Only executes on Linux systems when WASM type is detected.
-    - name: Install WASM Dependencies
+    # Install required Linux packages for Wasm operations
+    # This step installs curl and xz-utils needed for Wasm SDK and Wasmtime operations.
+    # Runs once early in the Wasm workflow to avoid redundant apt-get updates.
+    # Only executes on Linux systems when Wasm type is detected.
+    - name: Install Wasm Dependencies
       if: steps.detect-os.outputs.os == 'wasm' && (runner.os == 'Linux' || startsWith(runner.os, 'linux'))
       shell: bash
       run: |
@@ -748,9 +749,9 @@ runs:
           echo "All required packages (curl, xz-utils) are already installed"
         fi
 
-    # WASM SDK Installation
-    # This step downloads and installs the WASM SDK bundle for the detected Swift version.
-    # Only executes for WASM builds (when type is 'wasm' or 'wasm-embedded').
+    # Wasm SDK Installation
+    # This step downloads and installs the Wasm SDK bundle for the detected Swift version.
+    # Only executes for Wasm builds (when type is 'wasm' or 'wasm-embedded').
     # Happens AFTER Xcode setup to ensure correct Swift toolchain is used.
     #
     # Downloads using curl (preferred) or wget (fallback), then installs from local file.
@@ -758,7 +759,7 @@ runs:
     # The installed SDK is cached for subsequent builds.
     #
     # SDK URL format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
-    - name: Install WASM SDK
+    - name: Install Wasm SDK
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -766,7 +767,7 @@ runs:
         SDK_NAME="${{ steps.detect-swift-version.outputs.wasm-sdk }}"
         SWIFT_VERSION="${{ steps.detect-swift-version.outputs.swift-version }}"
 
-        echo "Installing WASM SDK: $SDK_NAME"
+        echo "Installing Wasm SDK: $SDK_NAME"
 
         # The SDK download URL pattern from Swift.org
         # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
@@ -780,7 +781,7 @@ runs:
         elif command -v wget >/dev/null 2>&1; then
           wget -O /tmp/wasm-sdk.tar.gz "$SDK_URL"
         else
-          echo "ERROR: Neither curl nor wget available to download WASM SDK"
+          echo "ERROR: Neither curl nor wget available to download Wasm SDK"
           exit 1
         fi
 
@@ -791,7 +792,7 @@ runs:
         echo "Installed SDKs:"
         swift sdk list
 
-        echo "WASM SDK installed successfully"
+        echo "Wasm SDK installed successfully"
 
     # Automatically download missing Apple platform support (optional)
     # This step executes only when download-platform is set to 'true' and runs
@@ -1272,8 +1273,8 @@ runs:
           ${{ inputs.working-directory }}/.cache
         key: spm-${{ env.WINDOWS_VERSION }}-${{ env.SWIFT_VERSION }}-${{ steps.package-hash.outputs.package-hash }}-${{ steps.detect-resolved.outputs.resolved-hash }}-${{ inputs.build-only }}
 
-    # Intelligent Caching Strategy 2d: WASM Build Cache (WebAssembly Builds)
-    # Comprehensive caching for WASM builds covering SPM directories and installed SDKs.
+    # Intelligent Caching Strategy 2d: Wasm Build Cache (WebAssembly Builds)
+    # Comprehensive caching for Wasm builds covering SPM directories and installed SDKs.
     #
     # Cache Key Strategy:
     # - Pattern: wasm-{OS}-{SwiftVersion}-{WasmVariant}-{PackageHash}-{ResolvedHash}-{BuildOnly}
@@ -1285,16 +1286,16 @@ runs:
     # - BuildOnly: Separates build-only from test builds to prevent test binary contamination
     #
     # Cached Directories Explained:
-    # - .build: Compiled WASM modules and intermediate build artifacts
+    # - .build: Compiled Wasm modules and intermediate build artifacts
     # - .swiftpm: Swift Package Manager metadata and configuration cache
     # - .cache: Local cache directory used by swift build --cache-path flag
-    # - ~/.swiftpm/swift-sdks: Installed WASM SDK (avoids re-downloading on subsequent runs)
+    # - ~/.swiftpm/swift-sdks: Installed Wasm SDK (avoids re-downloading on subsequent runs)
     #
     # Performance:
     # - First run: ~5-10 minutes (includes SDK download and installation)
     # - Subsequent runs: ~30 seconds (SDK restored from cache)
     # - Build time: Similar to SPM builds, significantly faster with cache
-    - name: Cache WASM Build
+    - name: Cache Wasm Build
       if: steps.detect-os.outputs.os == 'wasm'
       uses: actions/cache@v4
       with:
@@ -1371,17 +1372,18 @@ runs:
           swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
         fi
 
-    # WASM Build and Test Execution (WebAssembly Builds)
-    # This step handles WASM-based builds for Swift packages targeting WebAssembly.
-    # Uses Swift Package Manager with the --swift-sdk flag to specify WASM or WASM-embedded target.
+    # Wasm Build and Test Execution (WebAssembly Builds)
+    # This step handles Wasm-based builds for Swift packages targeting WebAssembly.
+    # Uses Swift Package Manager with the --swift-sdk flag to specify Wasm or Wasm-embedded target.
     #
     # Build Strategy:
-    # - Uses the WASM SDK installed in the earlier step
-    # - Tests run via WasmKit runtime (included in Swift 6.2.3+ toolchains)
+    # - Uses the Wasm SDK installed in the earlier step
+    # - Tests run via WasmKit runtime (bundled with Swift 6.2.3+ toolchains, default)
+    # - Wasmtime runtime available as optional fallback via wasmtime-version parameter
     # - Build-only mode skips test execution
     #
     # Command Parameters Explained:
-    # - --swift-sdk: Specifies the WASM SDK to use (e.g., swift-6.2.3-RELEASE_wasm)
+    # - --swift-sdk: Specifies the Wasm SDK to use (e.g., swift-6.2.3-RELEASE_wasm)
     # - --cache-path: Uses local cache directory for build artifacts
     # - --force-resolved-versions: Enforces strict dependency pinning (omitted when skip-package-resolved=true)
     # - --build-tests: Compiles test targets (only in test mode)
@@ -1389,145 +1391,67 @@ runs:
     # Performance Benefits:
     # - SDK caching provides fast subsequent builds (~30 seconds vs ~5-10 minutes first run)
     # - Build artifact caching reduces compilation time significantly
-    # - WasmKit runtime enables fast test execution without external tools
+    # - WasmKit runtime enables instant test execution (bundled, no downloads)
+    # - Wasmtime fallback available for older Swift versions (<6.2.3)
 
-    # Cache resolved Wasmtime version to avoid repeated GitHub API calls
-    # Cache refreshes weekly (using ISO week in key) to pick up new releases
-    # This significantly reduces API calls when using "latest"
-    - name: Get ISO Week for Cache
-      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true' && inputs.wasmtime-version == 'latest'
-      id: iso-week
+    # Validate Wasmtime version format
+    # Only specific version numbers (X.Y.Z format) are supported
+    # 'latest' is no longer supported to simplify implementation and improve reproducibility
+    - name: Validate Wasmtime Version
+      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true' && inputs.wasmtime-version != ''
       shell: bash
+      id: validate-wasmtime-version
       run: |
-        echo "week=$(date -u +%Y-W%V)" >> $GITHUB_OUTPUT
+        WasmTIME_VERSION="${{ inputs.wasmtime-version }}"
 
-    - name: Cache Wasmtime Latest Version
-      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true' && inputs.wasmtime-version == 'latest'
-      uses: actions/cache@v4
-      id: wasmtime-version-cache
-      with:
-        path: ${{ runner.temp }}/wasmtime-version.txt
-        key: wasmtime-latest-version-${{ runner.os }}-${{ steps.iso-week.outputs.week }}
-        restore-keys: |
-          wasmtime-latest-version-${{ runner.os }}-
-
-    # Resolve Wasmtime version before caching
-    # If "latest" is requested, fetch the actual version from GitHub
-    # This ensures cache keys use the specific version number
-    - name: Resolve Wasmtime Version
-      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true'
-      shell: bash
-      id: resolve-wasmtime-version
-      run: |
-        REQUESTED_VERSION="${{ inputs.wasmtime-version }}"
-        if [[ "$REQUESTED_VERSION" == "latest" ]]; then
-          VERSION_FILE="${RUNNER_TEMP}/wasmtime-version.txt"
-
-          # Try to use cached version first
-          if [[ -f "$VERSION_FILE" ]]; then
-            WASMTIME_VERSION=$(cat "$VERSION_FILE")
-            echo "Using cached Wasmtime version: $WASMTIME_VERSION"
-          else
-            echo "Fetching latest Wasmtime version from GitHub..."
-
-            # Fetch latest release version from GitHub API with retry logic
-            # Separate curl execution from parsing to properly diagnose failures
-            set +e  # Temporarily disable exit on error
-
-            # Capture HTTP response with status code
-            # Use GitHub token for authentication to get higher rate limit (1,000 vs 60 requests/hour)
-            HTTP_RESPONSE=$(curl -s --retry 3 --retry-delay 2 \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              -w "\nHTTP_STATUS:%{http_code}" \
-              https://api.github.com/repos/bytecodealliance/wasmtime/releases/latest 2>&1)
-            CURL_EXIT=$?
-
-            set -e  # Re-enable exit on error
-
-            # Check if curl itself failed (network error, DNS failure, etc.)
-            if [[ $CURL_EXIT -ne 0 ]]; then
-              echo "ERROR: Network failure while fetching Wasmtime version (curl exit code: $CURL_EXIT)"
-              echo "This may be due to:"
-              echo "  - Network connectivity issues"
-              echo "  - DNS resolution failures"
-              echo "  - SSL/TLS certificate issues"
-              echo ""
-              echo "Workaround: Specify an explicit version instead of 'latest'"
-              echo "Example: wasmtime-version: '40.0.1'"
-              echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
-              exit 1
-            fi
-
-            # Extract HTTP status code and API response body
-            HTTP_STATUS=$(echo "$HTTP_RESPONSE" | grep "HTTP_STATUS:" | sed 's/HTTP_STATUS://')
-            API_BODY=$(echo "$HTTP_RESPONSE" | sed '/HTTP_STATUS:/d')
-
-            # Check for rate limiting or other HTTP errors
-            if [[ "$HTTP_STATUS" == "403" ]]; then
-              echo "ERROR: GitHub API rate limit exceeded"
-              echo "API Response: $API_BODY"
-              echo ""
-              echo "GitHub API rate limit exceeded (1,000 requests/hour for authenticated requests)"
-              echo "This is unusual - consider pinning to a specific version to reduce API calls"
-              echo "Workaround: Specify an explicit version instead of 'latest'"
-              echo "Example: wasmtime-version: '40.0.1'"
-              echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
-              exit 1
-            elif [[ "$HTTP_STATUS" != "200" ]]; then
-              echo "ERROR: GitHub API returned unexpected status: $HTTP_STATUS"
-              echo "API Response: $API_BODY"
-              echo ""
-              echo "Workaround: Specify an explicit version instead of 'latest'"
-              echo "Example: wasmtime-version: '40.0.1'"
-              exit 1
-            fi
-
-            # Parse version from JSON response
-            WASMTIME_VERSION=$(echo "$API_BODY" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-
-            # Validate parsed version
-            if [[ -z "$WASMTIME_VERSION" ]]; then
-              echo "ERROR: Failed to parse version from GitHub API response"
-              echo "API returned HTTP $HTTP_STATUS but version extraction failed"
-              echo "This may be due to API format changes"
-              echo ""
-              echo "API Response (first 500 chars):"
-              echo "$API_BODY" | head -c 500
-              echo ""
-              echo ""
-              echo "Workaround: Specify an explicit version instead of 'latest'"
-              echo "Example: wasmtime-version: '40.0.1'"
-              echo "See releases: https://github.com/bytecodealliance/wasmtime/releases"
-              exit 1
-            fi
-
-            echo "Latest Wasmtime version: $WASMTIME_VERSION"
-
-            # Save to cache file (ensure directory exists first for container environments)
-            mkdir -p "$(dirname "$VERSION_FILE")"
-            echo "$WASMTIME_VERSION" > "$VERSION_FILE"
-          fi
-        else
-          WASMTIME_VERSION="$REQUESTED_VERSION"
-          echo "Using specified Wasmtime version: $WASMTIME_VERSION"
+        # Check if user is trying to use 'latest'
+        if [[ "$WasmTIME_VERSION" == "latest" ]]; then
+          echo ""
+          echo "ERROR: wasmtime-version 'latest' is no longer supported"
+          echo ""
+          echo "Breaking Change (v2.0): The 'latest' option has been removed to:"
+          echo "  - Simplify implementation (no GitHub API calls needed)"
+          echo "  - Improve reproducibility (explicit version pinning)"
+          echo "  - Eliminate rate limiting concerns"
+          echo ""
+          echo "Action Required: Please specify an exact version number"
+          echo "Example: wasmtime-version: '27.0.0'"
+          echo ""
+          echo "To find available versions, visit:"
+          echo "https://github.com/bytecodealliance/wasmtime/releases"
+          echo ""
+          echo "Alternatively, omit wasmtime-version to use WasmKit runtime (bundled with Swift 6.2.3+)"
+          exit 1
         fi
 
-        echo "wasmtime-version=$WASMTIME_VERSION" >> $GITHUB_OUTPUT
+        # Validate version format (should be X.Y.Z)
+        if [[ ! "$WasmTIME_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo ""
+          echo "ERROR: Invalid Wasmtime version format: $WasmTIME_VERSION"
+          echo "Expected format: X.Y.Z (e.g., '27.0.0', '26.0.0')"
+          echo ""
+          echo "To find available versions, visit:"
+          echo "https://github.com/bytecodealliance/wasmtime/releases"
+          exit 1
+        fi
 
-    # Cache Wasmtime binary to avoid ~500MB download per run
-    # Key includes resolved version, OS, and architecture for platform-specific binaries
+        echo "Using Wasmtime version: $WasmTIME_VERSION"
+        echo "wasmtime-version=$WasmTIME_VERSION" >> $GITHUB_OUTPUT
+
+    # Cache Wasmtime binary to avoid ~500MB download per run (only when using Wasmtime fallback)
+    # Key includes validated version, OS, and architecture for platform-specific binaries
     # First run: downloads binary (~3-5 min), subsequent runs use cache (<5 sec)
     - name: Cache Wasmtime Binary
-      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true'
+      if: steps.detect-os.outputs.os == 'wasm' && inputs.build-only != 'true' && inputs.wasmtime-version != ''
       uses: actions/cache@v4
       id: wasmtime-cache
       with:
         path: ${{ runner.temp }}/wasmtime
-        key: wasmtime-${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-${{ runner.arch }}
+        key: wasmtime-${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-${{ runner.arch }}
         restore-keys: |
-          wasmtime-${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-
+          wasmtime-${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}-${{ runner.os }}-
 
-    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (WASM)
+    - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }} (Wasm)
       if: steps.detect-os.outputs.os == 'wasm'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -1540,152 +1464,208 @@ runs:
         fi
 
         if [[ "${{ inputs.build-only }}" == "true" ]]; then
-          echo "Building WASM package (build-only mode)..."
+          echo "Building Wasm package (build-only mode)..."
           swift build $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
         else
-          echo "Building and testing WASM package..."
-          
-          # Install Wasmtime for WASM test execution
-          echo "Installing Wasmtime WASM runtime..."
-          echo "Environment diagnostics:"
-          echo "  Runner OS: ${{ runner.os }}"
-          echo "  Runner arch: ${{ runner.arch }}"
-          echo "  OSTYPE: ${OSTYPE:-<unset>}"
-          echo "  uname: $(uname -s 2>/dev/null || echo '<unavailable>')"
+          echo "Building and testing Wasm package..."
 
-          # Determine platform for Wasmtime binary download
-          # Use multiple detection methods for Docker container compatibility
-          echo ""
-          echo "Detecting platform for Wasmtime binary..."
-
-          # Method 1: Use $OSTYPE if available (bash built-in, fastest)
-          if [[ -n "$OSTYPE" ]]; then
-            echo "Attempting detection via OSTYPE: $OSTYPE"
-            if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
-              WASMTIME_PLATFORM="x86_64-linux"
-            elif [[ "$OSTYPE" == "darwin"* ]]; then
-              WASMTIME_PLATFORM="x86_64-macos"
-            fi
-          fi
-
-          # Method 2: Fallback to uname if OSTYPE didn't match or wasn't set
-          if [[ -z "$WASMTIME_PLATFORM" ]]; then
-            UNAME_OS=$(uname -s)
-            echo "Attempting detection via uname: $UNAME_OS"
-            case "$UNAME_OS" in
-              Linux*)
-                WASMTIME_PLATFORM="x86_64-linux"
-                ;;
-              Darwin*)
-                WASMTIME_PLATFORM="x86_64-macos"
-                ;;
-              *)
-                echo ""
-                echo "ERROR: Unsupported platform for Wasmtime"
-                echo "Platform detection failed with:"
-                echo "  OSTYPE: ${OSTYPE:-<unset>}"
-                echo "  uname -s: $UNAME_OS"
-                echo ""
-                echo "Supported platforms:"
-                echo "  - Linux (x86_64)"
-                echo "  - macOS (x86_64)"
-                exit 1
-                ;;
-            esac
-          fi
-
-          echo "Selected Wasmtime platform: $WASMTIME_PLATFORM"
-          echo ""
-
-          # Use resolved version from earlier step (handles "latest" → actual version)
-          WASMTIME_VERSION="${{ steps.resolve-wasmtime-version.outputs.wasmtime-version }}"
-
-          if [[ -z "$WASMTIME_VERSION" ]]; then
-            echo "ERROR: Wasmtime version was not resolved in the earlier step"
-            echo "This is an internal error - the resolve step should have set the version"
-            exit 1
-          fi
-
-          echo "Using Wasmtime version: $WASMTIME_VERSION"
-
-          WASMTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
-          WASMTIME_BIN="$WASMTIME_CACHE_DIR/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
-
-          echo "Wasmtime configuration:"
-          echo "  Version: $WASMTIME_VERSION"
-          echo "  Platform: $WASMTIME_PLATFORM"
-          echo "  Cache directory: $WASMTIME_CACHE_DIR"
-          echo "  Binary path: $WASMTIME_BIN"
-          echo ""
-
-          # Check if already cached
-          if [[ ! -f "$WASMTIME_BIN" ]]; then
-            echo "Downloading Wasmtime v${WASMTIME_VERSION} for ${WASMTIME_PLATFORM}..."
-            WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
-            echo "Download URL: $WASMTIME_URL"
-
-            mkdir -p "$WASMTIME_CACHE_DIR"
-            curl -L "$WASMTIME_URL" -o "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
-            tar -xf "$WASMTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WASMTIME_CACHE_DIR"
-            rm "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
-          else
-            echo "Using cached Wasmtime v${WASMTIME_VERSION}"
-          fi
-
-          # Verify installation
-          if [[ ! -f "$WASMTIME_BIN" ]]; then
+          # Runtime selection based on wasmtime-version parameter
+          if [[ -n "${{ inputs.wasmtime-version }}" ]]; then
+            # WasmTIME FALLBACK (when wasmtime-version is explicitly specified)
+            echo "Using Wasmtime runtime fallback (version: ${{ inputs.wasmtime-version }})"
             echo ""
-            echo "ERROR: Failed to find wasmtime binary at expected path"
-            echo "Expected: $WASMTIME_BIN"
-            echo "Cache directory contents:"
-            ls -la "$WASMTIME_CACHE_DIR" 2>/dev/null || echo "  <directory not found>"
-            exit 1
-          fi
+            echo "Note: WasmKit is now the default runtime (bundled with Swift 6.2.3+)"
+            echo "You can remove wasmtime-version parameter to use WasmKit for faster execution"
+            echo ""
 
-          echo "Wasmtime successfully installed at: $WASMTIME_BIN"
-          echo ""
-          
-          # Build tests (separate from running them, per WASI guide)
-          echo "Building WASM tests..."
-          # Note: Code coverage is NOT supported for WASM targets
-          # The Swift toolchain does not provide libclang_rt.profile-wasm32.a
-          # Use the 'contains-code-coverage' output to conditionally skip coverage actions
-          swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
+            # Determine platform for Wasmtime binary download
+            echo "Detecting platform for Wasmtime binary..."
+            echo "Environment diagnostics:"
+            echo "  Runner OS: ${{ runner.os }}"
+            echo "  Runner arch: ${{ runner.arch }}"
+            echo "  OSTYPE: ${OSTYPE:-<unset>}"
 
-          # Find all WASM test binaries dynamically (supports any test target name)
-          echo "Searching for WASM test binaries..."
-          TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
-
-          # Fallback to .xctest if no .wasm found
-          if [[ -z "$TEST_BINARIES" ]]; then
-            echo "No .wasm test binaries found, searching for .xctest..."
-            TEST_BINARIES=$(find .build -type f \( -name "*Tests.xctest" -o -name "*PackageTests.xctest" \) 2>/dev/null)
-          fi
-
-          # Error if no test binaries found
-          if [[ -z "$TEST_BINARIES" ]]; then
-            echo "ERROR: No WASM test binaries found"
-            echo "Contents of .build/:"
-            find .build -type f 2>/dev/null || echo "No files found"
-            exit 1
-          fi
-
-          # Run each test binary (supports multi-target packages)
-          echo "Found test binaries:"
-          echo "$TEST_BINARIES"
-          echo ""
-
-          while IFS= read -r TEST_BINARY; do
-            echo "Running tests: $TEST_BINARY"
-            # Only use --testing-library swift-testing for .wasm binaries (Swift Testing framework)
-            # XCTest binaries (.xctest) should run without this flag
-            # Memory is configured at build time via -Xlinker flags (see above)
-            if [[ "$TEST_BINARY" == *.wasm ]]; then
-              "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing
-            else
-              "$WASMTIME_BIN" --dir . "$TEST_BINARY"
+            # Method 1: Use $OSTYPE if available (bash built-in, fastest)
+            if [[ -n "$OSTYPE" ]]; then
+              if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
+                WasmTIME_PLATFORM="x86_64-linux"
+              elif [[ "$OSTYPE" == "darwin"* ]]; then
+                WasmTIME_PLATFORM="x86_64-macos"
+              fi
             fi
-          done <<< "$TEST_BINARIES"
+
+            # Method 2: Fallback to uname if OSTYPE didn't match or wasn't set
+            if [[ -z "$WasmTIME_PLATFORM" ]]; then
+              UNAME_OS=$(uname -s)
+              case "$UNAME_OS" in
+                Linux*)
+                  WasmTIME_PLATFORM="x86_64-linux"
+                  ;;
+                Darwin*)
+                  WasmTIME_PLATFORM="x86_64-macos"
+                  ;;
+                *)
+                  echo ""
+                  echo "ERROR: Unsupported platform for Wasmtime"
+                  echo "Platform detection failed with:"
+                  echo "  OSTYPE: ${OSTYPE:-<unset>}"
+                  echo "  uname -s: $UNAME_OS"
+                  echo ""
+                  echo "Supported platforms:"
+                  echo "  - Linux (x86_64)"
+                  echo "  - macOS (x86_64)"
+                  echo ""
+                  echo "Consider using WasmKit instead (supports more platforms)"
+                  exit 1
+                  ;;
+              esac
+            fi
+
+            echo "Selected Wasmtime platform: $WasmTIME_PLATFORM"
+            echo ""
+
+            # Use validated version from earlier step
+            WasmTIME_VERSION="${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}"
+
+            WasmTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
+            WasmTIME_BIN="$WasmTIME_CACHE_DIR/wasmtime-v${WasmTIME_VERSION}-${WasmTIME_PLATFORM}/wasmtime"
+
+            echo "Wasmtime configuration:"
+            echo "  Version: $WasmTIME_VERSION"
+            echo "  Platform: $WasmTIME_PLATFORM"
+            echo "  Binary path: $WasmTIME_BIN"
+            echo ""
+
+            # Download Wasmtime if not cached
+            if [[ ! -f "$WasmTIME_BIN" ]]; then
+              echo "Downloading Wasmtime v${WasmTIME_VERSION} for ${WasmTIME_PLATFORM}..."
+              WasmTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WasmTIME_VERSION}/wasmtime-v${WasmTIME_VERSION}-${WasmTIME_PLATFORM}.tar.xz"
+              echo "Download URL: $WasmTIME_URL"
+
+              mkdir -p "$WasmTIME_CACHE_DIR"
+              curl -L "$WasmTIME_URL" -o "$WasmTIME_CACHE_DIR/wasmtime.tar.xz"
+              tar -xf "$WasmTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WasmTIME_CACHE_DIR"
+              rm "$WasmTIME_CACHE_DIR/wasmtime.tar.xz"
+            else
+              echo "Using cached Wasmtime v${WasmTIME_VERSION}"
+            fi
+
+            # Verify installation
+            if [[ ! -f "$WasmTIME_BIN" ]]; then
+              echo ""
+              echo "ERROR: Failed to find wasmtime binary at expected path"
+              echo "Expected: $WasmTIME_BIN"
+              echo "Cache directory contents:"
+              ls -la "$WasmTIME_CACHE_DIR" 2>/dev/null || echo "  <directory not found>"
+              exit 1
+            fi
+
+            echo "Wasmtime successfully installed at: $WasmTIME_BIN"
+            echo ""
+
+            # Build tests
+            echo "Building Wasm tests..."
+            swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
+
+            # Find and run test binaries
+            echo "Searching for Wasm test binaries..."
+            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
+
+            if [[ -z "$TEST_BINARIES" ]]; then
+              echo "No .wasm test binaries found, searching for .xctest..."
+              TEST_BINARIES=$(find .build -type f \( -name "*Tests.xctest" -o -name "*PackageTests.xctest" \) 2>/dev/null)
+            fi
+
+            if [[ -z "$TEST_BINARIES" ]]; then
+              echo "ERROR: No Wasm test binaries found"
+              echo "Contents of .build/:"
+              find .build -type f 2>/dev/null || echo "No files found"
+              exit 1
+            fi
+
+            echo "Found test binaries:"
+            echo "$TEST_BINARIES"
+            echo ""
+
+            while IFS= read -r TEST_BINARY; do
+              echo "Running tests with Wasmtime: $TEST_BINARY"
+              if [[ "$TEST_BINARY" == *.wasm ]]; then
+                "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing
+              else
+                "$WasmTIME_BIN" --dir . "$TEST_BINARY"
+              fi
+            done <<< "$TEST_BINARIES"
+
+          else
+            # WasmKIT DEFAULT (new default when no wasmtime-version specified)
+            echo "Using WasmKit runtime (bundled with Swift toolchain)"
+            echo ""
+
+            # Build tests
+            echo "Building Wasm tests..."
+            # Note: Code coverage is NOT supported for Wasm targets
+            # The Swift toolchain does not provide libclang_rt.profile-wasm32.a
+            # Use the 'contains-code-coverage' output to conditionally skip coverage actions
+            swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
+
+            # Verify WasmKit availability
+            if ! command -v wasmkit >/dev/null 2>&1; then
+              echo ""
+              echo "ERROR: wasmkit runtime not found in Swift toolchain"
+              echo "WasmKit requires Swift 6.2.3+ toolchain"
+              echo ""
+              echo "Current Swift version:"
+              swift --version
+              echo ""
+              echo "Workaround options:"
+              echo "  1. Upgrade to Swift 6.2.3 or later"
+              echo "  2. Use Wasmtime fallback by specifying wasmtime-version parameter"
+              echo "     Example: wasmtime-version: '27.0.0'"
+              echo ""
+              echo "To find available Wasmtime versions:"
+              echo "https://github.com/bytecodealliance/wasmtime/releases"
+              exit 1
+            fi
+
+            echo "WasmKit binary: $(which wasmkit)"
+            wasmkit --version
+            echo ""
+
+            # Find all Wasm test binaries dynamically (supports any test target name)
+            echo "Searching for Wasm test binaries..."
+            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
+
+            # Fallback to .xctest if no .wasm found
+            if [[ -z "$TEST_BINARIES" ]]; then
+              echo "No .wasm test binaries found, searching for .xctest..."
+              TEST_BINARIES=$(find .build -type f \( -name "*Tests.xctest" -o -name "*PackageTests.xctest" \) 2>/dev/null)
+            fi
+
+            # Error if no test binaries found
+            if [[ -z "$TEST_BINARIES" ]]; then
+              echo "ERROR: No Wasm test binaries found"
+              echo "Contents of .build/:"
+              find .build -type f 2>/dev/null || echo "No files found"
+              exit 1
+            fi
+
+            # Run each test binary (supports multi-target packages)
+            echo "Found test binaries:"
+            echo "$TEST_BINARIES"
+            echo ""
+
+            while IFS= read -r TEST_BINARY; do
+              echo "Running tests with WasmKit: $TEST_BINARY"
+              # Only use --testing-library swift-testing for .wasm binaries (Swift Testing framework)
+              # XCTest binaries (.xctest) should run without this flag
+              # Memory is configured at build time via -Xlinker flags (see wasm-swift-flags parameter)
+              if [[ "$TEST_BINARY" == *.wasm ]]; then
+                wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing
+              else
+                wasmkit run --dir . "$TEST_BINARY"
+              fi
+            done <<< "$TEST_BINARIES"
+          fi
         fi
 
     # Xcode Build and Test Execution (Apple Platform Testing)

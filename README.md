@@ -45,14 +45,14 @@
 
 | Parameter | Description | Default | Example | Valid Values | Used By |
 |-----------|-------------|---------|---------|--------------|---------|
-| `scheme` | The scheme to build and test | Required when `type` specified | `MyPackage-Package` | Any valid scheme name | **Xcode builds only** - Required when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS simulator testing). Not needed for SPM builds (Ubuntu/macOS) |
-| `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` | Any valid directory path | **All platforms** - SPM (Ubuntu/macOS) and Xcode builds |
-| `type` | Build type | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos`, `android` | **Platform selection** - Apple platforms use xcodebuild, `android` uses Swift Android SDK. When `null`, uses SPM (swift build/test). **Note:** Android is auto-detected when any `android-*` parameter is set (explicit `type: android` not required) |
+| `scheme` | The scheme to build and test | Required when `type` specified | `MyPackage-Package` | Any valid scheme name | **Xcode builds only** - Required when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS simulator testing). Not needed for SwiftPM builds (Ubuntu/macOS) |
+| `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` | Any valid directory path | **All platforms** - SwiftPM (Ubuntu/macOS) and Xcode builds |
+| `type` | Build type | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos`, `android` | **Platform selection** - Apple platforms use xcodebuild, `android` uses Swift Android SDK. When `null`, uses SwiftPM (swift build/test). **Note:** Android is auto-detected when any `android-*` parameter is set (explicit `type: android` not required) |
 | `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path | **Xcode builds only** - iOS, watchOS, tvOS, visionOS, macOS simulator testing |
 | `deviceName` | Simulator device name | `null` | `iPhone 15` | Any available simulator | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `osVersion` | Simulator OS version | `null` | `17.5` | Compatible OS version | **Xcode builds only** - Required when `type` is specified (except `macos`) |
 | `download-platform` | Download platform if not available | `false` | `true` | `true`, `false` | **Xcode builds only** - iOS, watchOS, tvOS, visionOS simulator testing |
-| `build-only` | Build without running tests | `false` | `true` | `true`, `false` | **All platforms** - SPM (Ubuntu/macOS/Windows) and Xcode builds |
+| `build-only` | Build without running tests | `false` | `true` | `true`, `false` | **All platforms** - SwiftPM (Ubuntu/macOS/Windows) and Xcode builds |
 | `windows-swift-version` | Swift version for Windows toolchain | `null` | `swift-6.1-release` | `swift-6.0-release`, `swift-6.1-release`, `swift-6.2-branch` | **Windows builds only** - Maps to `swift-version` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 | `windows-swift-build` | Swift build identifier for Windows | `null` | `6.1-RELEASE` | `6.1-RELEASE`, `6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a` | **Windows builds only** - Maps to `swift-build` parameter in [compnerd/gha-setup-swift](https://github.com/compnerd/gha-setup-swift) |
 | `android-swift-version` | Swift version for Android SDK | `6.2` | `nightly-main` | Swift versions, snapshots, or `nightly-main` | **Android builds only** - Auto-detects Android build. Maps to `swift-version` in [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) |
@@ -63,8 +63,8 @@
 | `android-swift-test-flags` | Additional Swift test flags for Android | `null` | `--parallel` | Any valid Swift test flags | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-emulator-boot-timeout` | Emulator boot timeout (seconds) | `600` | `900` | Any positive integer | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true` |
 | `android-copy-files` | Additional files to copy to emulator for testing | `null` | `Tests/Resources/` | File paths or directories (space-separated) | **Android builds only** - Auto-detects Android build. Used with `android-run-tests: true`. Copies test resources, data files, or configurations to emulator before running tests |
-| `wasmtime-version` | Wasmtime version for WASM test execution | `latest` | `27.0.0`, `26.0.0` | `latest` or any valid Wasmtime version | **WASM builds only** - Defaults to `latest` (auto-fetches latest release). Specify a version for reproducibility. Auto-cached per version to avoid ~500MB download per run |
-| `wasm-swift-flags` | Additional Swift compiler/linker flags for WASM builds | `null` | `-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-signal` | Any valid Swift compiler flags | **WASM builds only** - Required for most projects using Foundation/CoreFoundation. Configures WASI emulation and memory limits. See [WASM Compiler Flags Configuration](#wasm-compiler-flags-configuration) for common patterns |
+| `wasmtime-version` | Optional Wasmtime runtime fallback for Wasm test execution | Empty (uses WasmKit) | `27.0.0`, `26.0.0` | Specific version (X.Y.Z format) or empty | **Wasm builds only** - **Default**: WasmKit runtime (bundled with Swift 6.2.3+, no downloads). Specify a specific version to use Wasmtime fallback. **Note**: `latest` is no longer supported - use specific version numbers. Auto-cached per version to avoid ~500MB download when using Wasmtime |
+| `wasm-swift-flags` | Additional Swift compiler/linker flags for Wasm builds | `null` | `-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-signal` | Any valid Swift compiler flags | **Wasm builds only** - Required for most projects using Foundation/CoreFoundation. Configures WASI emulation and memory limits. See [Wasm Compiler Flags Configuration](#wasm-compiler-flags-configuration) for common patterns |
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
@@ -73,7 +73,7 @@
 
 | Output | Description | Example Values | Usage |
 |--------|-------------|----------------|-------|
-| `contains-code-coverage` | Whether this build contains code coverage data | `'true'`, `'false'` | Returns `'true'` for SPM and Xcode builds with tests enabled. Returns `'false'` for WASM builds (not supported), Android builds (handled separately), and build-only mode. Use this to conditionally run coverage collection actions. |
+| `contains-code-coverage` | Whether this build contains code coverage data | `'true'`, `'false'` | Returns `'true'` for SwiftPM and Xcode builds with tests enabled. Returns `'false'` for Wasm builds (not supported), Android builds (handled separately), and build-only mode. Use this to conditionally run coverage collection actions. |
 
 **Usage Example**:
 ```yaml
@@ -91,7 +91,7 @@
 ### Parameter Combinations & Interactions
 
 - **Ubuntu builds**: Only `working-directory` is used (no `scheme` needed)
-- **macOS SPM builds**: `scheme`, `working-directory` (no `type` specified)
+- **macOS SwiftPM builds**: `scheme`, `working-directory` (no `type` specified)
 - **Apple platform builds**: Require `scheme`, `type`, and optionally `deviceName`/`osVersion`
 - **Windows builds**: `working-directory`, `windows-swift-version`, `windows-swift-build` (no `scheme` needed)
 - **Android builds**: Auto-detected from any `android-*` parameter (e.g., `android-swift-version`, `android-api-level`). Explicit `type: android` optional but recommended for clarity
@@ -108,7 +108,7 @@
 
 ### Build Tool Selection
 
-- **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SPM builds)
+- **Swift Package Manager**: Uses `swift build` and `swift test` commands (Ubuntu, macOS, and Windows SwiftPM builds)
 - **Xcode Build System**: Uses `xcodebuild` command when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS)
 - **Swift Android SDK**: Uses [skiptools/swift-android-action](https://github.com/skiptools/swift-android-action) when Android is detected (auto-detected from `android-*` parameters or explicit `type: android`)
 
@@ -128,7 +128,7 @@ The Android platform supports the following Swift versions through the Swift And
 
 When `build-only: true` is specified:
 
-- **SPM builds**: Uses `swift build` instead of `swift build --build-tests` + `swift test`
+- **SwiftPM builds**: Uses `swift build` instead of `swift build --build-tests` + `swift test`
 - **Xcode builds**: Uses `xcodebuild build` instead of `xcodebuild test`
 - **Code coverage**: Not collected (coverage is only generated when tests are run)
 - **Test compilation**: Test targets are not compiled in build-only mode
@@ -219,7 +219,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: brightdigit/swift-build@v1.4.2
         with:
-          scheme: MyPackage-Package  # Standard SPM scheme naming
+          scheme: MyPackage-Package  # Standard SwiftPM scheme naming
 ```
 
 #### Single-Target Package with Auto-Generated Scheme
@@ -378,7 +378,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # macOS SPM builds
+          # macOS SwiftPM builds
           - os: macos-14
             xcode: /Applications/Xcode_15.1.app
           - os: macos-15
@@ -416,9 +416,9 @@ jobs:
           osVersion: ${{ matrix.osVersion }}
 ```
 
-#### Cross-Platform SPM Matrix (Ubuntu + macOS + Windows)
+#### Cross-Platform SwiftPM Matrix (Ubuntu + macOS + Windows)
 ```yaml
-name: Cross-Platform SPM Testing
+name: Cross-Platform SwiftPM Testing
 on: [push, pull_request]
 
 jobs:
@@ -681,7 +681,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # Ubuntu SPM build
+          # Ubuntu SwiftPM build
           - runs-on: ubuntu-latest
             scheme: MyPackage
 
@@ -746,45 +746,98 @@ jobs:
 - Set `android-run-tests: false` on ARM macOS runners
 - Ubuntu runners recommended for full testing with emulator
 
-### WebAssembly (WASM) Development Examples
+### WebAssembly (Wasm) Development Examples
 
-#### WASM with Custom Wasmtime Version
+#### Wasm with Default Runtime (WasmKit)
+
+**WasmKit** is now the default runtime - bundled with Swift 6.2.3+, no external downloads required!
+
 ```yaml
-name: WASM Custom Runtime
+name: Wasm Default Runtime
 on: [push, pull_request]
 
 jobs:
-  test-wasm-custom:
+  test-wasm-default:
     runs-on: ubuntu-latest
+    container: swift:6.2-jammy
     steps:
       - uses: actions/checkout@v4
       - uses: brightdigit/swift-build@v2
         with:
           scheme: MyPackage
           type: wasm
-          wasmtime-version: '27.0.0'  # Custom Wasmtime version
+          wasm-swift-flags: >-
+            -Xcc -D_WASI_EMULATED_SIGNAL
+            -Xcc -D_WASI_EMULATED_MMAN
+            -Xlinker -lwasi-emulated-signal
+            -Xlinker -lwasi-emulated-mman
+            -Xlinker -lwasi-emulated-getpid
+            -Xlinker --initial-memory=536870912
+            -Xlinker --max-memory=536870912
+```
+
+**Performance Benefits:**
+- **No downloads**: WasmKit is bundled with Swift toolchain
+- **Instant startup**: Tests start immediately (no ~3-5 min Wasmtime download)
+- **Simpler caching**: No runtime binary caching needed (~500MB saved)
+- **First run**: ~30-60 seconds (build + test only)
+- **Subsequent runs**: ~5-10 seconds (cached build artifacts)
+
+**Requirements:**
+- Swift 6.2.3 or later toolchain
+- For older Swift versions, use Wasmtime fallback (see below)
+
+#### Wasm with Wasmtime Fallback
+
+For older Swift versions (<6.2.3) or specific Wasmtime requirements:
+
+```yaml
+name: Wasm Wasmtime Fallback
+on: [push, pull_request]
+
+jobs:
+  test-wasm-wasmtime:
+    runs-on: ubuntu-latest
+    container: swift:6.1-jammy  # Older Swift version
+    steps:
+      - uses: actions/checkout@v4
+      - uses: brightdigit/swift-build@v2
+        with:
+          scheme: MyPackage
+          type: wasm
+          wasmtime-version: '27.0.0'  # Triggers Wasmtime fallback
+          wasm-swift-flags: >-
+            -Xcc -D_WASI_EMULATED_SIGNAL
+            -Xcc -D_WASI_EMULATED_MMAN
+            -Xlinker -lwasi-emulated-signal
+            -Xlinker -lwasi-emulated-mman
+            -Xlinker -lwasi-emulated-getpid
+            -Xlinker --initial-memory=536870912
+            -Xlinker --max-memory=536870912
 ```
 
 **Wasmtime Caching:**
 - Wasmtime binaries (~500MB compressed) are automatically cached via GitHub Actions
-- **First run**: Downloads Wasmtime binary (~3-5 min)
-- **Subsequent runs**: Uses cached binary (<5 sec) - 99% faster
+- **First run**: Downloads Wasmtime binary (~3-5 min) + build + test
+- **Subsequent runs**: Uses cached binary (<5 sec) + test
 - **Cache key**: Based on `wasmtime-version`, OS, and architecture
-- **Cache invalidation**: Automatic when `wasmtime-version` changes
+
+**Breaking Change (v2.0)**: `wasmtime-version: 'latest'` is no longer supported. Specify an exact version like `'27.0.0'` for reproducibility and to avoid GitHub API rate limiting.
 
 **Supported Swift versions:**
-- Swift 6.2+ (recommended)
-- WASM SDK is automatically downloaded and cached
+- Swift 6.2+ (recommended - includes WasmKit)
+- Swift 6.0-6.2.2 (requires Wasmtime fallback)
+- Wasm SDK is automatically downloaded and cached
 - Supports both `wasm32-unknown-wasi` and `wasm32-unknown-unknown-wasm` (embedded) targets
 
-#### WASM Compiler Flags Configuration
+#### Wasm Compiler Flags Configuration
 
-**Breaking Change (v2.0)**: WASM compiler flags are now explicitly configured via the `wasm-swift-flags` parameter instead of being hardcoded. This gives you full control over WASI emulation and memory configuration.
+**Breaking Change (v2.0)**: Wasm compiler flags are now explicitly configured via the `wasm-swift-flags` parameter instead of being hardcoded. This gives you full control over WASI emulation and memory configuration.
 
 Most Swift projects using Foundation/CoreFoundation will require WASI emulation flags:
 
 ```yaml
-name: WASM with Compiler Flags
+name: Wasm with Compiler Flags
 on: [push, pull_request]
 
 jobs:
@@ -816,8 +869,8 @@ jobs:
 - `-Xlinker -lwasi-emulated-getpid` - Link WASI getpid emulation library
 
 **Memory Configuration Flags** (for large test suites):
-- `-Xlinker --initial-memory=536870912` - Set initial WASM memory to 512MB (default: ~62MB)
-- `-Xlinker --max-memory=536870912` - Set maximum WASM memory to 512MB
+- `-Xlinker --initial-memory=536870912` - Set initial Wasm memory to 512MB (default: ~62MB)
+- `-Xlinker --max-memory=536870912` - Set maximum Wasm memory to 512MB
 - Adjust values based on your test data size (values are in bytes)
 
 **When to Use Which Flags:**
@@ -1293,7 +1346,7 @@ jobs:
 
 ### Build-Only Mode
 ```yaml
-# SPM build without running tests
+# SwiftPM build without running tests
 - uses: brightdigit/swift-build@v1.3.4
   with:
     scheme: MyPackage
@@ -1358,7 +1411,7 @@ Choose the right Docker image for your Swift version:
 - **🪟 Windows Toolchain**: Automatic Swift toolchain installation and configuration for Windows runners
 - **📲 Simulator Management**: Automatic iOS/watchOS/tvOS/visionOS simulator setup and device selection
 - **⬇️ Platform Downloads**: Automatically downloads missing Apple platform simulators for beta/nightly Xcode
-- **🛠️ Build Tool Selection**: Uses `swift` command on Linux/macOS/Windows SPM, `xcodebuild` for Apple platforms
+- **🛠️ Build Tool Selection**: Uses `swift` command on Linux/macOS/Windows SwiftPM, `xcodebuild` for Apple platforms
 - **🎨 Enhanced Output**: Optional xcbeautify integration for prettified xcodebuild output with CI-specific renderers
 
 ### External Resources
@@ -1389,7 +1442,7 @@ jobs:
             swift: '6.2'
             container: swiftlang/swift:nightly-6.2-noble
           
-          # macOS SPM Matrix
+          # macOS SwiftPM Matrix
           - os: macos-14
             xcode: /Applications/Xcode_15.1.app
           - os: macos-15
@@ -2082,7 +2135,7 @@ Code coverage is not currently supported for Android builds. This is a known lim
 
 **Status:** Tracking issue at [skiptools/swift-android-action#8](https://github.com/skiptools/swift-android-action/issues/8)
 
-**Workaround:** If you need code coverage, run tests on other platforms (iOS, macOS, Ubuntu SPM) where coverage is supported.
+**Workaround:** If you need code coverage, run tests on other platforms (iOS, macOS, Ubuntu SwiftPM) where coverage is supported.
 
 #### ⚙️ Configuration Issues
 
@@ -2090,7 +2143,7 @@ Code coverage is not currently supported for Android builds. This is a known lim
 
 | Build Type | Required Parameters | Optional | Invalid |
 |------------|-------------------|----------|---------|
-| **SPM Build** | `—` | `working-directory`, `scheme` (optional) | `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer` |
+| **SwiftPM Build** | `—` | `working-directory`, `scheme` (optional) | `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer` |
 | **Windows Build** | `windows-swift-version`, `windows-swift-build` | `working-directory` | `scheme`, `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer` |
 | **macOS Native** | `scheme`, `type: macos` | `xcode`, `working-directory`, `use-xcbeautify`, `xcbeautify-renderer` | `deviceName`, `osVersion` |
 | **iOS Simulator** | `scheme`, `type: ios`, `deviceName`, `osVersion` | `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer` | None |
@@ -2138,7 +2191,7 @@ Code coverage is not currently supported for Android builds. This is a known lim
   run: |
     echo "Package targets:"
     swift package describe --type json | jq -r '.targets[].name'
-    echo "SPM schemes follow pattern: PackageName-Package"
+    echo "SwiftPM schemes follow pattern: PackageName-Package"
 ```
 
 2. **Check if you have an Xcode project:**
@@ -2768,13 +2821,13 @@ jobs:
     strategy:
       matrix:
         include:
-          # Ubuntu: Optimized SPM caching
+          # Ubuntu: Optimized SwiftPM caching
           - os: ubuntu-latest
             container: swift:6.1
             cache-strategy: "spm-ubuntu"
             expected-reduction: "65-80%"
           
-          # macOS SPM: Cross-platform package caching
+          # macOS SwiftPM: Cross-platform package caching
           - os: macos-latest
             cache-strategy: "spm-macos"
             expected-reduction: "60-75%"
@@ -2955,18 +3008,18 @@ swift-build automatically implements platform-specific caching:
 #### Ubuntu Caching
 ```yaml
 # Automatically cached paths:
-- .build/                    # SPM build artifacts
-- .swiftpm/cache/           # SPM package cache
-- ~/.cache/swift-pm/        # System SPM cache
+- .build/                    # SwiftPM build artifacts
+- .swiftpm/cache/           # SwiftPM package cache
+- ~/.cache/swift-pm/        # System SwiftPM cache
 ```
 
 #### macOS Caching  
 ```yaml
 # Automatically cached paths:
-- .build/                    # SPM build artifacts
-- .swiftpm/cache/           # SPM package cache
+- .build/                    # SwiftPM build artifacts
+- .swiftpm/cache/           # SwiftPM package cache
 - ~/Library/Developer/Xcode/DerivedData/  # Xcode build cache
-- ~/Library/Caches/org.swift.swiftpm/     # SPM system cache
+- ~/Library/Caches/org.swift.swiftpm/     # SwiftPM system cache
 ```
 
 
@@ -2975,7 +3028,7 @@ swift-build automatically implements platform-specific caching:
 
 ### Migration from swift-actions/setup-swift
 
-#### Basic SPM Package Migration
+#### Basic SwiftPM Package Migration
 
 **Before (swift-actions/setup-swift):**
 ```yaml
@@ -3429,7 +3482,7 @@ jobs:
 #### Step 4: Test and Validate
 1. **Run locally first:** Test your scheme names with `swift package describe` or `xcodebuild -list`
 2. **Start with basic configuration:** Remove optional parameters initially
-3. **Add complexity gradually:** Start with SPM, then add Apple platforms
+3. **Add complexity gradually:** Start with SwiftPM, then add Apple platforms
 4. **Verify caching works:** Check action logs for cache hit/miss information
 
 ### Common Migration Scenarios
@@ -3491,7 +3544,7 @@ jobs:
 
 **Before (manual cache configuration):**
 ```yaml
-- name: Cache SPM Dependencies
+- name: Cache SwiftPM Dependencies
   uses: actions/cache@v4
   with:
     path: |
@@ -3537,7 +3590,7 @@ jobs:
 
 **✅ Valid Combinations:**
 ```yaml
-# SPM build (cross-platform)
+# SwiftPM build (cross-platform)
 scheme: MyPackage
 # No other parameters needed
 
