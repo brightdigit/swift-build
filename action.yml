@@ -296,37 +296,6 @@ inputs:
     required: false
     default: 'false'
 
-  # Test result parsing
-  # When enabled, parses test output and extracts test statistics (total, passed, failed, skipped)
-  # Provides structured test count outputs that can be used for validation and reporting
-  # Works with SwiftPM, Xcode, and Wasm builds (not applicable for Android or build-only mode)
-  # Default: 'false' (parsing disabled)
-  parse-test-results:
-    description: 'Parse test output and extract test statistics'
-    required: false
-    default: 'false'
-
-  # Expected test count for validation
-  # When specified together with parse-test-results, validates that the actual test count matches
-  # Fails the workflow if the actual count doesn't match the expected count
-  # Useful for preventing accidental test skipping or configuration issues
-  # Leave empty to skip validation (parsing still occurs if parse-test-results is enabled)
-  expected-test-count:
-    description: 'Expected total number of tests (fails if actual count does not match)'
-    required: false
-    default: ''
-
-  # Fail on parsing errors
-  # Controls behavior when test output parsing fails (when parse-test-results is enabled)
-  # When 'false' (default): Logs warning and continues workflow
-  # When 'true': Fails the workflow immediately on parsing errors
-  # Note: Test count validation failures always fail the workflow regardless of this setting
-  # Default: 'false' (continue on parsing errors)
-  fail-on-parse-error:
-    description: 'Fail the workflow if test output parsing fails'
-    required: false
-    default: 'false'
-
 outputs:
   # Indicates whether this build contains code coverage data
   # Returns 'true' for SPM and Xcode builds with tests enabled
@@ -335,46 +304,6 @@ outputs:
   contains-code-coverage:
     description: 'Whether this build contains code coverage data'
     value: ${{ steps.set-coverage-flag.outputs.enabled }}
-
-  # Test result statistics (available when parse-test-results is enabled)
-  # These outputs are empty if parsing is disabled, failed, or not applicable
-  # Check test-parsing-status to determine if outputs are valid
-
-  # Total number of tests executed
-  # Sum of passed, failed, and skipped tests
-  # For Wasm "both" mode, includes tests from both Swift Testing and XCTest frameworks
-  test-total:
-    description: 'Total number of tests executed (empty if parsing disabled or failed)'
-    value: ${{ steps.parse-test-output.outputs.total || steps.parse-test-output-na.outputs.total }}
-
-  # Number of tests that passed
-  # Tests that completed successfully without failures or errors
-  test-passed:
-    description: 'Number of tests that passed (empty if parsing disabled or failed)'
-    value: ${{ steps.parse-test-output.outputs.passed || steps.parse-test-output-na.outputs.passed }}
-
-  # Number of tests that failed
-  # Tests that encountered failures or assertion errors
-  test-failed:
-    description: 'Number of tests that failed (empty if parsing disabled or failed)'
-    value: ${{ steps.parse-test-output.outputs.failed || steps.parse-test-output-na.outputs.failed }}
-
-  # Number of tests that were skipped
-  # Tests marked as skipped or disabled (Swift Testing only, XCTest doesn't report skipped)
-  test-skipped:
-    description: 'Number of tests that were skipped (empty if parsing disabled or failed)'
-    value: ${{ steps.parse-test-output.outputs.skipped || steps.parse-test-output-na.outputs.skipped }}
-
-  # Test parsing status indicator
-  # Values: 'success', 'failed', 'disabled', 'not-applicable', 'validation-failed'
-  # - success: Parsing succeeded, test count outputs are valid
-  # - failed: Parsing failed, outputs are empty
-  # - disabled: parse-test-results is false
-  # - not-applicable: Android builds or build-only mode (parsing not supported)
-  # - validation-failed: Test count doesn't match expected-test-count
-  test-parsing-status:
-    description: 'Test parsing status (success, failed, disabled, not-applicable, validation-failed)'
-    value: ${{ steps.parse-test-output.outputs.parsing-status || steps.parse-test-output-na.outputs.parsing-status }}
 
 runs:
   using: "composite"
@@ -1462,13 +1391,7 @@ runs:
           swift build --cache-path .cache $RESOLVED_FLAG
         else
           swift build --build-tests --cache-path .cache $RESOLVED_FLAG
-
-          # Capture test output when parsing enabled
-          if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG 2>&1 | tee "$RUNNER_TEMP/test-output.txt"
-          else
-            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
-          fi
+          swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
         fi
 
     # Wasm Build and Test Execution (WebAssembly Builds)
@@ -1864,45 +1787,24 @@ runs:
                 swift-testing)
                   # Swift Testing only
                   echo "  Using Swift Testing framework"
-                  if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee -a "$RUNNER_TEMP/test-output.txt"
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
-                  fi
+                  wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
                   ;;
 
                 xctest)
                   # XCTest only (no --testing-library flag)
                   echo "  Using XCTest framework"
-                  if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$RUNNER_TEMP/test-output.txt"
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
-                  fi
+                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
                   ;;
 
                 both)
                   # Run twice - once for each framework (fail if either fails)
                   echo "  Running with Swift Testing framework..."
                   SWIFT_TESTING_EXIT=0
-                  if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$RUNNER_TEMP/test-output-swift-testing.txt" || SWIFT_TESTING_EXIT=$?
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
-                  fi
+                  wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
 
                   echo "  Running with XCTest framework..."
                   XCTEST_EXIT=0
-                  if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$RUNNER_TEMP/test-output-xctest.txt" || XCTEST_EXIT=$?
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
-                  fi
-
-                  # Merge outputs for parser (both mode)
-                  if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    cat "$RUNNER_TEMP/test-output-swift-testing.txt" "$RUNNER_TEMP/test-output-xctest.txt" > "$RUNNER_TEMP/test-output.txt"
-                  fi
+                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
 
                   # Fail if either framework failed
                   if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
@@ -1914,11 +1816,7 @@ runs:
                 none)
                   # No testing library flags (for custom test harnesses)
                   echo "  Running without testing library flags"
-                  if [ "${{ inputs.parse-test-results }}" = "true" ]; then
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$RUNNER_TEMP/test-output.txt"
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
-                  fi
+                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
                   ;;
 
                 *)
@@ -2005,12 +1903,7 @@ runs:
           # Execute with xcbeautify and proper pipe failure handling
           # Use set -o pipefail to ensure xcodebuild failures are not masked by xcbeautify success
           set -o pipefail
-          # Capture test output when parsing enabled
-          if [ "${{ inputs.parse-test-results }}" = "true" ] && [ "${{ inputs.build-only }}" != "true" ]; then
-            eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD | tee $RUNNER_TEMP/test-output.txt"
-          else
-            eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
-          fi
+          eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
           # Capture exit code to ensure build failures are properly reported
           BUILD_EXIT_CODE=$?
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
@@ -2019,92 +1912,7 @@ runs:
           fi
         else
           # Execute without xcbeautify
-          # Capture test output when parsing enabled
-          if [ "${{ inputs.parse-test-results }}" = "true" ] && [ "${{ inputs.build-only }}" != "true" ]; then
-            eval "$XCODEBUILD_CMD 2>&1 | tee $RUNNER_TEMP/test-output.txt"
-          else
-            eval "$XCODEBUILD_CMD"
-          fi
-        fi
-
-    # Parse Test Results
-    # This step parses test output and extracts test statistics when enabled
-    # Provides structured test count outputs for validation and reporting
-    # Automatically detects platform type (spm, xcode, wasm, wasm-both)
-    # Validates test counts against expected values if specified
-    - name: Parse Test Results
-      if: inputs.parse-test-results == 'true' && inputs.build-only != 'true' && steps.detect-os.outputs.os != 'android'
-      id: parse-test-output
-      shell: bash
-      continue-on-error: ${{ inputs.fail-on-parse-error != 'true' }}
-      run: |
-        # Determine platform type for parser
-        if [[ "${{ steps.detect-os.outputs.os }}" == "wasm" ]]; then
-          if [[ "${{ steps.detect-wasm-testing.outputs.mode }}" == "both" ]]; then
-            PLATFORM="wasm-both"
-          else
-            PLATFORM="wasm"
-          fi
-        elif [[ "${{ steps.detect-os.outputs.os }}" == "macos" ]] && [[ -n "${{ inputs.type }}" ]]; then
-          PLATFORM="xcode"
-        else
-          PLATFORM="spm"
-        fi
-
-        echo "Parsing test output (platform: $PLATFORM)"
-
-        # Run parser script
-        PARSER_OUTPUT=$("$GITHUB_ACTION_PATH/scripts/parse-test-output.sh" "$PLATFORM" "$RUNNER_TEMP/test-output.txt" "${{ inputs.expected-test-count }}")
-        PARSER_EXIT=$?
-
-        if [[ $PARSER_EXIT -eq 0 ]]; then
-          # Success - extract and output results
-          echo "$PARSER_OUTPUT" >> $GITHUB_OUTPUT
-          echo "parsing-status=success" >> $GITHUB_OUTPUT
-
-          TOTAL=$(echo "$PARSER_OUTPUT" | grep "^total=" | cut -d= -f2)
-          PASSED=$(echo "$PARSER_OUTPUT" | grep "^passed=" | cut -d= -f2)
-          FAILED=$(echo "$PARSER_OUTPUT" | grep "^failed=" | cut -d= -f2)
-          SKIPPED=$(echo "$PARSER_OUTPUT" | grep "^skipped=" | cut -d= -f2)
-
-          echo "✓ Test Results: Total=$TOTAL, Passed=$PASSED, Failed=$FAILED, Skipped=$SKIPPED"
-
-        elif [[ $PARSER_EXIT -eq 2 ]]; then
-          # Validation failure - always fail
-          echo "parsing-status=validation-failed" >> $GITHUB_OUTPUT
-          echo "ERROR: Test count validation failed" >&2
-          exit 1
-
-        else
-          # Parsing error
-          echo "parsing-status=failed" >> $GITHUB_OUTPUT
-          echo "WARNING: Test output parsing failed" >&2
-          if [ "${{ inputs.fail-on-parse-error }}" = "true" ]; then
-            exit 1
-          fi
-        fi
-
-    # Set Parsing Status (Not Applicable)
-    # This step sets the parsing status for cases where parsing is disabled or not applicable
-    # Used for Android builds, build-only mode, and when parsing is explicitly disabled
-    - name: Set Parsing Status (Not Applicable)
-      if: |
-        (inputs.parse-test-results != 'true') ||
-        (inputs.build-only == 'true') ||
-        (steps.detect-os.outputs.os == 'android')
-      id: parse-test-output-na
-      shell: bash
-      run: |
-        if [[ "${{ inputs.parse-test-results }}" != "true" ]]; then
-          echo "parsing-status=disabled" >> $GITHUB_OUTPUT
-          echo "Test parsing: disabled"
-        else
-          echo "parsing-status=not-applicable" >> $GITHUB_OUTPUT
-          if [[ "${{ steps.detect-os.outputs.os }}" == "android" ]]; then
-            echo "Test parsing: not applicable (Android builds handled by external action)"
-          else
-            echo "Test parsing: not applicable (build-only mode)"
-          fi
+          eval "$XCODEBUILD_CMD"
         fi
 
     # Restore Package.resolved after build/test completion

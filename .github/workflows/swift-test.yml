@@ -356,7 +356,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
-        id: build-test
         with:
           working-directory: test/MixedFrameworkPackage
           scheme: MixedFrameworkPackage-Package
@@ -367,24 +366,6 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           skip-package-resolved: "true"
-          parse-test-results: "true"
-          expected-test-count: "17"
-          fail-on-parse-error: "true"
-
-      - name: Verify Test Count
-        if: steps.build-test.outputs.parsing-status == 'success'
-        shell: bash
-        run: |
-          echo "✓ Test Results:"
-          echo "  Total: ${{ steps.build-test.outputs.test-total }}"
-          echo "  Passed: ${{ steps.build-test.outputs.test-passed }}"
-          echo "  Failed: ${{ steps.build-test.outputs.test-failed }}"
-          echo "  Skipped: ${{ steps.build-test.outputs.test-skipped }}"
-
-          if [[ "${{ steps.build-test.outputs.test-total }}" != "17" ]]; then
-            echo "ERROR: Expected 17 tests, got ${{ steps.build-test.outputs.test-total }}"
-            exit 1
-          fi
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -505,31 +486,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
-        id: build-test
         with:
           working-directory: test/MixedFrameworkPackage
           scheme: MixedFrameworkPackage
           use-xcbeautify: "true"
           skip-package-resolved: "true"
-          parse-test-results: "true"
-          expected-test-count: "17"
-          fail-on-parse-error: "true"
-
-      - name: Verify Test Count
-        if: steps.build-test.outputs.parsing-status == 'success'
-        shell: bash
-        run: |
-          echo "✓ Test Results:"
-          echo "  Total: ${{ steps.build-test.outputs.test-total }}"
-          echo "  Passed: ${{ steps.build-test.outputs.test-passed }}"
-          echo "  Failed: ${{ steps.build-test.outputs.test-failed }}"
-          echo "  Skipped: ${{ steps.build-test.outputs.test-skipped }}"
-
-          if [[ "${{ steps.build-test.outputs.test-total }}" != "17" ]]; then
-            echo "ERROR: Expected 17 tests, got ${{ steps.build-test.outputs.test-total }}"
-            exit 1
-          fi
-
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -605,7 +566,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
-        id: build-test
         with:
           working-directory: test/MixedFrameworkPackage
           scheme: MixedFrameworkPackage-Package
@@ -613,24 +573,6 @@ jobs:
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
           skip-package-resolved: "true"
-          parse-test-results: "true"
-          expected-test-count: "17"
-          fail-on-parse-error: "true"
-
-      - name: Verify Test Count
-        if: steps.build-test.outputs.parsing-status == 'success'
-        shell: bash
-        run: |
-          echo "✓ Test Results:"
-          echo "  Total: ${{ steps.build-test.outputs.test-total }}"
-          echo "  Passed: ${{ steps.build-test.outputs.test-passed }}"
-          echo "  Failed: ${{ steps.build-test.outputs.test-failed }}"
-          echo "  Skipped: ${{ steps.build-test.outputs.test-skipped }}"
-
-          if [[ "${{ steps.build-test.outputs.test-total }}" != "17" ]]; then
-            echo "ERROR: Expected 17 tests, got ${{ steps.build-test.outputs.test-total }}"
-            exit 1
-          fi
 
   test-dependency-package-resolved-v3-success:
     name: Test Dependency Package (Ubuntu, Swift 5.10+)
@@ -1381,7 +1323,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
-        id: build-test
         with:
           working-directory: test/MixedFrameworkPackage
           scheme: MixedFrameworkPackage-Package
@@ -1391,21 +1332,3 @@ jobs:
           wasm-swift-flags: ${{ matrix.wasm-swift-flags }}
           wasmtime-version: ${{ matrix.wasmtime-version }}
           build-only: ${{ matrix.build-only }}
-          parse-test-results: "true"
-          expected-test-count: "17"
-          fail-on-parse-error: "true"
-
-      - name: Verify Test Count
-        if: steps.build-test.outputs.parsing-status == 'success'
-        shell: bash
-        run: |
-          echo "✓ Test Results:"
-          echo "  Total: ${{ steps.build-test.outputs.test-total }}"
-          echo "  Passed: ${{ steps.build-test.outputs.test-passed }}"
-          echo "  Failed: ${{ steps.build-test.outputs.test-failed }}"
-          echo "  Skipped: ${{ steps.build-test.outputs.test-skipped }}"
-
-          if [[ "${{ steps.build-test.outputs.test-total }}" != "17" ]]; then
-            echo "ERROR: Expected 17 tests, got ${{ steps.build-test.outputs.test-total }}"
-            exit 1
-          fi
