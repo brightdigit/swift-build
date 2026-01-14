@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:brightdigit/MistKit.git
 	branch = swift-build-1.5.0-beta.2
-	commit = 7ae45ca456f5825ae0ad9273e0f43626c2fe96b8
-	parent = 345e79b4fe0fd96b2e1ec1300f04f04a8b83d182
+	commit = f71e8d0413ee20049ff1593eb19eef47ee6aedec
+	parent = 9e8271be058fbf8cce1f14f1799ee04cf8e41a58
 	method = merge
 	cmdver = 0.4.9
