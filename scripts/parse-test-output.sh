@@ -184,17 +184,40 @@ parse_wasm_both() {
   ST_SKIPPED=$(echo "$OUTPUT" | grep -oE "[0-9]+ skipped" | grep -oE "[0-9]+" | tail -1 || echo "0")
   ST_PASSED=$((ST_TOTAL - ST_FAILED - ST_SKIPPED))
 
-  # Parse XCTest section (use LAST "Executed" line for total)
-  XC_TOTAL=$(echo "$OUTPUT" | grep -oE "Executed [0-9]+ test" | grep -oE "[0-9]+" | tail -1 || echo "0")
+  # Parse XCTest section - sum all non-zero test counts
+  TOTALS=$(echo "$OUTPUT" | grep -oE "Executed [0-9]+ test" | grep -oE "[0-9]+" || echo "")
 
-  if [[ "$XC_TOTAL" -eq 0 ]]; then
+  if [[ -z "$TOTALS" ]]; then
     echo "ERROR: Cannot parse XCTest section in mixed output" >&2
     echo "Output excerpt:" >&2
     echo "$OUTPUT" | tail -30 >&2
     return 1
   fi
 
-  XC_FAILED=$(echo "$OUTPUT" | grep -oE "with [0-9]+ failure" | grep -oE "[0-9]+" | tail -1 || echo "0")
+  # Sum all non-zero test counts (filter out wrapper suite zeros)
+  XC_TOTAL=0
+  while IFS= read -r COUNT; do
+    if [[ "$COUNT" -gt 0 ]]; then
+      XC_TOTAL=$((XC_TOTAL + COUNT))
+    fi
+  done <<< "$TOTALS"
+
+  if [[ "$XC_TOTAL" -eq 0 ]]; then
+    echo "ERROR: All XCTest counts are zero in mixed output" >&2
+    echo "Output excerpt:" >&2
+    echo "$OUTPUT" | tail -30 >&2
+    return 1
+  fi
+
+  # Sum all failure counts
+  FAILURES=$(echo "$OUTPUT" | grep -oE "with [0-9]+ failure" | grep -oE "[0-9]+" || echo "")
+  XC_FAILED=0
+  while IFS= read -r COUNT; do
+    if [[ -n "$COUNT" ]]; then
+      XC_FAILED=$((XC_FAILED + COUNT))
+    fi
+  done <<< "$FAILURES"
+
   XC_PASSED=$((XC_TOTAL - XC_FAILED))
 
   # Sum results
