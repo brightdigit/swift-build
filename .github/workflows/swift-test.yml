@@ -535,8 +535,8 @@ jobs:
         with:
           working-directory: test/MixedFrameworkPackage
           scheme: MixedFrameworkPackage-Package
-          windows-swift-version: swift-6.2-RELEASE
-          windows-swift-build: swift-6.2-RELEASE
+          windows-swift-version: swift-6.2-branch
+          windows-swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
           use-xcbeautify: "true"
           skip-package-resolved: "true"
           save-test-output: 'true'
