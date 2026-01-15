@@ -296,14 +296,14 @@ inputs:
     required: false
     default: 'false'
 
-  # Save test output to working directory for artifact upload
-  # When enabled, test output is saved to files in the working directory
+  # Save test output to runner temp directory for artifact upload
+  # When enabled, test output is saved to files in $RUNNER_TEMP
   # Files created: test-output.txt (SPM/Xcode/Android) or wasm-xctest-output.txt + wasm-swift-testing-output.txt (Wasm)
   # Useful for test validation workflows that need to parse test counts or analyze output
-  # Output files are saved to working-directory (accessible for artifact upload)
+  # Output files are saved to $RUNNER_TEMP (accessible for artifact upload via ${{ runner.temp }})
   # Default: 'false' (output not saved, maintains existing behavior)
   save-test-output:
-    description: 'Save test output to working directory for artifact upload. Useful for test validation workflows.'
+    description: 'Save test output to runner temp directory for artifact upload. Useful for test validation workflows.'
     required: false
     default: 'false'
 
@@ -1400,7 +1400,7 @@ runs:
 
         # Configure output saving if enabled
         if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
-          OUTPUT_FILE="${{ inputs.working-directory }}/test-output.txt"
+          OUTPUT_FILE="${RUNNER_TEMP}/test-output.txt"
         fi
 
         if [ "${{ inputs.build-only }}" = "true" ]; then
@@ -1692,8 +1692,8 @@ runs:
 
             # Configure output saving if enabled
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
-              XCTEST_OUTPUT="${{ inputs.working-directory }}/wasm-xctest-output.txt"
-              SWIFT_TESTING_OUTPUT="${{ inputs.working-directory }}/wasm-swift-testing-output.txt"
+              XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
+              SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
             fi
 
             # Determine test execution strategy from detection step
@@ -1826,8 +1826,8 @@ runs:
 
             # Configure output saving if enabled
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
-              XCTEST_OUTPUT="${{ inputs.working-directory }}/wasm-xctest-output.txt"
-              SWIFT_TESTING_OUTPUT="${{ inputs.working-directory }}/wasm-swift-testing-output.txt"
+              XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
+              SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
             fi
 
             # Determine test execution strategy from detection step
@@ -1964,7 +1964,7 @@ runs:
 
         # Configure output saving if enabled
         if [[ "${{ inputs.save-test-output }}" == "true" && "${{ inputs.build-only }}" != "true" ]]; then
-          OUTPUT_FILE="${{ inputs.working-directory }}/test-output.txt"
+          OUTPUT_FILE="${RUNNER_TEMP}/test-output.txt"
         fi
 
         # Execute with or without xcbeautify

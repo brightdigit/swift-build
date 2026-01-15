@@ -373,7 +373,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-output-macos-${{ matrix.type || 'spm' }}-${{ matrix.runs-on }}
-          path: test/MixedFrameworkPackage/test-output.txt
+          path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
   test-single-target-ubuntu:
@@ -506,7 +506,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-output-ubuntu-${{ matrix.swift }}-${{ matrix.ubuntu }}${{ matrix.nightly && '-nightly' || '' }}
-          path: test/MixedFrameworkPackage/test-output.txt
+          path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
   test-single-target-windows:
@@ -597,7 +597,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-output-windows-${{ matrix.runs-on }}
-          path: test/MixedFrameworkPackage/test-output.txt
+          path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
   test-dependency-package-resolved-v3-success:
@@ -878,7 +878,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-output-android-${{ matrix.android-swift-version }}
-          path: test/MixedFrameworkPackage/test-output.txt
+          path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
   test-android-auto-detection:
@@ -1374,8 +1374,8 @@ jobs:
         with:
           name: test-output-wasm-${{ matrix.type }}-${{ matrix.runs-on }}${{ matrix.wasmtime-version && format('-wasmtime-{0}', matrix.wasmtime-version) || '' }}
           path: |
-            test/MixedFrameworkPackage/wasm-xctest-output.txt
-            test/MixedFrameworkPackage/wasm-swift-testing-output.txt
+            ${{ runner.temp }}/wasm-xctest-output.txt
+            ${{ runner.temp }}/wasm-swift-testing-output.txt
           retention-days: 1
 
   validate-mixed-framework-test-counts:
