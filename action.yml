@@ -296,6 +296,17 @@ inputs:
     required: false
     default: 'false'
 
+  # Save test output to working directory for artifact upload
+  # When enabled, test output is saved to files in the working directory
+  # Files created: test-output.txt (SPM/Xcode/Android) or wasm-xctest-output.txt + wasm-swift-testing-output.txt (Wasm)
+  # Useful for test validation workflows that need to parse test counts or analyze output
+  # Output files are saved to working-directory (accessible for artifact upload)
+  # Default: 'false' (output not saved, maintains existing behavior)
+  save-test-output:
+    description: 'Save test output to working directory for artifact upload. Useful for test validation workflows.'
+    required: false
+    default: 'false'
+
 outputs:
   # Indicates whether this build contains code coverage data
   # Returns 'true' for SPM and Xcode builds with tests enabled
@@ -1385,13 +1396,24 @@ runs:
           RESOLVED_FLAG=""
         else
           RESOLVED_FLAG="--force-resolved-versions"
-        fi        
+        fi
+
+        # Configure output saving if enabled
+        if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
+          OUTPUT_FILE="${{ inputs.working-directory }}/test-output.txt"
+        fi
 
         if [ "${{ inputs.build-only }}" = "true" ]; then
           swift build --cache-path .cache $RESOLVED_FLAG
         else
           swift build --build-tests --cache-path .cache $RESOLVED_FLAG
-          swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
+          # Run tests with optional output capture
+          if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
+            set -o pipefail
+            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG 2>&1 | tee "$OUTPUT_FILE"
+          else
+            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
+          fi
         fi
 
     # Wasm Build and Test Execution (WebAssembly Builds)
@@ -1668,6 +1690,12 @@ runs:
             echo "$TEST_BINARIES"
             echo ""
 
+            # Configure output saving if enabled
+            if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
+              XCTEST_OUTPUT="${{ inputs.working-directory }}/wasm-xctest-output.txt"
+              SWIFT_TESTING_OUTPUT="${{ inputs.working-directory }}/wasm-swift-testing-output.txt"
+            fi
+
             # Determine test execution strategy from detection step
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
@@ -1679,24 +1707,44 @@ runs:
                 swift-testing)
                   # Swift Testing only
                   echo "  Using Swift Testing framework"
-                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
+                    set -o pipefail
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT"
+                  else
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                  fi
                   ;;
 
                 xctest)
                   # XCTest only (no --testing-library flag)
                   echo "  Using XCTest framework"
-                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  if [[ -n "$XCTEST_OUTPUT" ]]; then
+                    set -o pipefail
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT"
+                  else
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  fi
                   ;;
 
                 both)
                   # Run twice - once for each framework (fail if either fails)
                   echo "  Running with Swift Testing framework..."
                   SWIFT_TESTING_EXIT=0
-                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
+                    set -o pipefail
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                  else
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                  fi
 
                   echo "  Running with XCTest framework..."
                   XCTEST_EXIT=0
-                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                  if [[ -n "$XCTEST_OUTPUT" ]]; then
+                    set -o pipefail
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                  else
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                  fi
 
                   # Fail if either framework failed
                   if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
@@ -1776,6 +1824,12 @@ runs:
             echo "$TEST_BINARIES"
             echo ""
 
+            # Configure output saving if enabled
+            if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
+              XCTEST_OUTPUT="${{ inputs.working-directory }}/wasm-xctest-output.txt"
+              SWIFT_TESTING_OUTPUT="${{ inputs.working-directory }}/wasm-swift-testing-output.txt"
+            fi
+
             # Determine test execution strategy from detection step
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
@@ -1787,24 +1841,44 @@ runs:
                 swift-testing)
                   # Swift Testing only
                   echo "  Using Swift Testing framework"
-                  wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
+                    set -o pipefail
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT"
+                  else
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                  fi
                   ;;
 
                 xctest)
                   # XCTest only (no --testing-library flag)
                   echo "  Using XCTest framework"
-                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  if [[ -n "$XCTEST_OUTPUT" ]]; then
+                    set -o pipefail
+                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT"
+                  else
+                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  fi
                   ;;
 
                 both)
                   # Run twice - once for each framework (fail if either fails)
                   echo "  Running with Swift Testing framework..."
                   SWIFT_TESTING_EXIT=0
-                  wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
+                    set -o pipefail
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                  else
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                  fi
 
                   echo "  Running with XCTest framework..."
                   XCTEST_EXIT=0
-                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                  if [[ -n "$XCTEST_OUTPUT" ]]; then
+                    set -o pipefail
+                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                  else
+                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                  fi
 
                   # Fail if either framework failed
                   if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
@@ -1888,6 +1962,11 @@ runs:
             -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
         fi
 
+        # Configure output saving if enabled
+        if [[ "${{ inputs.save-test-output }}" == "true" && "${{ inputs.build-only }}" != "true" ]]; then
+          OUTPUT_FILE="${{ inputs.working-directory }}/test-output.txt"
+        fi
+
         # Execute with or without xcbeautify
         if [ "${{ inputs.use-xcbeautify }}" = "true" ]; then
           # Set up unbuffered I/O for better xcbeautify output
@@ -1903,7 +1982,13 @@ runs:
           # Execute with xcbeautify and proper pipe failure handling
           # Use set -o pipefail to ensure xcodebuild failures are not masked by xcbeautify success
           set -o pipefail
-          eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
+          if [[ -n "$OUTPUT_FILE" ]]; then
+            # Save output and pipe through xcbeautify
+            eval "$XCODEBUILD_CMD 2>&1 | tee \"$OUTPUT_FILE\" | $XCBEAUTIFY_CMD"
+          else
+            # Just pipe through xcbeautify
+            eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
+          fi
           # Capture exit code to ensure build failures are properly reported
           BUILD_EXIT_CODE=$?
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
@@ -1912,7 +1997,12 @@ runs:
           fi
         else
           # Execute without xcbeautify
-          eval "$XCODEBUILD_CMD"
+          if [[ -n "$OUTPUT_FILE" ]]; then
+            set -o pipefail
+            eval "$XCODEBUILD_CMD 2>&1 | tee \"$OUTPUT_FILE\""
+          else
+            eval "$XCODEBUILD_CMD"
+          fi
         fi
 
     # Restore Package.resolved after build/test completion

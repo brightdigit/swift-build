@@ -366,6 +366,15 @@ jobs:
           download-platform: ${{ matrix['download-platform'] || 'false' }}
           use-xcbeautify: ${{ matrix['use-xcbeautify'] }}
           skip-package-resolved: "true"
+          save-test-output: 'true'
+
+      - name: Upload test output
+        if: matrix.build-only != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-macos-${{ matrix.type || 'spm' }}-${{ matrix.runs-on }}
+          path: test/MixedFrameworkPackage/test-output.txt
+          retention-days: 1
 
   test-single-target-ubuntu:
     name: Test Single Target Package (Ubuntu)
@@ -491,6 +500,15 @@ jobs:
           scheme: MixedFrameworkPackage
           use-xcbeautify: "true"
           skip-package-resolved: "true"
+          save-test-output: 'true'
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-ubuntu-${{ matrix.swift }}-${{ matrix.ubuntu }}${{ matrix.nightly && '-nightly' || '' }}
+          path: test/MixedFrameworkPackage/test-output.txt
+          retention-days: 1
+
   test-single-target-windows:
     name: Test Single Target Package (Windows)
     runs-on: ${{ matrix.runs-on }}
@@ -573,6 +591,14 @@ jobs:
           windows-swift-build: ${{ matrix.swift-build }}
           use-xcbeautify: "true"
           skip-package-resolved: "true"
+          save-test-output: 'true'
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-windows-${{ matrix.runs-on }}
+          path: test/MixedFrameworkPackage/test-output.txt
+          retention-days: 1
 
   test-dependency-package-resolved-v3-success:
     name: Test Dependency Package (Ubuntu, Swift 5.10+)
@@ -846,6 +872,14 @@ jobs:
           android-api-level: ${{ matrix.android-api-level }}
           android-run-tests: ${{ matrix.android-run-tests }}
           skip-package-resolved: "true"
+          save-test-output: 'true'
+
+      - name: Upload test output
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-android-${{ matrix.android-swift-version }}
+          path: test/MixedFrameworkPackage/test-output.txt
+          retention-days: 1
 
   test-android-auto-detection:
     name: Test Android Auto-Detection
@@ -1332,3 +1366,71 @@ jobs:
           wasm-swift-flags: ${{ matrix.wasm-swift-flags }}
           wasmtime-version: ${{ matrix.wasmtime-version }}
           build-only: ${{ matrix.build-only }}
+          save-test-output: 'true'
+
+      - name: Upload test output
+        if: matrix.build-only != true
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-wasm-${{ matrix.type }}-${{ matrix.runs-on }}${{ matrix.wasmtime-version && format('-wasmtime-{0}', matrix.wasmtime-version) || '' }}
+          path: |
+            test/MixedFrameworkPackage/wasm-xctest-output.txt
+            test/MixedFrameworkPackage/wasm-swift-testing-output.txt
+          retention-days: 1
+
+  validate-mixed-framework-test-counts:
+    name: Validate MixedFrameworkPackage Test Counts
+    runs-on: ubuntu-latest
+    needs:
+      - test-mixed-framework-macos
+      - test-mixed-framework-ubuntu
+      - test-mixed-framework-windows
+      - test-mixed-framework-android
+      - test-mixed-framework-wasm
+    if: always()  # Run even if some tests failed
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all test outputs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-output-*
+          path: test-outputs
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded test outputs:"
+          find test-outputs -type f -name "*.txt" | sort
+
+      - name: Validate combined outputs (SPM, Xcode, Ubuntu, Windows, Android)
+        run: |
+          echo "Validating combined test outputs..."
+          find test-outputs -type f -name "test-output.txt" | while read file; do
+            echo "Validating: $file"
+            cat "$file" | ./scripts/validate-test-output.sh combined
+          done
+
+      - name: Validate Wasm XCTest outputs
+        run: |
+          echo "Validating Wasm XCTest outputs..."
+          find test-outputs -type f -name "wasm-xctest-output.txt" | while read file; do
+            echo "Validating: $file"
+            cat "$file" | ./scripts/validate-test-output.sh xctest-only
+          done
+
+      - name: Validate Wasm Swift Testing outputs
+        run: |
+          echo "Validating Wasm Swift Testing outputs..."
+          find test-outputs -type f -name "wasm-swift-testing-output.txt" | while read file; do
+            echo "Validating: $file"
+            cat "$file" | ./scripts/validate-test-output.sh swift-testing-only
+          done
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✅ All MixedFrameworkPackage test counts validated successfully!"
+          echo ""
+          echo "Test outputs validated:"
+          find test-outputs -type f -name "*.txt" | wc -l | xargs echo "  - Total files:"
+          echo "  - All tests ran: 17 tests (8 XCTest + 9 Swift Testing)"
