@@ -465,26 +465,22 @@ jobs:
           retention-days: 1
 
   test-single-target-windows:
-    name: Test Single Target Package (Windows)
+    name: Test Single Target Package (Windows - Swift ${{ matrix.swift-version }}, ${{ matrix.runs-on }})
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         runs-on: [windows-2022, windows-2025]
         build-only: [false, true]
-        include:
-          - swift-version: swift-6.2-branch
-            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
-          - swift-version: swift-6.1-release
-            swift-build: 6.1-RELEASE
+        swift-version: ['6.2.3', '6.1']
     steps:
       - uses: actions/checkout@v4
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
-          windows-swift-version: ${{ matrix.swift-version }}
-          windows-swift-build: ${{ matrix.swift-build }}
+          windows-swift-version: swift-${{ matrix.swift-version }}-release
+          windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
           skip-package-resolved: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
@@ -495,26 +491,22 @@ jobs:
         run: ../../scripts/verify-build-only.sh windows . 
 
   test-multi-target-windows:
-    name: Test Multi-Target Package (Windows)
+    name: Test Multi-Target Package (Windows - Swift ${{ matrix.swift-version }}, ${{ matrix.runs-on }})
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         runs-on: [windows-2022, windows-2025]
         build-only: [false, true]
-        include:
-          - swift-version: swift-6.2-branch
-            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
-          - swift-version: swift-6.1-release
-            swift-build: 6.1-RELEASE
+        swift-version: ['6.2.3', '6.1']
     steps:
       - uses: actions/checkout@v4
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage-Package
-          windows-swift-version: ${{ matrix.swift-version }}
-          windows-swift-build: ${{ matrix.swift-build }}
+          windows-swift-version: swift-${{ matrix.swift-version }}-release
+          windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
           skip-package-resolved: "true"
@@ -525,18 +517,20 @@ jobs:
         run: ../../scripts/verify-build-only.sh windows .
 
   test-mixed-framework-windows:
-    name: Test Mixed-Framework Package (Windows)
+    name: Test Mixed-Framework Package (Windows - Swift ${{ matrix.swift-version }})
     runs-on: windows-2025
     strategy:
       fail-fast: false
+      matrix:
+        swift-version: ['6.2.3']
     steps:
       - uses: actions/checkout@v4
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
           scheme: MixedFrameworkPackage-Package
-          windows-swift-version: swift-6.2-branch
-          windows-swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          windows-swift-version: swift-${{ matrix.swift-version }}-release
+          windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
           skip-package-resolved: "true"
           save-test-output: 'true'
@@ -652,25 +646,21 @@ jobs:
           skip-package-resolved: "true"
 
   test-dependency-package-windows:
-    name: Test Dependency Package (Windows)
+    name: Test Dependency Package (Windows - Swift ${{ matrix.swift-version }}, ${{ matrix.runs-on }})
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         runs-on: [windows-2022, windows-2025]
-        include:
-          - swift-version: swift-6.2-branch
-            swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
-          - swift-version: swift-6.1-release
-            swift-build: 6.1-RELEASE
+        swift-version: ['6.2.3', '6.1']
     steps:
       - uses: actions/checkout@v4
       - uses: ./
         with:
           working-directory: test/DependencyPackage
           scheme: DependencyPackage-Package
-          windows-swift-version: ${{ matrix.swift-version }}
-          windows-swift-build: ${{ matrix.swift-build }}
+          windows-swift-version: swift-${{ matrix.swift-version }}-release
+          windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
           skip-package-resolved: "false"
 
