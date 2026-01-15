@@ -79,6 +79,57 @@ Failed build attempt with WASM embedded SDK.
 - WASM embedded is bare-bones environment without standard library
 - Demonstrates platform capability differences
 
+## Expected Test Counts
+
+The MixedFrameworkPackage contains a total of **17 tests**:
+
+### XCTest Tests (8 total)
+- **CalculatorXCTests**: 6 tests
+  - testAddition, testSubtraction, testMultiplication, testDivision, testDivisionByZero, testModulo
+- **UtilsXCTests**: 2 tests
+  - testIsEmpty, testTrimWhitespace
+
+### Swift Testing Tests (9 total)
+- **CalculatorSwiftTestingTests**: 5 tests
+  - Basic operations, Division edge cases, Modulo operations
+- **ValidatorSwiftTestingTests**: 4 tests
+  - Email validation, Age validation, Invalid cases
+
+### Per-File Expected Counts
+
+| File | XCTest | Swift Testing | Total |
+|------|--------|---------------|-------|
+| swift-test-output.txt | 8 | 9 | 17 |
+| xcodebuild-test-output.txt | 8 | 9 | 17 |
+| wasm-xctest-output.txt | 8 | 0 | 8 |
+| wasm-swift-testing-output.txt | 0 | 9 | 9 |
+| **WASM Combined** | 8 | 9 | 17 |
+
+**Note**: WASM can only run one testing framework per invocation, so the XCTest and Swift Testing outputs are separate files. When validating WASM, the combined total should be 17 tests.
+
+## Validating Test Counts
+
+A validation script is provided to verify that all test output files contain the expected test counts:
+
+```bash
+# From project root
+./scripts/validate-test-totals.sh
+
+# Or with explicit path
+./scripts/validate-test-totals.sh test/MixedFrameworkPackage/test/MixedFrameworkPackage/test-outputs
+```
+
+The script will:
+- Parse XCTest counts from "Executed N tests" lines
+- Parse Swift Testing counts from "Test run with N tests" lines
+- Validate that each file contains the expected counts
+- Report any discrepancies with clear error messages
+
+**Exit Codes**:
+- 0 = Success (all counts match)
+- 1 = Validation failure (counts don't match expected values)
+- 2 = Usage error (missing directory, file not found, etc.)
+
 ## Usage for Testing
 
 These outputs can be used to:
@@ -87,6 +138,7 @@ These outputs can be used to:
 3. Ensure correct test counting across different output formats
 4. Verify timestamp parsing for different formats
 5. Test error handling for build failures
+6. Validate that all tests are being discovered and executed
 
 ## Re-generating Outputs
 
