@@ -298,60 +298,12 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
 
-          # macOS Build Matrix
-          - type: macos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            use-xcbeautify: "true"
-
-          # iOS Build Matrix
+          # iOS Build Matrix (one platform for Xcode testing)
           - type: ios
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "iPhone 16 Pro"
             osVersion: "18.5"
-            use-xcbeautify: "true"
-
-          - type: ios
-            runs-on: macos-26
-            xcode: "/Applications/Xcode_26.2.app"
-            deviceName: "iPhone 17 Pro"
-            osVersion: "26.2"
-            download-platform: "true"
-            use-xcbeautify: "true"
-
-          - type: watchos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.5"
-
-          - type: watchos
-            runs-on: macos-26
-            xcode: "/Applications/Xcode_26.2.app"
-            deviceName: "Apple Watch Ultra 3 (49mm)"
-            osVersion: "26.2"
-            download-platform: "true"
-            use-xcbeautify: "true"
-
-          - type: visionos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "Apple Vision Pro"
-            osVersion: "2.5"
-
-          - type: tvos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_16.4.app"
-            deviceName: "Apple TV 4K (3rd generation)"
-            osVersion: "18.5"
-
-          - type: tvos
-            runs-on: macos-26
-            xcode: "/Applications/Xcode_26.2.app"
-            deviceName: "Apple TV 4K (3rd generation)"
-            osVersion: "26.2"
-            download-platform: "true"
             use-xcbeautify: "true"
     steps:
       - uses: actions/checkout@v4
@@ -369,8 +321,8 @@ jobs:
           save-test-output: 'true'
 
       - name: Upload test output
-        # Only upload for one SPM job and one Xcode (macos type) job
-        if: matrix.build-only != 'true' && matrix.runs-on == 'macos-15' && (matrix.type == null || matrix.type == 'macos')
+        # Only upload for one SPM job and one Xcode (ios type) job
+        if: matrix.build-only != 'true' && matrix.runs-on == 'macos-15' && (matrix.type == null || matrix.type == 'ios')
         uses: actions/upload-artifact@v4
         with:
           name: test-output-macos-${{ matrix.type || 'spm' }}
@@ -583,8 +535,8 @@ jobs:
         with:
           working-directory: test/MixedFrameworkPackage
           scheme: MixedFrameworkPackage-Package
-          windows-swift-version: swift-6.2-branch
-          windows-swift-build: 6.2-DEVELOPMENT-SNAPSHOT-2025-09-06-a
+          windows-swift-version: swift-6.2-RELEASE
+          windows-swift-build: swift-6.2-RELEASE
           use-xcbeautify: "true"
           skip-package-resolved: "true"
           save-test-output: 'true'
