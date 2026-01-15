@@ -1447,10 +1447,10 @@ runs:
       shell: bash
       id: validate-wasmtime-version
       run: |
-        WasmTIME_VERSION="${{ inputs.wasmtime-version }}"
+        WASMTIME_VERSION="${{ inputs.wasmtime-version }}"
 
         # Check if user is trying to use 'latest'
-        if [[ "$WasmTIME_VERSION" == "latest" ]]; then
+        if [[ "$WASMTIME_VERSION" == "latest" ]]; then
           echo ""
           echo "ERROR: wasmtime-version 'latest' is no longer supported"
           echo ""
@@ -1470,9 +1470,9 @@ runs:
         fi
 
         # Validate version format (should be X.Y.Z)
-        if [[ ! "$WasmTIME_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ ! "$WASMTIME_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           echo ""
-          echo "ERROR: Invalid Wasmtime version format: $WasmTIME_VERSION"
+          echo "ERROR: Invalid Wasmtime version format: $WASMTIME_VERSION"
           echo "Expected format: X.Y.Z (e.g., '27.0.0', '26.0.0')"
           echo ""
           echo "To find available versions, visit:"
@@ -1480,8 +1480,8 @@ runs:
           exit 1
         fi
 
-        echo "Using Wasmtime version: $WasmTIME_VERSION"
-        echo "wasmtime-version=$WasmTIME_VERSION" >> $GITHUB_OUTPUT
+        echo "Using Wasmtime version: $WASMTIME_VERSION"
+        echo "wasmtime-version=$WASMTIME_VERSION" >> $GITHUB_OUTPUT
 
     # Cache Wasmtime binary to avoid ~500MB download per run (only when using Wasmtime fallback)
     # Key includes validated version, OS, and architecture for platform-specific binaries
@@ -1604,21 +1604,21 @@ runs:
             # Method 1: Use $OSTYPE if available (bash built-in, fastest)
             if [[ -n "$OSTYPE" ]]; then
               if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
-                WasmTIME_PLATFORM="x86_64-linux"
+                WASMTIME_PLATFORM="x86_64-linux"
               elif [[ "$OSTYPE" == "darwin"* ]]; then
-                WasmTIME_PLATFORM="x86_64-macos"
+                WASMTIME_PLATFORM="x86_64-macos"
               fi
             fi
 
             # Method 2: Fallback to uname if OSTYPE didn't match or wasn't set
-            if [[ -z "$WasmTIME_PLATFORM" ]]; then
+            if [[ -z "$WASMTIME_PLATFORM" ]]; then
               UNAME_OS=$(uname -s)
               case "$UNAME_OS" in
                 Linux*)
-                  WasmTIME_PLATFORM="x86_64-linux"
+                  WASMTIME_PLATFORM="x86_64-linux"
                   ;;
                 Darwin*)
-                  WasmTIME_PLATFORM="x86_64-macos"
+                  WASMTIME_PLATFORM="x86_64-macos"
                   ;;
                 *)
                   echo ""
@@ -1637,46 +1637,46 @@ runs:
               esac
             fi
 
-            echo "Selected Wasmtime platform: $WasmTIME_PLATFORM"
+            echo "Selected Wasmtime platform: $WASMTIME_PLATFORM"
             echo ""
 
             # Use validated version from earlier step
-            WasmTIME_VERSION="${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}"
+            WASMTIME_VERSION="${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}"
 
-            WasmTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
-            WasmTIME_BIN="$WasmTIME_CACHE_DIR/wasmtime-v${WasmTIME_VERSION}-${WasmTIME_PLATFORM}/wasmtime"
+            WASMTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
+            WASMTIME_BIN="$WASMTIME_CACHE_DIR/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
 
             echo "Wasmtime configuration:"
-            echo "  Version: $WasmTIME_VERSION"
-            echo "  Platform: $WasmTIME_PLATFORM"
-            echo "  Binary path: $WasmTIME_BIN"
+            echo "  Version: $WASMTIME_VERSION"
+            echo "  Platform: $WASMTIME_PLATFORM"
+            echo "  Binary path: $WASMTIME_BIN"
             echo ""
 
             # Download Wasmtime if not cached
-            if [[ ! -f "$WasmTIME_BIN" ]]; then
-              echo "Downloading Wasmtime v${WasmTIME_VERSION} for ${WasmTIME_PLATFORM}..."
-              WasmTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WasmTIME_VERSION}/wasmtime-v${WasmTIME_VERSION}-${WasmTIME_PLATFORM}.tar.xz"
-              echo "Download URL: $WasmTIME_URL"
+            if [[ ! -f "$WASMTIME_BIN" ]]; then
+              echo "Downloading Wasmtime v${WASMTIME_VERSION} for ${WASMTIME_PLATFORM}..."
+              WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
+              echo "Download URL: $WASMTIME_URL"
 
-              mkdir -p "$WasmTIME_CACHE_DIR"
-              curl -L "$WasmTIME_URL" -o "$WasmTIME_CACHE_DIR/wasmtime.tar.xz"
-              tar -xf "$WasmTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WasmTIME_CACHE_DIR"
-              rm "$WasmTIME_CACHE_DIR/wasmtime.tar.xz"
+              mkdir -p "$WASMTIME_CACHE_DIR"
+              curl -L "$WASMTIME_URL" -o "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
+              tar -xf "$WASMTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WASMTIME_CACHE_DIR"
+              rm "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
             else
-              echo "Using cached Wasmtime v${WasmTIME_VERSION}"
+              echo "Using cached Wasmtime v${WASMTIME_VERSION}"
             fi
 
             # Verify installation
-            if [[ ! -f "$WasmTIME_BIN" ]]; then
+            if [[ ! -f "$WASMTIME_BIN" ]]; then
               echo ""
               echo "ERROR: Failed to find wasmtime binary at expected path"
-              echo "Expected: $WasmTIME_BIN"
+              echo "Expected: $WASMTIME_BIN"
               echo "Cache directory contents:"
-              ls -la "$WasmTIME_CACHE_DIR" 2>/dev/null || echo "  <directory not found>"
+              ls -la "$WASMTIME_CACHE_DIR" 2>/dev/null || echo "  <directory not found>"
               exit 1
             fi
 
-            echo "Wasmtime successfully installed at: $WasmTIME_BIN"
+            echo "Wasmtime successfully installed at: $WASMTIME_BIN"
             echo ""
 
             # Build tests
@@ -1726,10 +1726,10 @@ runs:
                   echo "  Using Swift Testing framework"
                   if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT"
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT"
                     set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS"
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS"
                   fi
                   ;;
 
@@ -1738,10 +1738,10 @@ runs:
                   echo "  Using XCTest framework"
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT"
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT"
                     set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
                   fi
                   ;;
 
@@ -1751,20 +1751,20 @@ runs:
                   SWIFT_TESTING_EXIT=0
                   if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
                     set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" || SWIFT_TESTING_EXIT=$?
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" || SWIFT_TESTING_EXIT=$?
                   fi
 
                   echo "  Running with XCTest framework..."
                   XCTEST_EXIT=0
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
                     set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" || XCTEST_EXIT=$?
+                    "$WASMTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" || XCTEST_EXIT=$?
                   fi
 
                   # Fail if either framework failed
@@ -1777,7 +1777,7 @@ runs:
                 none)
                   # No testing library flags (for custom test harnesses)
                   echo "  Running without testing library flags"
-                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
+                  "$WASMTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
                   ;;
 
                 *)
