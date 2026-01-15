@@ -1447,10 +1447,10 @@ runs:
       shell: bash
       id: validate-wasmtime-version
       run: |
-        WasmTIME_VERSION="${{ inputs.wasmtime-version }}"
+        WASMTIME_VERSION="${{ inputs.wasmtime-version }}"
 
         # Check if user is trying to use 'latest'
-        if [[ "$WasmTIME_VERSION" == "latest" ]]; then
+        if [[ "$WASMTIME_VERSION" == "latest" ]]; then
           echo ""
           echo "ERROR: wasmtime-version 'latest' is no longer supported"
           echo ""
@@ -1470,9 +1470,9 @@ runs:
         fi
 
         # Validate version format (should be X.Y.Z)
-        if [[ ! "$WasmTIME_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ ! "$WASMTIME_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           echo ""
-          echo "ERROR: Invalid Wasmtime version format: $WasmTIME_VERSION"
+          echo "ERROR: Invalid Wasmtime version format: $WASMTIME_VERSION"
           echo "Expected format: X.Y.Z (e.g., '27.0.0', '26.0.0')"
           echo ""
           echo "To find available versions, visit:"
@@ -1480,8 +1480,8 @@ runs:
           exit 1
         fi
 
-        echo "Using Wasmtime version: $WasmTIME_VERSION"
-        echo "wasmtime-version=$WasmTIME_VERSION" >> $GITHUB_OUTPUT
+        echo "Using Wasmtime version: $WASMTIME_VERSION"
+        echo "wasmtime-version=$WASMTIME_VERSION" >> $GITHUB_OUTPUT
 
     # Cache Wasmtime binary to avoid ~500MB download per run (only when using Wasmtime fallback)
     # Key includes validated version, OS, and architecture for platform-specific binaries
@@ -1507,6 +1507,18 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         MODE="${{ inputs.wasm-testing-library }}"
+
+        # Validate MODE is one of the allowed values (defense-in-depth)
+        case "$MODE" in
+          auto|swift-testing|xctest|both|none)
+            # Valid - proceed
+            ;;
+          *)
+            echo "ERROR: Invalid wasm-testing-library value: '$MODE'"
+            echo "Allowed values: auto, swift-testing, xctest, both, none"
+            exit 1
+            ;;
+        esac
 
         if [[ "$MODE" == "auto" ]]; then
           echo "Auto-detecting testing framework from source files..."
@@ -1573,6 +1585,98 @@ runs:
         else
           echo "Building and testing Wasm package..."
 
+          # Function: run_wasm_tests
+          # Purpose: Execute Wasm test binaries with specified runtime (Wasmtime or WasmKit)
+          # This function eliminates code duplication between Wasmtime and WasmKit execution paths
+          # Parameters:
+          #   $1 - Runtime command (e.g., "$WASMTIME_BIN" or "wasmkit run")
+          # Uses global variables:
+          #   TEST_BINARIES - Newline-separated list of test binary paths
+          #   TEST_MODE - Execution mode (swift-testing, xctest, both, none)
+          #   EXTRA_FLAGS - Additional flags from wasm-swift-test-flags input
+          #   XCTEST_OUTPUT - Output file path (optional, empty if not saving)
+          #   SWIFT_TESTING_OUTPUT - Output file path (optional, empty if not saving)
+          run_wasm_tests() {
+            local RUNTIME_CMD="$1"
+
+            while IFS= read -r TEST_BINARY; do
+              echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
+
+              case "$TEST_MODE" in
+                swift-testing)
+                  # Swift Testing only
+                  echo "  Using Swift Testing framework"
+                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
+                    # Enable pipefail to catch test failures when piping to tee
+                    # Without pipefail: "failing_command | tee file" returns 0 (tee's exit code)
+                    # With pipefail: returns the failing command's non-zero exit code
+                    # We toggle it on/off to avoid affecting other pipelines in the action
+                    set -o pipefail
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT"
+                    set +o pipefail
+                  else
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                  fi
+                  ;;
+
+                xctest)
+                  # XCTest only (no --testing-library flag)
+                  echo "  Using XCTest framework"
+                  if [[ -n "$XCTEST_OUTPUT" ]]; then
+                    # Enable pipefail to catch test failures (see swift-testing case for details)
+                    set -o pipefail
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$XCTEST_OUTPUT"
+                    set +o pipefail
+                  else
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  fi
+                  ;;
+
+                both)
+                  # Run twice - once for each framework (fail if either fails)
+                  echo "  Running with Swift Testing framework..."
+                  SWIFT_TESTING_EXIT=0
+                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
+                    # Enable pipefail to catch test failures (see swift-testing case for details)
+                    set -o pipefail
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                    set +o pipefail
+                  else
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                  fi
+
+                  echo "  Running with XCTest framework..."
+                  XCTEST_EXIT=0
+                  if [[ -n "$XCTEST_OUTPUT" ]]; then
+                    # Enable pipefail to catch test failures (see swift-testing case for details)
+                    set -o pipefail
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                    set +o pipefail
+                  else
+                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                  fi
+
+                  # Fail if either framework failed
+                  if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
+                    echo "ERROR: Tests failed (Swift Testing exit: $SWIFT_TESTING_EXIT, XCTest exit: $XCTEST_EXIT)"
+                    exit 1
+                  fi
+                  ;;
+
+                none)
+                  # No testing library flags (for custom test harnesses)
+                  echo "  Running without testing library flags"
+                  $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  ;;
+
+                *)
+                  echo "ERROR: Invalid testing mode: $TEST_MODE"
+                  exit 1
+                  ;;
+              esac
+            done <<< "$TEST_BINARIES"
+          }
+
           # Runtime selection based on wasmtime-version parameter
           if [[ -n "${{ inputs.wasmtime-version }}" ]]; then
             # WasmTIME FALLBACK (when wasmtime-version is explicitly specified)
@@ -1592,21 +1696,21 @@ runs:
             # Method 1: Use $OSTYPE if available (bash built-in, fastest)
             if [[ -n "$OSTYPE" ]]; then
               if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
-                WasmTIME_PLATFORM="x86_64-linux"
+                WASMTIME_PLATFORM="x86_64-linux"
               elif [[ "$OSTYPE" == "darwin"* ]]; then
-                WasmTIME_PLATFORM="x86_64-macos"
+                WASMTIME_PLATFORM="x86_64-macos"
               fi
             fi
 
             # Method 2: Fallback to uname if OSTYPE didn't match or wasn't set
-            if [[ -z "$WasmTIME_PLATFORM" ]]; then
+            if [[ -z "$WASMTIME_PLATFORM" ]]; then
               UNAME_OS=$(uname -s)
               case "$UNAME_OS" in
                 Linux*)
-                  WasmTIME_PLATFORM="x86_64-linux"
+                  WASMTIME_PLATFORM="x86_64-linux"
                   ;;
                 Darwin*)
-                  WasmTIME_PLATFORM="x86_64-macos"
+                  WASMTIME_PLATFORM="x86_64-macos"
                   ;;
                 *)
                   echo ""
@@ -1625,53 +1729,53 @@ runs:
               esac
             fi
 
-            echo "Selected Wasmtime platform: $WasmTIME_PLATFORM"
+            echo "Selected Wasmtime platform: $WASMTIME_PLATFORM"
             echo ""
 
             # Use validated version from earlier step
-            WasmTIME_VERSION="${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}"
+            WASMTIME_VERSION="${{ steps.validate-wasmtime-version.outputs.wasmtime-version }}"
 
-            WasmTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
-            WasmTIME_BIN="$WasmTIME_CACHE_DIR/wasmtime-v${WasmTIME_VERSION}-${WasmTIME_PLATFORM}/wasmtime"
+            WASMTIME_CACHE_DIR="${{ runner.temp }}/wasmtime"
+            WASMTIME_BIN="$WASMTIME_CACHE_DIR/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}/wasmtime"
 
             echo "Wasmtime configuration:"
-            echo "  Version: $WasmTIME_VERSION"
-            echo "  Platform: $WasmTIME_PLATFORM"
-            echo "  Binary path: $WasmTIME_BIN"
+            echo "  Version: $WASMTIME_VERSION"
+            echo "  Platform: $WASMTIME_PLATFORM"
+            echo "  Binary path: $WASMTIME_BIN"
             echo ""
 
             # Download Wasmtime if not cached
-            if [[ ! -f "$WasmTIME_BIN" ]]; then
-              echo "Downloading Wasmtime v${WasmTIME_VERSION} for ${WasmTIME_PLATFORM}..."
-              WasmTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WasmTIME_VERSION}/wasmtime-v${WasmTIME_VERSION}-${WasmTIME_PLATFORM}.tar.xz"
-              echo "Download URL: $WasmTIME_URL"
+            if [[ ! -f "$WASMTIME_BIN" ]]; then
+              echo "Downloading Wasmtime v${WASMTIME_VERSION} for ${WASMTIME_PLATFORM}..."
+              WASMTIME_URL="https://github.com/bytecodealliance/wasmtime/releases/download/v${WASMTIME_VERSION}/wasmtime-v${WASMTIME_VERSION}-${WASMTIME_PLATFORM}.tar.xz"
+              echo "Download URL: $WASMTIME_URL"
 
-              mkdir -p "$WasmTIME_CACHE_DIR"
-              curl -L "$WasmTIME_URL" -o "$WasmTIME_CACHE_DIR/wasmtime.tar.xz"
-              tar -xf "$WasmTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WasmTIME_CACHE_DIR"
-              rm "$WasmTIME_CACHE_DIR/wasmtime.tar.xz"
+              mkdir -p "$WASMTIME_CACHE_DIR"
+              curl -L "$WASMTIME_URL" -o "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
+              tar -xf "$WASMTIME_CACHE_DIR/wasmtime.tar.xz" -C "$WASMTIME_CACHE_DIR"
+              rm "$WASMTIME_CACHE_DIR/wasmtime.tar.xz"
             else
-              echo "Using cached Wasmtime v${WasmTIME_VERSION}"
+              echo "Using cached Wasmtime v${WASMTIME_VERSION}"
             fi
 
             # Verify installation
-            if [[ ! -f "$WasmTIME_BIN" ]]; then
+            if [[ ! -f "$WASMTIME_BIN" ]]; then
               echo ""
               echo "ERROR: Failed to find wasmtime binary at expected path"
-              echo "Expected: $WasmTIME_BIN"
+              echo "Expected: $WASMTIME_BIN"
               echo "Cache directory contents:"
-              ls -la "$WasmTIME_CACHE_DIR" 2>/dev/null || echo "  <directory not found>"
+              ls -la "$WASMTIME_CACHE_DIR" 2>/dev/null || echo "  <directory not found>"
               exit 1
             fi
 
-            echo "Wasmtime successfully installed at: $WasmTIME_BIN"
+            echo "Wasmtime successfully installed at: $WASMTIME_BIN"
             echo ""
 
             # Build tests
             echo "Building Wasm tests..."
             swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
 
-            # Find and run test binaries
+            # Find and validate test binaries
             echo "Searching for Wasm test binaries..."
             TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
 
@@ -1695,77 +1799,14 @@ runs:
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
               XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
               SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
+              > "$XCTEST_OUTPUT"
+              > "$SWIFT_TESTING_OUTPUT"
             fi
 
-            # Determine test execution strategy from detection step
+            # Run tests with Wasmtime runtime
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
-
-            while IFS= read -r TEST_BINARY; do
-              echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
-
-              case "$TEST_MODE" in
-                swift-testing)
-                  # Swift Testing only
-                  echo "  Using Swift Testing framework"
-                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
-                    set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT"
-                  else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
-                  fi
-                  ;;
-
-                xctest)
-                  # XCTest only (no --testing-library flag)
-                  echo "  Using XCTest framework"
-                  if [[ -n "$XCTEST_OUTPUT" ]]; then
-                    set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT"
-                  else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
-                  fi
-                  ;;
-
-                both)
-                  # Run twice - once for each framework (fail if either fails)
-                  echo "  Running with Swift Testing framework..."
-                  SWIFT_TESTING_EXIT=0
-                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
-                    set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
-                  else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
-                  fi
-
-                  echo "  Running with XCTest framework..."
-                  XCTEST_EXIT=0
-                  if [[ -n "$XCTEST_OUTPUT" ]]; then
-                    set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
-                  else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
-                  fi
-
-                  # Fail if either framework failed
-                  if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
-                    echo "ERROR: Tests failed (Swift Testing exit: $SWIFT_TESTING_EXIT, XCTest exit: $XCTEST_EXIT)"
-                    exit 1
-                  fi
-                  ;;
-
-                none)
-                  # No testing library flags (for custom test harnesses)
-                  echo "  Running without testing library flags"
-                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
-                  ;;
-
-                *)
-                  echo "ERROR: Invalid testing mode: $TEST_MODE"
-                  exit 1
-                  ;;
-              esac
-            done <<< "$TEST_BINARIES"
+            run_wasm_tests "$WASMTIME_BIN"
 
           else
             # WasmKIT DEFAULT (new default when no wasmtime-version specified)
@@ -1802,17 +1843,15 @@ runs:
             wasmkit --version
             echo ""
 
-            # Find all Wasm test binaries dynamically (supports any test target name)
+            # Find and validate test binaries
             echo "Searching for Wasm test binaries..."
             TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
 
-            # Fallback to .xctest if no .wasm found
             if [[ -z "$TEST_BINARIES" ]]; then
               echo "No .wasm test binaries found, searching for .xctest..."
               TEST_BINARIES=$(find .build -type f \( -name "*Tests.xctest" -o -name "*PackageTests.xctest" \) 2>/dev/null)
             fi
 
-            # Error if no test binaries found
             if [[ -z "$TEST_BINARIES" ]]; then
               echo "ERROR: No Wasm test binaries found"
               echo "Contents of .build/:"
@@ -1820,7 +1859,6 @@ runs:
               exit 1
             fi
 
-            # Run each test binary (supports multi-target packages)
             echo "Found test binaries:"
             echo "$TEST_BINARIES"
             echo ""
@@ -1829,77 +1867,14 @@ runs:
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
               XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
               SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
+              > "$XCTEST_OUTPUT"
+              > "$SWIFT_TESTING_OUTPUT"
             fi
 
-            # Determine test execution strategy from detection step
+            # Run tests with WasmKit runtime
             TEST_MODE="${{ steps.detect-wasm-testing.outputs.mode }}"
             EXTRA_FLAGS="${{ inputs.wasm-swift-test-flags }}"
-
-            while IFS= read -r TEST_BINARY; do
-              echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
-
-              case "$TEST_MODE" in
-                swift-testing)
-                  # Swift Testing only
-                  echo "  Using Swift Testing framework"
-                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
-                    set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT"
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
-                  fi
-                  ;;
-
-                xctest)
-                  # XCTest only (no --testing-library flag)
-                  echo "  Using XCTest framework"
-                  if [[ -n "$XCTEST_OUTPUT" ]]; then
-                    set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT"
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
-                  fi
-                  ;;
-
-                both)
-                  # Run twice - once for each framework (fail if either fails)
-                  echo "  Running with Swift Testing framework..."
-                  SWIFT_TESTING_EXIT=0
-                  if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
-                    set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
-                  fi
-
-                  echo "  Running with XCTest framework..."
-                  XCTEST_EXIT=0
-                  if [[ -n "$XCTEST_OUTPUT" ]]; then
-                    set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
-                  else
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
-                  fi
-
-                  # Fail if either framework failed
-                  if [[ $SWIFT_TESTING_EXIT -ne 0 ]] || [[ $XCTEST_EXIT -ne 0 ]]; then
-                    echo "ERROR: Tests failed (Swift Testing exit: $SWIFT_TESTING_EXIT, XCTest exit: $XCTEST_EXIT)"
-                    exit 1
-                  fi
-                  ;;
-
-                none)
-                  # No testing library flags (for custom test harnesses)
-                  echo "  Running without testing library flags"
-                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
-                  ;;
-
-                *)
-                  echo "ERROR: Invalid testing mode: $TEST_MODE"
-                  exit 1
-                  ;;
-              esac
-            done <<< "$TEST_BINARIES"
+            run_wasm_tests "wasmkit run"
           fi
         fi
 

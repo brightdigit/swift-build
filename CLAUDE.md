@@ -129,6 +129,20 @@ The action accepts these key inputs:
     - `xctest`: Force XCTest framework (no testing library flag)
     - `both`: Run tests twice (once for each framework, fails if either fails)
     - `none`: Run without testing library flags (for custom test harnesses)
+      - **When to use:**
+        - Custom test frameworks (not XCTest or Swift Testing)
+        - Test harnesses that provide their own command-line interface
+        - Debugging test execution without framework-specific flags
+        - Binary testing tools that don't expect testing library arguments
+      - **Example:**
+        ```yaml
+        - uses: YourOrg/swift-build@v2
+          with:
+            type: wasm
+            wasm-testing-library: 'none'  # No --testing-library flag
+            wasm-swift-test-flags: '--custom-flag --verbose'  # Custom harness flags
+        ```
+      - **Note:** Most projects should use `auto` mode instead. Only use `none` if you have a custom test framework.
   - `wasm-swift-test-flags` - Additional flags passed to test runner (WasmKit/Wasmtime)
     - Examples: `'--parallel'`, `'--filter TestSuiteName'`
     - Applied after `--testing-library` flag
@@ -157,6 +171,27 @@ The action supports:
 - **Android**: Swift 6.2+ with emulator testing (Ubuntu/Intel macOS) or build-only (ARM macOS)
 - **WebAssembly (Wasm)**: Swift 6.2+ with Wasmtime runtime (auto-cached binaries)
 - **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds, with optimized Wasmtime binary caching
+
+## Latest Platform Versions
+
+**Current Stable Release: Xcode 26.2** (Released: December 12, 2025)
+- **Swift Version:** 6.2.3
+- **Xcode Version:** 26.2 (Build 17C52)
+- **System Requirements:** macOS 15.6 or later
+
+**SDK Versions:**
+- **iOS:** 26.2 (Build 23C53)
+- **macOS:** 26.2 (Build 25C57)
+- **watchOS:** 26.2 (Build 23S303)
+- **tvOS:** 26.2 (Build 23K50)
+- **visionOS:** 26.2 (Build 23N301)
+
+**Recent Stable Releases:**
+- **Xcode 26.1.1** - Swift 6.2.1 (November 11, 2025)
+- **Xcode 26.1** - Swift 6.2.1 (November 3, 2025)
+- **Xcode 26.0.1** - Swift 6.2 (September 22, 2025)
+
+**Note:** Version information sourced from [xcodereleases.com](https://xcodereleases.com). For the most current releases and beta versions, refer to the live data.
 
 ## Test Package Architecture
 
