@@ -129,6 +129,20 @@ The action accepts these key inputs:
     - `xctest`: Force XCTest framework (no testing library flag)
     - `both`: Run tests twice (once for each framework, fails if either fails)
     - `none`: Run without testing library flags (for custom test harnesses)
+      - **When to use:**
+        - Custom test frameworks (not XCTest or Swift Testing)
+        - Test harnesses that provide their own command-line interface
+        - Debugging test execution without framework-specific flags
+        - Binary testing tools that don't expect testing library arguments
+      - **Example:**
+        ```yaml
+        - uses: YourOrg/swift-build@v2
+          with:
+            type: wasm
+            wasm-testing-library: 'none'  # No --testing-library flag
+            wasm-swift-test-flags: '--custom-flag --verbose'  # Custom harness flags
+        ```
+      - **Note:** Most projects should use `auto` mode instead. Only use `none` if you have a custom test framework.
   - `wasm-swift-test-flags` - Additional flags passed to test runner (WasmKit/Wasmtime)
     - Examples: `'--parallel'`, `'--filter TestSuiteName'`
     - Applied after `--testing-library` flag

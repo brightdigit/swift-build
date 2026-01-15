@@ -1508,6 +1508,18 @@ runs:
       run: |
         MODE="${{ inputs.wasm-testing-library }}"
 
+        # Validate MODE is one of the allowed values (defense-in-depth)
+        case "$MODE" in
+          auto|swift-testing|xctest|both|none)
+            # Valid - proceed
+            ;;
+          *)
+            echo "ERROR: Invalid wasm-testing-library value: '$MODE'"
+            echo "Allowed values: auto, swift-testing, xctest, both, none"
+            exit 1
+            ;;
+        esac
+
         if [[ "$MODE" == "auto" ]]; then
           echo "Auto-detecting testing framework from source files..."
 
@@ -1695,6 +1707,10 @@ runs:
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
               XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
               SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
+
+              # Clear files before loop starts (prevent accumulation across action runs)
+              > "$XCTEST_OUTPUT"
+              > "$SWIFT_TESTING_OUTPUT"
             fi
 
             # Determine test execution strategy from detection step
@@ -1710,9 +1726,10 @@ runs:
                   echo "  Using Swift Testing framework"
                   if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT"
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT"
+                    set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS"
                   fi
                   ;;
 
@@ -1721,9 +1738,10 @@ runs:
                   echo "  Using XCTest framework"
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT"
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT"
+                    set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
                   fi
                   ;;
 
@@ -1733,18 +1751,20 @@ runs:
                   SWIFT_TESTING_EXIT=0
                   if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                    set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" || SWIFT_TESTING_EXIT=$?
                   fi
 
                   echo "  Running with XCTest framework..."
                   XCTEST_EXIT=0
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     set -o pipefail
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                    set +o pipefail
                   else
-                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                    "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS" || XCTEST_EXIT=$?
                   fi
 
                   # Fail if either framework failed
@@ -1757,7 +1777,7 @@ runs:
                 none)
                   # No testing library flags (for custom test harnesses)
                   echo "  Running without testing library flags"
-                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  "$WasmTIME_BIN" --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
                   ;;
 
                 *)
@@ -1829,6 +1849,10 @@ runs:
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
               XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
               SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
+
+              # Clear files before loop starts (prevent accumulation across action runs)
+              > "$XCTEST_OUTPUT"
+              > "$SWIFT_TESTING_OUTPUT"
             fi
 
             # Determine test execution strategy from detection step
@@ -1844,9 +1868,10 @@ runs:
                   echo "  Using Swift Testing framework"
                   if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
                     set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT"
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT"
+                    set +o pipefail
                   else
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS"
                   fi
                   ;;
 
@@ -1855,9 +1880,10 @@ runs:
                   echo "  Using XCTest framework"
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT"
+                    wasmkit run --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT"
+                    set +o pipefail
                   else
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                    wasmkit run --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
                   fi
                   ;;
 
@@ -1867,18 +1893,20 @@ runs:
                   SWIFT_TESTING_EXIT=0
                   if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
                     set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                    set +o pipefail
                   else
-                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                    wasmkit run --dir . "$TEST_BINARY" --testing-library swift-testing "$EXTRA_FLAGS" || SWIFT_TESTING_EXIT=$?
                   fi
 
                   echo "  Running with XCTest framework..."
                   XCTEST_EXIT=0
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     set -o pipefail
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                    wasmkit run --dir . "$TEST_BINARY" "$EXTRA_FLAGS" 2>&1 | tee -a "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                    set +o pipefail
                   else
-                    wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                    wasmkit run --dir . "$TEST_BINARY" "$EXTRA_FLAGS" || XCTEST_EXIT=$?
                   fi
 
                   # Fail if either framework failed
@@ -1891,7 +1919,7 @@ runs:
                 none)
                   # No testing library flags (for custom test harnesses)
                   echo "  Running without testing library flags"
-                  wasmkit run --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  wasmkit run --dir . "$TEST_BINARY" "$EXTRA_FLAGS"
                   ;;
 
                 *)

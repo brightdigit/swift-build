@@ -55,21 +55,22 @@ fi
 parse_xctest_count() {
   local input="$1"
   local count
-  local all_tests_count
 
-  # Check if this looks like xcodebuild output (has multiple "Test Suite 'All tests'")
-  all_tests_count=$(echo "$input" | grep -c "Test Suite 'All tests'" 2>/dev/null || echo "0")
-  # Ensure we have a single number
-  all_tests_count=$(echo "$all_tests_count" | head -1)
-
-  if [[ ${all_tests_count:-0} -gt 2 ]]; then
-    # Xcodebuild output - sum all "All tests" bundle totals
+  # Detect xcodebuild format by checking for platform-specific markers
+  # Xcodebuild includes lines like: "Test Suite 'All tests' started at ..."
+  # AND "Test Suite 'Selected tests' ..."
+  # This is more robust than counting occurrences with arbitrary thresholds
+  if echo "$input" | grep -q "Test Suite 'Selected tests'" && \
+     echo "$input" | grep -q "Test Suite 'All tests'"; then
+    # Xcodebuild output detected - sum all "All tests" bundle totals
+    echo "DEBUG: Detected xcodebuild format" >&2
     count=$(echo "$input" | grep -A1 "Test Suite 'All tests' passed" 2>/dev/null | \
       grep -o 'Executed [0-9]\+ tests' | \
       grep -o '[0-9]\+' | \
       awk '{sum+=$1} END {print sum+0}')
   else
-    # Simple output - take last non-zero count
+    # SwiftPM/simple output - take last non-zero count
+    echo "DEBUG: Detected SwiftPM format" >&2
     count=$(echo "$input" | grep -o 'Executed [0-9]\+ tests' 2>/dev/null | \
       grep -o '[0-9]\+' | \
       grep -v '^0$' | \
