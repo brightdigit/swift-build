@@ -158,6 +158,27 @@ The action supports:
 - **WebAssembly (Wasm)**: Swift 6.2+ with Wasmtime runtime (auto-cached binaries)
 - **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds, with optimized Wasmtime binary caching
 
+## Latest Platform Versions
+
+**Current Stable Release: Xcode 26.2** (Released: December 12, 2025)
+- **Swift Version:** 6.2.3
+- **Xcode Version:** 26.2 (Build 17C52)
+- **System Requirements:** macOS 15.6 or later
+
+**SDK Versions:**
+- **iOS:** 26.2 (Build 23C53)
+- **macOS:** 26.2 (Build 25C57)
+- **watchOS:** 26.2 (Build 23S303)
+- **tvOS:** 26.2 (Build 23K50)
+- **visionOS:** 26.2 (Build 23N301)
+
+**Recent Stable Releases:**
+- **Xcode 26.1.1** - Swift 6.2.1 (November 11, 2025)
+- **Xcode 26.1** - Swift 6.2.1 (November 3, 2025)
+- **Xcode 26.0.1** - Swift 6.2 (September 22, 2025)
+
+**Note:** Version information sourced from [xcodereleases.com](https://xcodereleases.com). For the most current releases and beta versions, refer to the live data.
+
 ## Test Package Architecture
 
 - **SingleTargetPackage**: Simple single-target Swift package for basic validation
