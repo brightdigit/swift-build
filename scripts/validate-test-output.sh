@@ -56,14 +56,17 @@ parse_xctest_count() {
   local input="$1"
   local count
 
-  # Detect xcodebuild format by checking for platform-specific markers
-  # Xcodebuild includes lines like: "Test Suite 'All tests' started at ..."
-  # AND "Test Suite 'Selected tests' ..."
-  # This is more robust than counting occurrences with arbitrary thresholds
-  if echo "$input" | grep -q "Test Suite 'Selected tests'" && \
-     echo "$input" | grep -q "Test Suite 'All tests'"; then
+  # Detect xcodebuild format using hybrid approach:
+  # 1. Explicit markers (strict detection for macOS native): requires both "Selected tests" AND "All tests"
+  # 2. OR threshold-based detection (compatibility for iOS): multiple "All tests" occurrences (≥2)
+  # This ensures iOS compatibility (which lacks "Selected tests" marker) while maintaining strict detection for macOS
+  all_tests_count=$(echo "$input" | grep -c "Test Suite 'All tests'")
+
+  if (echo "$input" | grep -q "Test Suite 'Selected tests'" && \
+      echo "$input" | grep -q "Test Suite 'All tests'") || \
+     [[ ${all_tests_count:-0} -ge 2 ]]; then
     # Xcodebuild output detected - sum all "All tests" bundle totals
-    echo "DEBUG: Detected xcodebuild format" >&2
+    echo "DEBUG: Detected xcodebuild format (all_tests_count=$all_tests_count)" >&2
     count=$(echo "$input" | grep -A1 "Test Suite 'All tests' passed" 2>/dev/null | \
       grep -o 'Executed [0-9]\+ tests' | \
       grep -o '[0-9]\+' | \
