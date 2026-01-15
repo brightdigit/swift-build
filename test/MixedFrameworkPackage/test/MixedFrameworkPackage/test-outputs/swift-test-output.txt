@@ -1,0 +1,58 @@
+[0/1] Planning build
+Building for debugging...
+[0/2] Write swift-version-6A119754EB45594A.txt
+Build complete! (0.32s)
+Test Suite 'All tests' started at 2026-01-14 16:41:39.023.
+Test Suite 'MixedFrameworkPackagePackageTests.xctest' started at 2026-01-14 16:41:39.024.
+Test Suite 'CalculatorXCTests' started at 2026-01-14 16:41:39.024.
+Test Case '-[CalculatorXCTests.CalculatorXCTests testAddition]' started.
+Test Case '-[CalculatorXCTests.CalculatorXCTests testAddition]' passed (0.002 seconds).
+Test Case '-[CalculatorXCTests.CalculatorXCTests testDivision]' started.
+Test Case '-[CalculatorXCTests.CalculatorXCTests testDivision]' passed (0.000 seconds).
+Test Case '-[CalculatorXCTests.CalculatorXCTests testDivisionByZero]' started.
+Test Case '-[CalculatorXCTests.CalculatorXCTests testDivisionByZero]' passed (0.000 seconds).
+Test Case '-[CalculatorXCTests.CalculatorXCTests testEdgeCases]' started.
+Test Case '-[CalculatorXCTests.CalculatorXCTests testEdgeCases]' passed (0.000 seconds).
+Test Case '-[CalculatorXCTests.CalculatorXCTests testMultiplication]' started.
+Test Case '-[CalculatorXCTests.CalculatorXCTests testMultiplication]' passed (0.000 seconds).
+Test Case '-[CalculatorXCTests.CalculatorXCTests testSubtraction]' started.
+Test Case '-[CalculatorXCTests.CalculatorXCTests testSubtraction]' passed (0.000 seconds).
+Test Suite 'CalculatorXCTests' passed at 2026-01-14 16:41:39.028.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.003 (0.003) seconds
+Test Suite 'UtilsXCTests' started at 2026-01-14 16:41:39.028.
+Test Case '-[UtilsXCTests.UtilsXCTests testIsEmpty]' started.
+Test Case '-[UtilsXCTests.UtilsXCTests testIsEmpty]' passed (0.000 seconds).
+Test Case '-[UtilsXCTests.UtilsXCTests testTrimWhitespace]' started.
+Test Case '-[UtilsXCTests.UtilsXCTests testTrimWhitespace]' passed (0.000 seconds).
+Test Suite 'UtilsXCTests' passed at 2026-01-14 16:41:39.028.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'MixedFrameworkPackagePackageTests.xctest' passed at 2026-01-14 16:41:39.028.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'All tests' passed at 2026-01-14 16:41:39.028.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.2.3 (48a471ab313e858)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Suite "Calculator Swift Testing Suite" started.
+􀟈  Suite "Validator Swift Testing Suite" started.
+􀟈  Test "Subtraction works correctly" started.
+􀟈  Test "Addition works correctly" started.
+􀟈  Test "Division works correctly" started.
+􀟈  Test "Division by zero returns nil" started.
+􀟈  Test "Multiplication works correctly" started.
+􀟈  Test "Valid emails are accepted" started.
+􀟈  Test "Valid ages are accepted" started.
+􀟈  Test "Invalid ages are rejected" started.
+􀟈  Test "Invalid emails are rejected" started.
+􁁛  Test "Division works correctly" passed after 0.001 seconds.
+􁁛  Test "Valid emails are accepted" passed after 0.001 seconds.
+􁁛  Test "Subtraction works correctly" passed after 0.001 seconds.
+􁁛  Test "Division by zero returns nil" passed after 0.001 seconds.
+􁁛  Test "Invalid emails are rejected" passed after 0.001 seconds.
+􁁛  Test "Multiplication works correctly" passed after 0.001 seconds.
+􁁛  Test "Addition works correctly" passed after 0.001 seconds.
+􁁛  Test "Invalid ages are rejected" passed after 0.001 seconds.
+􁁛  Test "Valid ages are accepted" passed after 0.001 seconds.
+􁁛  Suite "Validator Swift Testing Suite" passed after 0.001 seconds.
+􁁛  Suite "Calculator Swift Testing Suite" passed after 0.001 seconds.
+􁁛  Test run with 9 tests in 2 suites passed after 0.001 seconds.

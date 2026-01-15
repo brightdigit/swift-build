@@ -1,0 +1,26 @@
+◇ Test run started.
+↳ Testing Library Version: 6.2.3 (48a471ab313e858)
+↳ Target Platform: wasm32-unknown-wasip
+◇ Suite "Validator Swift Testing Suite" started.
+◇ Suite "Calculator Swift Testing Suite" started.
+◇ Test "Invalid ages are rejected" started.
+◇ Test "Multiplication works correctly" started.
+✔ Test "Invalid ages are rejected" passed after 0.006112208 seconds.
+✔ Test "Multiplication works correctly" passed after 0.007184292 seconds.
+◇ Test "Addition works correctly" started.
+◇ Test "Subtraction works correctly" started.
+✔ Test "Addition works correctly" passed after 0.002674208 seconds.
+✔ Test "Subtraction works correctly" passed after 0.002672875 seconds.
+◇ Test "Division by zero returns nil" started.
+◇ Test "Division works correctly" started.
+✔ Test "Division by zero returns nil" passed after 0.002656625 seconds.
+✔ Test "Division works correctly" passed after 0.002638917 seconds.
+◇ Test "Valid ages are accepted" started.
+✔ Suite "Calculator Swift Testing Suite" passed after 0.015840959 seconds.
+◇ Test "Valid emails are accepted" started.
+✔ Test "Valid ages are accepted" passed after 0.008682416 seconds.
+◇ Test "Invalid emails are rejected" started.
+✔ Test "Valid emails are accepted" passed after 0.007681125 seconds.
+✔ Test "Invalid emails are rejected" passed after 0.001928167 seconds.
+✔ Suite "Validator Swift Testing Suite" passed after 0.030377958 seconds.
+✔ Test run with 9 tests in 2 suites passed after 0.037326333 seconds.
