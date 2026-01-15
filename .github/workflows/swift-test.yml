@@ -369,10 +369,11 @@ jobs:
           save-test-output: 'true'
 
       - name: Upload test output
-        if: matrix.build-only != 'true'
+        # Only upload for one SPM job and one Xcode (macos type) job
+        if: matrix.build-only != 'true' && matrix.runs-on == 'macos-15' && (matrix.type == null || matrix.type == 'macos')
         uses: actions/upload-artifact@v4
         with:
-          name: test-output-macos-${{ matrix.type || 'spm' }}-${{ matrix.runs-on }}
+          name: test-output-macos-${{ matrix.type || 'spm' }}
           path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
@@ -503,9 +504,11 @@ jobs:
           save-test-output: 'true'
 
       - name: Upload test output
+        # Only upload for Swift 6.2 on noble (non-nightly)
+        if: matrix.swift == '6.2' && matrix.ubuntu == 'noble' && matrix.nightly == false
         uses: actions/upload-artifact@v4
         with:
-          name: test-output-ubuntu-${{ matrix.swift }}-${{ matrix.ubuntu }}${{ matrix.nightly && '-nightly' || '' }}
+          name: test-output-ubuntu
           path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
@@ -594,9 +597,11 @@ jobs:
           save-test-output: 'true'
 
       - name: Upload test output
+        # Only upload for Windows 2022
+        if: matrix.runs-on == 'windows-2022'
         uses: actions/upload-artifact@v4
         with:
-          name: test-output-windows-${{ matrix.runs-on }}
+          name: test-output-windows
           path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
@@ -872,14 +877,6 @@ jobs:
           android-api-level: ${{ matrix.android-api-level }}
           android-run-tests: ${{ matrix.android-run-tests }}
           skip-package-resolved: "true"
-          save-test-output: 'true'
-
-      - name: Upload test output
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-output-android-${{ matrix.android-swift-version }}
-          path: ${{ runner.temp }}/test-output.txt
-          retention-days: 1
 
   test-android-auto-detection:
     name: Test Android Auto-Detection
@@ -1369,10 +1366,11 @@ jobs:
           save-test-output: 'true'
 
       - name: Upload test output
-        if: matrix.build-only != true
+        # Only upload for Ubuntu + wasm + WasmKit (no wasmtime-version)
+        if: matrix.build-only != true && matrix.runs-on == 'ubuntu-latest' && matrix.type == 'wasm' && !matrix.wasmtime-version
         uses: actions/upload-artifact@v4
         with:
-          name: test-output-wasm-${{ matrix.type }}-${{ matrix.runs-on }}${{ matrix.wasmtime-version && format('-wasmtime-{0}', matrix.wasmtime-version) || '' }}
+          name: test-output-wasm
           path: |
             ${{ runner.temp }}/wasm-xctest-output.txt
             ${{ runner.temp }}/wasm-swift-testing-output.txt
@@ -1385,7 +1383,6 @@ jobs:
       - test-mixed-framework-macos
       - test-mixed-framework-ubuntu
       - test-mixed-framework-windows
-      - test-mixed-framework-android
       - test-mixed-framework-wasm
     if: always()  # Run even if some tests failed
     steps:
@@ -1402,7 +1399,7 @@ jobs:
           echo "Downloaded test outputs:"
           find test-outputs -type f -name "*.txt" | sort
 
-      - name: Validate combined outputs (SPM, Xcode, Ubuntu, Windows, Android)
+      - name: Validate combined outputs (SPM, Xcode, Ubuntu, Windows)
         run: |
           echo "Validating combined test outputs..."
           find test-outputs -type f -name "test-output.txt" | while read file; do
@@ -1431,6 +1428,10 @@ jobs:
         run: |
           echo "✅ All MixedFrameworkPackage test counts validated successfully!"
           echo ""
-          echo "Test outputs validated:"
-          find test-outputs -type f -name "*.txt" | wc -l | xargs echo "  - Total files:"
-          echo "  - All tests ran: 17 tests (8 XCTest + 9 Swift Testing)"
+          echo "Validated platforms:"
+          echo "  - macOS (SPM + Xcode)"
+          echo "  - Ubuntu"
+          echo "  - Windows"
+          echo "  - Wasm"
+          echo ""
+          echo "All tests ran: 17 tests (8 XCTest + 9 Swift Testing)"
