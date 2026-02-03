@@ -805,7 +805,7 @@ runs:
 
         # The SDK download URL pattern from Swift.org
         # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
-        # TODO: Add checksum validation when Swift.org publishes checksums for Wasm SDKs
+        # TODO: Add checksum validation when Swift.org publishes checksums for Wasm SDKs (tracked in issue #82)
         SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
 
         echo "Downloading from: $SDK_URL"
@@ -1595,6 +1595,7 @@ runs:
           #   TEST_BINARIES - Newline-separated list of test binary paths
           #   TEST_MODE - Execution mode (swift-testing, xctest, both, none)
           #   EXTRA_FLAGS - Additional flags from wasm-swift-test-flags input (intentionally unquoted to allow multiple space-separated flags)
+          #                 This is safe because GitHub Actions inputs come from trusted YAML files (see CLAUDE.md Security Considerations)
           #   XCTEST_OUTPUT - Output file path (optional, empty if not saving)
           #   SWIFT_TESTING_OUTPUT - Output file path (optional, empty if not saving)
           run_wasm_tests() {
@@ -1698,40 +1699,86 @@ runs:
             ARCH=$(uname -m)
             echo "Detected architecture: $ARCH"
 
+            # Function: detect_wasmtime_platform
+            # Purpose: Map OS and architecture to Wasmtime platform identifier
+            # Parameters:
+            #   $1 - OS name (linux, darwin, Linux, Darwin - case insensitive)
+            #   $2 - Architecture (x86_64, aarch64, arm64)
+            # Returns: Sets WASMTIME_PLATFORM variable or exits with error
+            # Examples:
+            #   detect_wasmtime_platform "linux" "x86_64"     → WASMTIME_PLATFORM="x86_64-linux"
+            #   detect_wasmtime_platform "darwin" "arm64"     → WASMTIME_PLATFORM="aarch64-macos"
+            #   detect_wasmtime_platform "linux" "armv7l"     → ERROR (unsupported)
+            detect_wasmtime_platform() {
+              local os_name="$1"
+              local arch="$2"
+
+              # Normalize OS name to lowercase
+              os_name=$(echo "$os_name" | tr '[:upper:]' '[:lower:]')
+
+              case "$os_name" in
+                linux-gnu*|linux*)
+                  case "$arch" in
+                    x86_64)
+                      WASMTIME_PLATFORM="x86_64-linux"
+                      ;;
+                    aarch64|arm64)
+                      WASMTIME_PLATFORM="aarch64-linux"
+                      ;;
+                    *)
+                      echo ""
+                      echo "ERROR: Unsupported Linux architecture: $arch"
+                      echo ""
+                      echo "Supported architectures:"
+                      echo "  - x86_64 (Intel/AMD)"
+                      echo "  - aarch64/arm64 (ARM)"
+                      echo ""
+                      echo "Consider using WasmKit instead (supports more platforms)"
+                      exit 1
+                      ;;
+                  esac
+                  ;;
+                darwin*)
+                  case "$arch" in
+                    x86_64)
+                      WASMTIME_PLATFORM="x86_64-macos"
+                      ;;
+                    arm64)
+                      WASMTIME_PLATFORM="aarch64-macos"
+                      ;;
+                    *)
+                      echo ""
+                      echo "ERROR: Unsupported macOS architecture: $arch"
+                      echo ""
+                      echo "Supported architectures:"
+                      echo "  - x86_64 (Intel)"
+                      echo "  - arm64 (Apple Silicon)"
+                      echo ""
+                      echo "Consider using WasmKit instead (supports more platforms)"
+                      exit 1
+                      ;;
+                  esac
+                  ;;
+                *)
+                  echo ""
+                  echo "ERROR: Unsupported platform for Wasmtime: $os_name"
+                  echo ""
+                  echo "Supported platforms:"
+                  echo "  - Linux (x86_64, aarch64)"
+                  echo "  - macOS (x86_64, arm64)"
+                  echo ""
+                  echo "Consider using WasmKit instead (supports more platforms)"
+                  exit 1
+                  ;;
+              esac
+            }
+
             # Method 1: Use $OSTYPE if available (bash built-in, fastest)
             if [[ -n "$OSTYPE" ]]; then
               if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
-                if [[ "$ARCH" == "x86_64" ]]; then
-                  WASMTIME_PLATFORM="x86_64-linux"
-                elif [[ "$ARCH" == "aarch64" ]] || [[ "$ARCH" == "arm64" ]]; then
-                  WASMTIME_PLATFORM="aarch64-linux"
-                else
-                  echo ""
-                  echo "ERROR: Unsupported Linux architecture: $ARCH"
-                  echo ""
-                  echo "Supported architectures:"
-                  echo "  - x86_64 (Intel/AMD)"
-                  echo "  - aarch64/arm64 (ARM)"
-                  echo ""
-                  echo "Consider using WasmKit instead (supports more platforms)"
-                  exit 1
-                fi
+                detect_wasmtime_platform "linux" "$ARCH"
               elif [[ "$OSTYPE" == "darwin"* ]]; then
-                if [[ "$ARCH" == "x86_64" ]]; then
-                  WASMTIME_PLATFORM="x86_64-macos"
-                elif [[ "$ARCH" == "arm64" ]]; then
-                  WASMTIME_PLATFORM="aarch64-macos"
-                else
-                  echo ""
-                  echo "ERROR: Unsupported macOS architecture: $ARCH"
-                  echo ""
-                  echo "Supported architectures:"
-                  echo "  - x86_64 (Intel)"
-                  echo "  - arm64 (Apple Silicon)"
-                  echo ""
-                  echo "Consider using WasmKit instead (supports more platforms)"
-                  exit 1
-                fi
+                detect_wasmtime_platform "darwin" "$ARCH"
               fi
             fi
 
@@ -1740,38 +1787,10 @@ runs:
               UNAME_OS=$(uname -s)
               case "$UNAME_OS" in
                 Linux*)
-                  if [[ "$ARCH" == "x86_64" ]]; then
-                    WASMTIME_PLATFORM="x86_64-linux"
-                  elif [[ "$ARCH" == "aarch64" ]] || [[ "$ARCH" == "arm64" ]]; then
-                    WASMTIME_PLATFORM="aarch64-linux"
-                  else
-                    echo ""
-                    echo "ERROR: Unsupported Linux architecture: $ARCH"
-                    echo ""
-                    echo "Supported architectures:"
-                    echo "  - x86_64 (Intel/AMD)"
-                    echo "  - aarch64/arm64 (ARM)"
-                    echo ""
-                    echo "Consider using WasmKit instead (supports more platforms)"
-                    exit 1
-                  fi
+                  detect_wasmtime_platform "linux" "$ARCH"
                   ;;
                 Darwin*)
-                  if [[ "$ARCH" == "x86_64" ]]; then
-                    WASMTIME_PLATFORM="x86_64-macos"
-                  elif [[ "$ARCH" == "arm64" ]]; then
-                    WASMTIME_PLATFORM="aarch64-macos"
-                  else
-                    echo ""
-                    echo "ERROR: Unsupported macOS architecture: $ARCH"
-                    echo ""
-                    echo "Supported architectures:"
-                    echo "  - x86_64 (Intel)"
-                    echo "  - arm64 (Apple Silicon)"
-                    echo ""
-                    echo "Consider using WasmKit instead (supports more platforms)"
-                    exit 1
-                  fi
+                  detect_wasmtime_platform "darwin" "$ARCH"
                   ;;
                 *)
                   echo ""
