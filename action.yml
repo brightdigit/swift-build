@@ -1582,7 +1582,7 @@ runs:
 
         if [[ "${{ inputs.build-only }}" == "true" ]]; then
           echo "Building Wasm package (build-only mode)..."
-          swift build $SDK_FLAG --cache-path .cache $RESOLVED_FLAG "${{ inputs.wasm-swift-flags }}"
+          swift build $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
         else
           echo "Building and testing Wasm package..."
 
@@ -1835,7 +1835,7 @@ runs:
 
             # Build tests
             echo "Building Wasm tests..."
-            swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG "${{ inputs.wasm-swift-flags }}"
+            swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
 
             # Find and validate test binaries
             echo "Searching for Wasm test binaries..."
@@ -1885,7 +1885,7 @@ runs:
             # Note: Code coverage is NOT supported for Wasm targets
             # The Swift toolchain does not provide libclang_rt.profile-wasm32.a
             # Use the 'contains-code-coverage' output to conditionally skip coverage actions
-            swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG "${{ inputs.wasm-swift-flags }}"
+            swift build --build-tests $SDK_FLAG --cache-path .cache $RESOLVED_FLAG ${{ inputs.wasm-swift-flags }}
 
             # Verify WasmKit availability
             if ! command -v wasmkit >/dev/null 2>&1; then
