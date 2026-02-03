@@ -63,15 +63,6 @@ jobs:
             use-xcbeautify: "true"
 
           - type: ios
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_26.0.1.app"
-            deviceName: "iPhone 16 Pro"
-            osVersion: "26.0.1"
-            download-platform: "true"
-            use-xcbeautify: "true"
-            xcbeautify-renderer: "azure-devops-pipelines"
-
-          - type: ios
             runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             deviceName: "iPhone 17 Pro"
@@ -85,15 +76,6 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
-
-          - type: watchos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_26.0.1.app"
-            deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "26.0"
-            download-platform: "true"
-            use-xcbeautify: "true"
-            xcbeautify-renderer: "github-actions"
 
           - type: watchos
             runs-on: macos-26
@@ -115,14 +97,6 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "18.5"
-
-          - type: tvos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_26.0.1.app"
-            deviceName: "Apple TV 4K (3rd generation)"
-            osVersion: "26.0"
-            download-platform: "true"
-            use-xcbeautify: "true"
 
           - type: tvos
             runs-on: macos-26
@@ -192,15 +166,6 @@ jobs:
             xcbeautify-renderer: "github-actions"
 
           - type: ios
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_26.0.1.app"
-            deviceName: "iPhone 16 Pro"
-            osVersion: "18.5"
-            download-platform: "true"
-            use-xcbeautify: "true"
-            xcbeautify-renderer: "azure-devops-pipelines"
-
-          - type: ios
             runs-on: macos-26
             xcode: "/Applications/Xcode_26.2.app"
             deviceName: "iPhone 17 Pro"
@@ -214,15 +179,6 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple Watch Ultra 2 (49mm)"
             osVersion: "11.5"
-
-          - type: watchos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_26.0.1.app"
-            deviceName: "Apple Watch Ultra 2 (49mm)"
-            osVersion: "11.5"
-            download-platform: "true"
-            use-xcbeautify: "true"
-            xcbeautify-renderer: "github-actions"
 
           - type: watchos
             runs-on: macos-26
@@ -244,14 +200,6 @@ jobs:
             xcode: "/Applications/Xcode_16.4.app"
             deviceName: "Apple TV 4K (3rd generation)"
             osVersion: "18.5"
-
-          - type: tvos
-            runs-on: macos-15
-            xcode: "/Applications/Xcode_26.0.1.app"
-            deviceName: "Apple TV 4K (3rd generation)"
-            osVersion: "26.0"
-            download-platform: "true"
-            use-xcbeautify: "true"
 
           - type: tvos
             runs-on: macos-26
