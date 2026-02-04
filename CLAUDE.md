@@ -247,7 +247,3 @@ The action supports:
 - Test suites processing large data (XML, JSON, images) will need memory configuration
 - Pure Swift code without Foundation dependencies may work without flags
 - Start with the example configuration above and adjust as needed
-
-## Task Master AI Instructions
-**Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
-@./.taskmaster/CLAUDE.md
