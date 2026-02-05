@@ -805,6 +805,7 @@ runs:
 
         # The SDK download URL pattern from Swift.org
         # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
+        # TODO: Add checksum validation when Swift.org publishes checksums for Wasm SDKs (tracked in issue #82)
         SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
 
         echo "Downloading from: $SDK_URL"
@@ -1593,11 +1594,22 @@ runs:
           # Uses global variables:
           #   TEST_BINARIES - Newline-separated list of test binary paths
           #   TEST_MODE - Execution mode (swift-testing, xctest, both, none)
-          #   EXTRA_FLAGS - Additional flags from wasm-swift-test-flags input
+          #   EXTRA_FLAGS_ARRAY - Additional flags from wasm-swift-test-flags input, parsed into array for safe expansion
+          #                       Array usage prevents command injection while preserving multi-flag support
           #   XCTEST_OUTPUT - Output file path (optional, empty if not saving)
           #   SWIFT_TESTING_OUTPUT - Output file path (optional, empty if not saving)
           run_wasm_tests() {
-            local RUNTIME_CMD="$1"
+            # Parse runtime command into array to prevent command injection
+            # Example inputs: "$WASMTIME_BIN" (single path) or "wasmkit run" (multi-word command)
+            local -a RUNTIME_CMD
+            read -r -a RUNTIME_CMD <<< "$1"
+
+            # Parse extra flags into array for safe expansion
+            # Handles empty string, single flag, or space-separated multiple flags
+            local -a EXTRA_FLAGS_ARRAY=()
+            if [[ -n "$EXTRA_FLAGS" ]]; then
+              read -r -a EXTRA_FLAGS_ARRAY <<< "$EXTRA_FLAGS"
+            fi
 
             while IFS= read -r TEST_BINARY; do
               echo "Running tests: $TEST_BINARY (mode: $TEST_MODE)"
@@ -1612,10 +1624,10 @@ runs:
                     # With pipefail: returns the failing command's non-zero exit code
                     # We toggle it on/off to avoid affecting other pipelines in the action
                     set -o pipefail
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT"
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" --testing-library swift-testing "${EXTRA_FLAGS_ARRAY[@]}" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT"
                     set +o pipefail
                   else
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" --testing-library swift-testing "${EXTRA_FLAGS_ARRAY[@]}"
                   fi
                   ;;
 
@@ -1625,10 +1637,10 @@ runs:
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     # Enable pipefail to catch test failures (see swift-testing case for details)
                     set -o pipefail
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$XCTEST_OUTPUT"
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" "${EXTRA_FLAGS_ARRAY[@]}" 2>&1 | tee -a "$XCTEST_OUTPUT"
                     set +o pipefail
                   else
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" "${EXTRA_FLAGS_ARRAY[@]}"
                   fi
                   ;;
 
@@ -1639,10 +1651,10 @@ runs:
                   if [[ -n "$SWIFT_TESTING_OUTPUT" ]]; then
                     # Enable pipefail to catch test failures (see swift-testing case for details)
                     set -o pipefail
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" --testing-library swift-testing "${EXTRA_FLAGS_ARRAY[@]}" 2>&1 | tee -a "$SWIFT_TESTING_OUTPUT" || SWIFT_TESTING_EXIT=$?
                     set +o pipefail
                   else
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" --testing-library swift-testing $EXTRA_FLAGS || SWIFT_TESTING_EXIT=$?
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" --testing-library swift-testing "${EXTRA_FLAGS_ARRAY[@]}" || SWIFT_TESTING_EXIT=$?
                   fi
 
                   echo "  Running with XCTest framework..."
@@ -1650,10 +1662,10 @@ runs:
                   if [[ -n "$XCTEST_OUTPUT" ]]; then
                     # Enable pipefail to catch test failures (see swift-testing case for details)
                     set -o pipefail
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS 2>&1 | tee -a "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" "${EXTRA_FLAGS_ARRAY[@]}" 2>&1 | tee -a "$XCTEST_OUTPUT" || XCTEST_EXIT=$?
                     set +o pipefail
                   else
-                    $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS || XCTEST_EXIT=$?
+                    "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" "${EXTRA_FLAGS_ARRAY[@]}" || XCTEST_EXIT=$?
                   fi
 
                   # Fail if either framework failed
@@ -1666,7 +1678,7 @@ runs:
                 none)
                   # No testing library flags (for custom test harnesses)
                   echo "  Running without testing library flags"
-                  $RUNTIME_CMD --dir . "$TEST_BINARY" $EXTRA_FLAGS
+                  "${RUNTIME_CMD[@]}" --dir . "$TEST_BINARY" "${EXTRA_FLAGS_ARRAY[@]}"
                   ;;
 
                 *)
@@ -1693,12 +1705,90 @@ runs:
             echo "  Runner arch: ${{ runner.arch }}"
             echo "  OSTYPE: ${OSTYPE:-<unset>}"
 
+            # Detect architecture for platform-specific Wasmtime binary
+            ARCH=$(uname -m)
+            echo "Detected architecture: $ARCH"
+
+            # Function: detect_wasmtime_platform
+            # Purpose: Map OS and architecture to Wasmtime platform identifier
+            # Parameters:
+            #   $1 - OS name (linux, darwin, Linux, Darwin - case insensitive)
+            #   $2 - Architecture (x86_64, aarch64, arm64)
+            # Returns: Sets WASMTIME_PLATFORM variable or exits with error
+            # Examples:
+            #   detect_wasmtime_platform "linux" "x86_64"     → WASMTIME_PLATFORM="x86_64-linux"
+            #   detect_wasmtime_platform "darwin" "arm64"     → WASMTIME_PLATFORM="aarch64-macos"
+            #   detect_wasmtime_platform "linux" "armv7l"     → ERROR (unsupported)
+            detect_wasmtime_platform() {
+              local os_name="$1"
+              local arch="$2"
+
+              # Normalize OS name to lowercase
+              os_name=$(echo "$os_name" | tr '[:upper:]' '[:lower:]')
+
+              case "$os_name" in
+                linux-gnu*|linux*)
+                  case "$arch" in
+                    x86_64)
+                      WASMTIME_PLATFORM="x86_64-linux"
+                      ;;
+                    aarch64|arm64)
+                      WASMTIME_PLATFORM="aarch64-linux"
+                      ;;
+                    *)
+                      echo ""
+                      echo "ERROR: Unsupported Linux architecture: $arch"
+                      echo ""
+                      echo "Supported architectures:"
+                      echo "  - x86_64 (Intel/AMD)"
+                      echo "  - aarch64/arm64 (ARM)"
+                      echo ""
+                      echo "Consider using WasmKit instead (supports more platforms)"
+                      exit 1
+                      ;;
+                  esac
+                  ;;
+                darwin*)
+                  case "$arch" in
+                    x86_64)
+                      WASMTIME_PLATFORM="x86_64-macos"
+                      ;;
+                    arm64)
+                      WASMTIME_PLATFORM="aarch64-macos"
+                      ;;
+                    *)
+                      echo ""
+                      echo "ERROR: Unsupported macOS architecture: $arch"
+                      echo ""
+                      echo "Supported architectures:"
+                      echo "  - x86_64 (Intel)"
+                      echo "  - arm64 (Apple Silicon)"
+                      echo ""
+                      echo "Consider using WasmKit instead (supports more platforms)"
+                      exit 1
+                      ;;
+                  esac
+                  ;;
+                *)
+                  echo ""
+                  echo "ERROR: Unsupported platform for Wasmtime: $os_name"
+                  echo ""
+                  echo "Supported platforms:"
+                  echo "  - Linux (x86_64, aarch64)"
+                  echo "  - macOS (x86_64, arm64)"
+                  echo ""
+                  echo "Consider using WasmKit instead (supports more platforms)"
+                  exit 1
+                  ;;
+              esac
+            }
+
             # Method 1: Use $OSTYPE if available (bash built-in, fastest)
             if [[ -n "$OSTYPE" ]]; then
               if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "linux"* ]]; then
-                WASMTIME_PLATFORM="x86_64-linux"
+                detect_wasmtime_platform "linux" "$ARCH"
               elif [[ "$OSTYPE" == "darwin"* ]]; then
-                WASMTIME_PLATFORM="x86_64-macos"
+                detect_wasmtime_platform "darwin" "$ARCH"
               fi
             fi
 
@@ -1707,10 +1797,10 @@ runs:
               UNAME_OS=$(uname -s)
               case "$UNAME_OS" in
                 Linux*)
-                  WASMTIME_PLATFORM="x86_64-linux"
+                  detect_wasmtime_platform "linux" "$ARCH"
                   ;;
                 Darwin*)
-                  WASMTIME_PLATFORM="x86_64-macos"
+                  detect_wasmtime_platform "darwin" "$ARCH"
                   ;;
                 *)
                   echo ""
@@ -1718,10 +1808,11 @@ runs:
                   echo "Platform detection failed with:"
                   echo "  OSTYPE: ${OSTYPE:-<unset>}"
                   echo "  uname -s: $UNAME_OS"
+                  echo "  uname -m: $ARCH"
                   echo ""
                   echo "Supported platforms:"
-                  echo "  - Linux (x86_64)"
-                  echo "  - macOS (x86_64)"
+                  echo "  - Linux (x86_64, aarch64)"
+                  echo "  - macOS (x86_64, arm64)"
                   echo ""
                   echo "Consider using WasmKit instead (supports more platforms)"
                   exit 1
@@ -1780,8 +1871,12 @@ runs:
             TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
 
             if [[ -z "$TEST_BINARIES" ]]; then
+              # Defensive fallback - .xctest bundles shouldn't exist in Wasm builds
               echo "No .wasm test binaries found, searching for .xctest..."
               TEST_BINARIES=$(find .build -type f \( -name "*Tests.xctest" -o -name "*PackageTests.xctest" \) 2>/dev/null)
+              if [[ -n "$TEST_BINARIES" ]]; then
+                echo "::warning::Found .xctest bundles in Wasm build (unexpected - Wasm builds should produce .wasm files)"
+              fi
             fi
 
             if [[ -z "$TEST_BINARIES" ]]; then
@@ -1799,6 +1894,7 @@ runs:
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
               XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
               SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
+              # Truncate output files before test runs (tests run serially in run_wasm_tests, no concurrency issues)
               > "$XCTEST_OUTPUT"
               > "$SWIFT_TESTING_OUTPUT"
             fi
@@ -1848,8 +1944,12 @@ runs:
             TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
 
             if [[ -z "$TEST_BINARIES" ]]; then
+              # Defensive fallback - .xctest bundles shouldn't exist in Wasm builds
               echo "No .wasm test binaries found, searching for .xctest..."
               TEST_BINARIES=$(find .build -type f \( -name "*Tests.xctest" -o -name "*PackageTests.xctest" \) 2>/dev/null)
+              if [[ -n "$TEST_BINARIES" ]]; then
+                echo "::warning::Found .xctest bundles in Wasm build (unexpected - Wasm builds should produce .wasm files)"
+              fi
             fi
 
             if [[ -z "$TEST_BINARIES" ]]; then
@@ -1867,6 +1967,7 @@ runs:
             if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
               XCTEST_OUTPUT="${RUNNER_TEMP}/wasm-xctest-output.txt"
               SWIFT_TESTING_OUTPUT="${RUNNER_TEMP}/wasm-swift-testing-output.txt"
+              # Truncate output files before test runs (tests run serially in run_wasm_tests, no concurrency issues)
               > "$XCTEST_OUTPUT"
               > "$SWIFT_TESTING_OUTPUT"
             fi

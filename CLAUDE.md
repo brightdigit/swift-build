@@ -148,7 +148,9 @@ The action accepts these key inputs:
     - Applied after `--testing-library` flag
 
 **Security Considerations:**
-- **`wasm-swift-flags` and `wasm-swift-test-flags` Input Sanitization**: These parameters are directly interpolated into shell commands without sanitization. This is acceptable because GitHub Actions input parameters are sourced from workflow YAML files (trusted sources requiring repository write access). However, if you're building reusable workflows that accept external inputs, ensure values are properly validated before passing to these parameters. Never pass untrusted user input directly to these parameters.
+- **`wasm-swift-flags` and `wasm-swift-test-flags` Input Sanitization**: These parameters are parsed into bash arrays to prevent command injection vulnerabilities. Values are split on whitespace to support multiple space-separated flags (e.g., `--parallel --verbose`). While GitHub Actions input parameters are typically sourced from trusted workflow YAML files, array-based parsing provides defense-in-depth protection against injection attacks.
+
+  **Limitations**: Flags requiring space-containing values are not supported (e.g., `--filter "Test Suite"` will be incorrectly split). Use alternative formats like `--filter=TestSuite` or comma-separated values where possible.
 
 ### Outputs
 
@@ -245,7 +247,3 @@ The action supports:
 - Test suites processing large data (XML, JSON, images) will need memory configuration
 - Pure Swift code without Foundation dependencies may work without flags
 - Start with the example configuration above and adjust as needed
-
-## Task Master AI Instructions
-**Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
-@./.taskmaster/CLAUDE.md
