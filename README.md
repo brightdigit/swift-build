@@ -85,7 +85,7 @@
 
 - name: Generate Coverage
   if: steps.build-step.outputs.contains-code-coverage == 'true'
-  uses: sersoft-gmbh/swift-coverage-action@v4
+  uses: sersoft-gmbh/swift-coverage-action@v5
 ```
 
 ### Parameter Combinations & Interactions
@@ -201,7 +201,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage  # Just your package name
@@ -216,7 +216,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage-Package  # Standard SwiftPM scheme naming
@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyLibrary  # Matches your target name in Package.swift
@@ -247,7 +247,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage-Package  # Tests all targets
@@ -262,7 +262,7 @@ jobs:
   test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           windows-swift-version: swift-6.1-release
@@ -279,7 +279,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -296,7 +296,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: YourApp
@@ -315,7 +315,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: YourApp
@@ -362,7 +362,7 @@ jobs:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -406,7 +406,7 @@ jobs:
     
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -455,7 +455,7 @@ jobs:
     container: ${{ matrix.container }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Display Swift Version
         run: swift --version
       - uses: brightdigit/swift-build@v1.5.0
@@ -477,7 +477,7 @@ jobs:
   test-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           windows-swift-version: swift-6.1-release
@@ -506,7 +506,7 @@ jobs:
     
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Display Swift Version
         run: swift --version
       - uses: brightdigit/swift-build@v1.5.0
@@ -526,7 +526,7 @@ jobs:
   test-windows-custom:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           working-directory: ./packages/core
@@ -553,7 +553,7 @@ jobs:
           sudo rm -rf /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -571,7 +571,7 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -594,7 +594,7 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -615,7 +615,7 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -635,7 +635,7 @@ jobs:
   build-android-macos:
     runs-on: macos-14  # ARM-based macOS
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -662,7 +662,7 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -715,7 +715,7 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: ${{ matrix.scheme }}
@@ -761,7 +761,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.2-jammy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v2
         with:
           scheme: MyPackage
@@ -800,7 +800,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1-jammy  # Older Swift version
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v2
         with:
           scheme: MyPackage
@@ -844,7 +844,7 @@ jobs:
   test-wasm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v2
         with:
           scheme: MyPackage
@@ -934,7 +934,7 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyApp
@@ -968,7 +968,7 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyApp
@@ -1003,7 +1003,7 @@ jobs:
 
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyWatchApp
@@ -1036,7 +1036,7 @@ jobs:
 
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyTVApp
@@ -1069,7 +1069,7 @@ jobs:
 
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyVisionApp
@@ -1099,7 +1099,7 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyMacApp
@@ -1175,7 +1175,7 @@ jobs:
 
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyUniversalApp
@@ -1204,7 +1204,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: SyndiKit-Package
@@ -1219,7 +1219,7 @@ jobs:
   test-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: DataThespian-Package
@@ -1248,7 +1248,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: Sublimation-Package
@@ -1481,7 +1481,7 @@ jobs:
     container: ${{ matrix.container }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -1539,7 +1539,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -1574,7 +1574,7 @@ jobs:
     container: ${{ matrix.platform.container }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           working-directory: ${{ matrix.package.path }}
@@ -1614,7 +1614,7 @@ jobs:
             version: '3.0'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyApp
@@ -1639,11 +1639,11 @@ jobs:
         target: [UnitTests, IntegrationTests, UITests]
         
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Warm up build cache
       - name: Cache Dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData
@@ -1672,7 +1672,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Code quality checks
       - name: SwiftLint
@@ -1697,7 +1697,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -1742,7 +1742,7 @@ jobs:
     continue-on-error: ${{ matrix.experimental || false }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Display Swift Version
         run: swift --version
         env:
@@ -2440,7 +2440,7 @@ jobs:
     continue-on-error: ${{ matrix.stability == 'experimental' }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Display Xcode and Swift Version
         run: |
           xcode-select -p
@@ -2474,7 +2474,7 @@ jobs:
     container: swift:6.1
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Verify Package Structure
         run: |
           echo "Testing package at: ${{ matrix.package.path }}"
@@ -2533,7 +2533,7 @@ jobs:
     timeout-minutes: 45  # Allow time for platform downloads
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Check Platform Availability
         run: |
@@ -2591,7 +2591,7 @@ jobs:
     runs-on: macos-15
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Validate Configuration
         run: |
@@ -2622,7 +2622,7 @@ jobs:
     runs-on: macos-15
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Custom derived data location
       - name: Setup Custom Build Paths
@@ -2662,7 +2662,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -2691,7 +2691,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -2737,7 +2737,7 @@ jobs:
     container:
       image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -2753,7 +2753,7 @@ jobs:
     container:
       image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -2786,7 +2786,7 @@ jobs:
   test-manual:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Manual Swift Setup
         run: |
           # Manual Xcode configuration (2-3 minutes)
@@ -2801,7 +2801,7 @@ jobs:
   test-optimized:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyApp
@@ -2844,7 +2844,7 @@ jobs:
     container: ${{ matrix.container }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Cache Performance Info
         run: |
@@ -2882,11 +2882,11 @@ jobs:
     timeout-minutes: ${{ matrix.test-suite.timeout }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Pre-warm derived data cache
       - name: Cache Build Artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/Library/Developer/Xcode/DerivedData
@@ -2918,7 +2918,7 @@ jobs:
     runs-on: macos-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Monitor resource usage
       - name: Pre-Build System Info
@@ -2961,7 +2961,7 @@ jobs:
     runs-on: macos-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # First build (full compilation)
       - name: Initial Build
@@ -2997,8 +2997,8 @@ jobs:
 
 | Action | Purpose | Usage with swift-build |
 |--------|---------|------------------------|
-| **actions/checkout@v4** | Repository checkout | Required first step in all workflows |
-| **actions/upload-artifact@v4** | Build artifact storage | For storing test results, coverage reports |
+| **actions/checkout@v6** | Repository checkout | Required first step in all workflows |
+| **actions/upload-artifact@v7** | Build artifact storage | For storing test results, coverage reports |
 | **codecov/codecov-action@v4** | Coverage reporting | Upload coverage after swift-build tests |
 
 ### Built-in Caching Strategies
@@ -3039,7 +3039,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: swift-actions/setup-swift@v1
         with:
           swift-version: '6.1'
@@ -3059,7 +3059,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1  # Direct container usage for better performance
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage  # Simplified configuration
@@ -3082,7 +3082,7 @@ jobs:
         swift: ['5.9', '6.0', '6.1']
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: swift-actions/setup-swift@v1
         with:
           swift-version: ${{ matrix.swift }}
@@ -3113,7 +3113,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage
@@ -3135,7 +3135,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -3161,7 +3161,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyApp
@@ -3184,7 +3184,7 @@ jobs:
   test-ios:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup iOS
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -3197,7 +3197,7 @@ jobs:
   test-watchos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup watchOS
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -3210,7 +3210,7 @@ jobs:
   test-tvos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup tvOS
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -3243,7 +3243,7 @@ jobs:
     
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyApp
@@ -3274,7 +3274,7 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Build
       run: swift build -v
     - name: Run tests
@@ -3302,7 +3302,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyPackage-Package
@@ -3332,7 +3332,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: REPLACE_WITH_YOUR_PACKAGE_NAME  # e.g., MyPackage-Package (not needed for Windows)
@@ -3357,7 +3357,7 @@ jobs:
           - type: macos
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: REPLACE_WITH_YOUR_APP_SCHEME  # e.g., MyApp
@@ -3392,7 +3392,7 @@ jobs:
           - type: macos
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: REPLACE_WITH_YOUR_APP_SCHEME  # e.g., MyUniversalApp
@@ -3419,7 +3419,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           working-directory: ${{ matrix.package.path }}
@@ -3450,7 +3450,7 @@ jobs:
             swift: '6.2-dev'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Display Swift Version
         run: swift --version
       - uses: brightdigit/swift-build@v1.5.0
@@ -3495,7 +3495,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
@@ -3530,7 +3530,7 @@ jobs:
   test:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: brightdigit/swift-build@v1.5.0
         with:
           scheme: MyApp
@@ -3545,7 +3545,7 @@ jobs:
 **Before (manual cache configuration):**
 ```yaml
 - name: Cache SwiftPM Dependencies
-  uses: actions/cache@v4
+  uses: actions/cache@v5
   with:
     path: |
       .build
@@ -3553,7 +3553,7 @@ jobs:
     key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
     
 - name: Cache Xcode DerivedData
-  uses: actions/cache@v4
+  uses: actions/cache@v5
   with:
     path: ~/Library/Developer/Xcode/DerivedData
     key: deriveddata-${{ runner.os }}-${{ hashFiles('Package.resolved') }}

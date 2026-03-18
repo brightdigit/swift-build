@@ -162,7 +162,7 @@ The action provides these outputs:
     ```yaml
     - name: Generate Coverage
       if: steps.build.outputs.contains-code-coverage == 'true'
-      uses: sersoft-gmbh/swift-coverage-action@v4
+      uses: sersoft-gmbh/swift-coverage-action@v5
     ```
 
 ## Platform Support Matrix
