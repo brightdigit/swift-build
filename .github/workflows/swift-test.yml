@@ -107,7 +107,7 @@ jobs:
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
@@ -210,7 +210,7 @@ jobs:
             use-xcbeautify: "true"
             xcbeautify-renderer: "github-actions"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
@@ -254,7 +254,7 @@ jobs:
             osVersion: "18.5"
             use-xcbeautify: "true"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
@@ -271,7 +271,7 @@ jobs:
       - name: Upload test output
         # Only upload for one SPM job and one Xcode (ios type) job
         if: matrix.build-only != 'true' && matrix.runs-on == 'macos-15' && (matrix.type == null || matrix.type == 'ios')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-output-macos-${{ matrix.type || 'spm' }}
           path: ${{ runner.temp }}/test-output.txt
@@ -325,7 +325,7 @@ jobs:
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
@@ -360,7 +360,7 @@ jobs:
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
@@ -394,7 +394,7 @@ jobs:
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
@@ -406,7 +406,7 @@ jobs:
       - name: Upload test output
         # Only upload for Swift 6.2 on noble (non-nightly)
         if: matrix.swift == '6.2' && matrix.ubuntu == 'noble' && matrix.nightly == false
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-output-ubuntu
           path: ${{ runner.temp }}/test-output.txt
@@ -422,7 +422,7 @@ jobs:
         build-only: [false, true]
         swift-version: ['6.2.3', '6.1']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
@@ -448,7 +448,7 @@ jobs:
         build-only: [false, true]
         swift-version: ['6.2.3', '6.1']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
@@ -472,7 +472,7 @@ jobs:
       matrix:
         swift-version: ['6.2.3']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
@@ -484,7 +484,7 @@ jobs:
           save-test-output: 'true'
 
       - name: Upload test output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-output-windows
           path: ${{ runner.temp }}/test-output.txt
@@ -526,7 +526,7 @@ jobs:
     container:
       image: ${{ matrix.nightly && format('swiftlang/swift:nightly-{0}-{1}', matrix.swift, matrix.ubuntu) || format('swift:{0}-{1}', matrix.swift, matrix.ubuntu) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/DependencyPackage
@@ -546,7 +546,7 @@ jobs:
     container:
       image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Test strict mode (expect failure)
         id: strict-test
         continue-on-error: true
@@ -584,7 +584,7 @@ jobs:
     container:
       image: swift:${{ matrix.swift }}-${{ matrix.ubuntu }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Test floating mode (expect success)
         uses: ./
         with:
@@ -602,7 +602,7 @@ jobs:
         runs-on: [windows-2022, windows-2025]
         swift-version: ['6.2.3', '6.1']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/DependencyPackage
@@ -616,7 +616,7 @@ jobs:
     name: Test Dependency Package (macOS)
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/DependencyPackage
@@ -644,7 +644,7 @@ jobs:
             android-run-tests: "true"
             build-only: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Free disk space (Ubuntu)
         if: matrix.build-only == false
@@ -694,7 +694,7 @@ jobs:
             android-run-tests: "true"
             build-only: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Free disk space (Ubuntu)
         if: matrix.build-only == false
@@ -736,7 +736,7 @@ jobs:
             android-api-level: "28"
             android-run-tests: "true"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Free disk space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -797,7 +797,7 @@ jobs:
             android-emulator-boot-timeout: "900"
             android-run-tests: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Install custom NDK version if specified
       - name: Install Android NDK ${{ matrix.android-ndk-version }}
@@ -831,7 +831,7 @@ jobs:
     name: Test Explicit Type Precedence
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Test that explicit type wins over Android parameters
         uses: ./
@@ -861,7 +861,7 @@ jobs:
             android-api-level: "28"
             android-run-tests: "true"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Free disk space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -890,7 +890,7 @@ jobs:
     container:
       image: swift:6.1-jammy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # First build with Package.resolved (strict mode)
       - name: First build (strict mode)
@@ -914,7 +914,7 @@ jobs:
     container:
       image: swift:6.1-jammy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Remove Package.resolved for floating dependencies test
       - name: Remove Package.resolved
@@ -1034,7 +1034,7 @@ jobs:
               -Xlinker --max-memory=536870912
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/SingleTargetPackage
@@ -1150,7 +1150,7 @@ jobs:
               -Xlinker --max-memory=536870912
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
@@ -1201,7 +1201,7 @@ jobs:
             build-only: false
     container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
@@ -1217,7 +1217,7 @@ jobs:
       - name: Upload test output
         # Only upload for Ubuntu + wasm + WasmKit (no wasmtime-version)
         if: matrix.build-only != true && matrix.runs-on == 'ubuntu-latest' && matrix.type == 'wasm' && !matrix.wasmtime-version
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-output-wasm
           path: |
@@ -1238,10 +1238,10 @@ jobs:
       EXPECTED_XCTEST: 8
       EXPECTED_SWIFT_TESTING: 9
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all test outputs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: test-output-*
           path: test-outputs
