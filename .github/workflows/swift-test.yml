@@ -1205,12 +1205,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # WasmKit (default) - Ubuntu with Wasm
-          - runs-on: ubuntu-latest
-            container: swift:6.2-jammy
-            type: wasm
-            build-only: false
-
           # WasmKit (default) - Ubuntu with Wasm-embedded
           - runs-on: ubuntu-latest
             container: swift:6.2-jammy
