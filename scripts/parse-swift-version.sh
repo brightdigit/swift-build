@@ -28,5 +28,17 @@ if echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+\.[0-9]+'; then
   exit 0
 fi
 
+# Pattern 4: Swift version X.Y (no patch, e.g. "Swift version 6.3 (swift-6.3-RELEASE)")
+if echo "$SWIFT_VERSION_RAW" | grep -qE 'Swift version [0-9]+\.[0-9]+[^.]'; then
+  echo "$SWIFT_VERSION_RAW" | sed -E 's/.*Swift version ([0-9]+\.[0-9]+)[^.].*/\1/'
+  exit 0
+fi
+
+# Pattern 5: (swift-X.Y-RELEASE) — no patch
+if echo "$SWIFT_VERSION_RAW" | grep -qE '\(swift-[0-9]+\.[0-9]+-'; then
+  echo "$SWIFT_VERSION_RAW" | sed -E 's/.*\(swift-([0-9]+\.[0-9]+)-.*/\1/'
+  exit 0
+fi
+
 echo "ERROR: Could not parse Swift version from: $SWIFT_VERSION_RAW" >&2
 exit 1
