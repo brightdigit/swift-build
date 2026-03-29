@@ -988,6 +988,21 @@ jobs:
               -Xlinker --max-memory=536870912
             # Note: NO wasmtime-version parameter → uses WasmKit runtime
 
+          # WasmKit (default) - Ubuntu with Wasm-embedded (Swift 6.3)
+          - runs-on: ubuntu-latest
+            container: swift:6.3-jammy
+            type: wasm-embedded
+            build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
+            # Note: NO wasmtime-version parameter → uses WasmKit runtime
+
           # WasmKit (default) - macOS 26 with Wasm and Xcode 26.4
           - runs-on: macos-26
             xcode: "/Applications/Xcode_26.4.app"
@@ -1108,6 +1123,21 @@ jobs:
           - runs-on: ubuntu-latest
             container: swift:6.3-jammy
             type: wasm
+            build-only: false
+            wasm-swift-flags: >-
+              -Xcc -D_WASI_EMULATED_SIGNAL
+              -Xcc -D_WASI_EMULATED_MMAN
+              -Xlinker -lwasi-emulated-signal
+              -Xlinker -lwasi-emulated-mman
+              -Xlinker -lwasi-emulated-getpid
+              -Xlinker --initial-memory=536870912
+              -Xlinker --max-memory=536870912
+            # Note: NO wasmtime-version parameter → uses WasmKit runtime
+
+          # WasmKit (default) - Ubuntu with Wasm-embedded (Swift 6.3)
+          - runs-on: ubuntu-latest
+            container: swift:6.3-jammy
+            type: wasm-embedded
             build-only: false
             wasm-swift-flags: >-
               -Xcc -D_WASI_EMULATED_SIGNAL
