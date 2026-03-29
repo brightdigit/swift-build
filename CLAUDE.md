@@ -176,19 +176,11 @@ The action supports:
 
 ## Latest Platform Versions
 
-**Current Stable Release: Xcode 26.2** (Released: December 12, 2025)
-- **Swift Version:** 6.2.3
-- **Xcode Version:** 26.2 (Build 17C52)
-- **System Requirements:** macOS 15.6 or later
-
-**SDK Versions:**
-- **iOS:** 26.2 (Build 23C53)
-- **macOS:** 26.2 (Build 25C57)
-- **watchOS:** 26.2 (Build 23S303)
-- **tvOS:** 26.2 (Build 23K50)
-- **visionOS:** 26.2 (Build 23N301)
+**Current Stable Release: Xcode 26.4**
+- **Xcode Version:** 26.4
 
 **Recent Stable Releases:**
+- **Xcode 26.2** - Swift 6.2.3 (December 12, 2025)
 - **Xcode 26.1.1** - Swift 6.2.1 (November 11, 2025)
 - **Xcode 26.1** - Swift 6.2.1 (November 3, 2025)
 - **Xcode 26.0.1** - Swift 6.2 (September 22, 2025)
