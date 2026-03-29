@@ -731,19 +731,20 @@ runs:
       id: detect-swift-version
       working-directory: ${{ inputs.working-directory }}
       run: |
-        # Extract Swift version with full patch number (e.g., "6.2.3")
+        # Extract Swift version (e.g., "6.2.3" or "6.3")
         # swift --version outputs formats like:
         #   "Swift version 6.2.3 (swift-6.2.3-RELEASE)"
         #   "swift-driver version: 1.127.14.1 Swift version 6.2 (swift-6.2.3-RELEASE)"
+        #   "Swift version 6.3 (swift-6.3-RELEASE)"
         SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
         echo "Raw version output: $SWIFT_VERSION_RAW"
 
         # Parse Swift version using centralized script
-        # Wasm requires Swift 6.2.3+ with full version number (major.minor.patch)
+        # Wasm requires Swift 6.2.3+ (X.Y.Z) or Swift 6.3+ (X.Y without patch)
         SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
         if [ $? -ne 0 ]; then
-          echo "ERROR: Could not parse full Swift version (with patch) from: $SWIFT_VERSION_RAW"
-          echo "Wasm requires Swift 6.2.3+ with full version number in swift --version output"
+          echo "ERROR: Could not parse Swift version from: $SWIFT_VERSION_RAW"
+          echo "Wasm requires Swift 6.2.3+ (or 6.3+ without patch number) in swift --version output"
           exit 1
         fi
 
