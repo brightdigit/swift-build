@@ -1241,6 +1241,13 @@ jobs:
             type: wasm-embedded
             build-only: false
 
+          # WasmKit (default) - Ubuntu with Wasm (Swift 6.2)
+          - runs-on: ubuntu-latest
+            container: swift:6.2-jammy
+            swift-version: "6.2"
+            type: wasm
+            build-only: false
+
           # WasmKit (default) - Ubuntu with Wasm (Swift 6.3)
           - runs-on: ubuntu-latest
             container: swift:6.3-jammy
