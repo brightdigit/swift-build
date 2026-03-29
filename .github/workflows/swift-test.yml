@@ -1214,6 +1214,7 @@ jobs:
           # WasmKit (default) - Ubuntu with Wasm (Swift 6.3)
           - runs-on: ubuntu-latest
             container: swift:6.3-jammy
+            swift-version: "6.3"
             type: wasm
             build-only: false
 
@@ -1249,7 +1250,7 @@ jobs:
         if: matrix.build-only != true && matrix.runs-on == 'ubuntu-latest' && matrix.type == 'wasm' && !matrix.wasmtime-version
         uses: actions/upload-artifact@v4
         with:
-          name: test-output-wasm
+          name: test-output-wasm-${{ matrix.swift-version }}
           path: |
             ${{ runner.temp }}/wasm-xctest-output.txt
             ${{ runner.temp }}/wasm-swift-testing-output.txt
