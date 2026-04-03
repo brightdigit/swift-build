@@ -109,6 +109,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./
+        id: build
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
@@ -131,6 +132,20 @@ jobs:
           else
             ../../scripts/verify-build-only.sh xcode .
           fi
+      - name: Verify contains-code-coverage output
+        shell: bash
+        run: |
+          if [[ "${{ matrix['build-only'] }}" == "true" ]]; then
+            expected="false"
+          else
+            expected="true"
+          fi
+          actual="${{ steps.build.outputs.contains-code-coverage }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "ERROR: contains-code-coverage expected '$expected', got '$actual'"
+            exit 1
+          fi
+          echo "contains-code-coverage=$actual ✓"
 
   test-multi-target-macos:
     name: Test Multi-Target Package (macOS)
@@ -327,6 +342,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./
+        id: build
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
@@ -338,6 +354,20 @@ jobs:
         working-directory: test/SingleTargetPackage
         shell: bash
         run: ../../scripts/verify-build-only.sh spm .
+      - name: Verify contains-code-coverage output
+        shell: bash
+        run: |
+          if [[ "${{ matrix.build-only }}" == "true" ]]; then
+            expected="false"
+          else
+            expected="true"
+          fi
+          actual="${{ steps.build.outputs.contains-code-coverage }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "ERROR: contains-code-coverage expected '$expected', got '$actual'"
+            exit 1
+          fi
+          echo "contains-code-coverage=$actual ✓"
 
   test-multi-target-ubuntu:
     name: Test Multi-Target Package (Ubuntu)
@@ -424,6 +454,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./
+        id: build
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
@@ -436,7 +467,21 @@ jobs:
         if: matrix.build-only == true
         working-directory: test/SingleTargetPackage
         shell: bash
-        run: ../../scripts/verify-build-only.sh windows . 
+        run: ../../scripts/verify-build-only.sh windows .
+      - name: Verify contains-code-coverage output
+        shell: bash
+        run: |
+          if [[ "${{ matrix.build-only }}" == "true" ]]; then
+            expected="false"
+          else
+            expected="true"
+          fi
+          actual="${{ steps.build.outputs.contains-code-coverage }}"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "ERROR: contains-code-coverage expected '$expected', got '$actual'"
+            exit 1
+          fi
+          echo "contains-code-coverage=$actual ✓"
 
   test-multi-target-windows:
     name: Test Multi-Target Package (Windows - Swift ${{ matrix.swift-version }}, ${{ matrix.runs-on }})
@@ -678,6 +723,7 @@ jobs:
           swap-storage: true
 
       - uses: ./
+        id: build
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
@@ -693,6 +739,15 @@ jobs:
         working-directory: test/SingleTargetPackage
         shell: bash
         run: ../../scripts/verify-build-only.sh android .
+      - name: Verify contains-code-coverage output
+        shell: bash
+        run: |
+          actual="${{ steps.build.outputs.contains-code-coverage }}"
+          if [[ "$actual" != "false" ]]; then
+            echo "ERROR: contains-code-coverage expected 'false' for Android, got '$actual'"
+            exit 1
+          fi
+          echo "contains-code-coverage=$actual ✓"
 
   test-multi-target-android:
     name: Test Multi-Target Package (Android)
@@ -1085,6 +1140,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./
+        id: build
         with:
           working-directory: test/SingleTargetPackage
           scheme: SingleTargetPackage
@@ -1100,6 +1156,15 @@ jobs:
         working-directory: test/SingleTargetPackage
         shell: bash
         run: ../../scripts/verify-build-only.sh wasm .
+      - name: Verify contains-code-coverage output
+        shell: bash
+        run: |
+          actual="${{ steps.build.outputs.contains-code-coverage }}"
+          if [[ "$actual" != "false" ]]; then
+            echo "ERROR: contains-code-coverage expected 'false' for Wasm, got '$actual'"
+            exit 1
+          fi
+          echo "contains-code-coverage=$actual ✓"
 
   test-multi-target-wasm:
     name: Test Multi-Target Package (Wasm)
