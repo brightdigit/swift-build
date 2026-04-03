@@ -490,6 +490,25 @@ jobs:
           path: ${{ runner.temp }}/test-output.txt
           retention-days: 1
 
+  test-symlink-dependency-windows:
+    name: Test Symlink Dependency Package (Windows - Swift ${{ matrix.swift-version }}, ${{ matrix.runs-on }})
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [windows-2022, windows-2025]
+        swift-version: ['6.3', '6.2.3', '6.1']
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./
+        with:
+          working-directory: test/SymlinkDependencyPackage
+          scheme: SymlinkDependencyPackage-Package
+          windows-swift-version: swift-${{ matrix.swift-version }}-release
+          windows-swift-build: ${{ matrix.swift-version }}-RELEASE
+          use-xcbeautify: "true"
+          skip-package-resolved: "false"
+
   test-dependency-package-resolved-v3-success:
     name: Test Dependency Package (Ubuntu, Swift 5.10+)
     runs-on: ubuntu-latest
