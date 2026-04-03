@@ -1,0 +1,38 @@
+name: Update Version Tags
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'   # full semver only; + is extended glob (one-or-more), not regex
+
+concurrency:
+  group: update-version-tags
+  cancel-in-progress: false  # let in-flight run finish, queue the next
+
+jobs:
+  update-tags:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update major and minor version tags
+        run: |
+          TAG="${{ github.ref_name }}"
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unexpected tag format: $TAG"
+            exit 1
+          fi
+
+          MAJOR=$(echo "$TAG" | cut -d. -f1)      # e.g. v1
+          MINOR=$(echo "$TAG" | cut -d. -f1,2)    # e.g. v1.5
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -f "$MAJOR"
+          git tag -f "$MINOR"
+          git push origin "$MAJOR" --force && git push origin "$MINOR" --force

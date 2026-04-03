@@ -311,11 +311,24 @@ inputs:
 outputs:
   # Indicates whether this build contains code coverage data
   # Returns 'true' for SPM and Xcode builds with tests enabled
-  # Returns 'false' for Wasm builds (not supported), Android builds (handled separately), and build-only mode
+  # Returns 'false' for Wasm builds (not supported), Android builds (handled separately), Windows builds (not supported), and build-only mode
   # Use this output to conditionally run coverage collection actions
   contains-code-coverage:
     description: 'Whether this build contains code coverage data'
     value: ${{ steps.set-coverage-flag.outputs.enabled }}
+
+  # The Xcode version used for the build (macOS only)
+  # Empty for non-macOS platforms (Ubuntu, Windows, Android, Wasm)
+  xcode-version:
+    description: 'The Xcode version used for the build (macOS only)'
+    value: ${{ steps.set-xcode-version.outputs.xcode-version }}
+
+  # The Swift version used for the build
+  # Populated for macOS, Ubuntu, Windows, and Wasm via swift --version
+  # For Android, reflects the android-swift-version input (blank if not specified)
+  swift-version:
+    description: 'The Swift version used for the build'
+    value: ${{ steps.detect-swift-version-output.outputs.swift-version || steps.detect-swift-version-windows.outputs.swift-version || steps.detect-swift-version-android.outputs.swift-version }}
 
 runs:
   using: "composite"
@@ -540,6 +553,7 @@ runs:
     # Coverage is NOT supported for:
     # - Wasm builds (no libclang_rt.profile-wasm32.a available)
     # - Android builds (handled separately by swift-android-action)
+    # - Windows builds (--enable-code-coverage not supported on Swift for Windows)
     # - Build-only mode (no tests run)
     - name: Set Coverage Flag
       shell: bash
@@ -551,6 +565,9 @@ runs:
         elif [[ "${{ steps.detect-os.outputs.os }}" == "android" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
           echo "Code coverage: disabled (Android handled separately)"
+        elif [[ "${{ steps.detect-os.outputs.os }}" == "windows" ]]; then
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Code coverage: disabled (Windows not supported)"
         elif [[ "${{ inputs.build-only }}" == "true" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
           echo "Code coverage: disabled (build-only mode)"
@@ -642,36 +659,67 @@ runs:
     - name: Set Xcode Version
       if: steps.detect-os.outputs.os == 'macos'
       shell: bash
+      id: set-xcode-version
       working-directory: ${{ inputs.working-directory }}
       run: |
         # Get Xcode version from the actual installation
         # This works for both custom Xcode paths and system default
         # DEVELOPER_DIR is set above if a custom Xcode path was provided
-        
+
         # Check if xcodebuild exists and is accessible
         if ! command -v xcodebuild >/dev/null 2>&1; then
           echo "Error: xcodebuild command not found in PATH" >&2
           exit 0
         fi
-        
+
         # Method 1: Try xcodebuild command
         if XCODE_VERSION=$(timeout 30 xcodebuild -version 2>&1 | head -1 | cut -d' ' -f2); then
           echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+          echo "xcode-version=$XCODE_VERSION" >> $GITHUB_OUTPUT
         else
           # Method 2: Try to read from Xcode Info.plist
           if [ -n "${{ inputs.xcode }}" ] && [ -f "${{ inputs.xcode }}/Contents/Info.plist" ]; then
             if XCODE_VERSION=$(defaults read "${{ inputs.xcode }}/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null); then
               echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+              echo "xcode-version=$XCODE_VERSION" >> $GITHUB_OUTPUT
             fi
           else
             # Method 3: Try system default Xcode
             if [ -f "/Applications/Xcode.app/Contents/Info.plist" ]; then
               if XCODE_VERSION=$(defaults read "/Applications/Xcode.app/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null); then
                 echo "XCODE_NAME=$XCODE_VERSION" >> $GITHUB_ENV
+                echo "xcode-version=$XCODE_VERSION" >> $GITHUB_OUTPUT
               fi
             fi
           fi
         fi
+
+    # Detect Swift version and expose it as an action output
+    # Runs for all non-Android platforms: macOS, Ubuntu, Windows, Wasm
+    # Uses the centralized parse-swift-version.sh script for consistent parsing
+    - name: Detect Swift Version
+      if: steps.detect-os.outputs.os != 'android' && steps.detect-os.outputs.os != 'windows'
+      shell: bash
+      id: detect-swift-version-output
+      run: |
+        SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
+        if [ $? -eq 0 ] && [ -n "$SWIFT_VERSION" ]; then
+          echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
+          echo "Detected Swift version: $SWIFT_VERSION"
+        fi
+
+    # For Android builds, expose the android-swift-version input as the swift-version output
+    # The actual Swift version is managed by skiptools/swift-android-action
+    # Output is blank if android-swift-version was not specified by the caller
+    - name: Detect Swift Version (Android)
+      if: steps.detect-os.outputs.os == 'android'
+      shell: bash
+      id: detect-swift-version-android
+      run: |
+        SWIFT_VERSION="${{ inputs.android-swift-version }}"
+        echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
+        echo "Android Swift version: $SWIFT_VERSION"
 
     # Map platform type parameter to Xcode SDK and platform destination strings
     # This critical step translates user-friendly type inputs into the specific
@@ -894,6 +942,18 @@ runs:
         swift-version: ${{ inputs.windows-swift-version }}
         swift-build: ${{ inputs.windows-swift-build }}
 
+    # Detect Swift version on Windows after the toolchain has been installed
+    - name: Detect Swift Version (Windows)
+      if: steps.detect-os.outputs.os == 'windows'
+      shell: bash
+      id: detect-swift-version-windows
+      run: |
+        SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
+        if [ $? -eq 0 ] && [ -n "$SWIFT_VERSION" ]; then
+          echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
+          echo "Detected Swift version: $SWIFT_VERSION"
+        fi
 
     # Android NDK Setup
     # Manually configures the Android NDK when a custom version is specified.
@@ -1371,7 +1431,7 @@ runs:
     # Command Breakdown:
     # - swift build --build-tests: Compiles both the package and its test targets (when not build-only)
     # - swift build: Compiles only the package (when build-only is enabled)
-    # - swift test --enable-code-coverage: Runs tests with coverage collection (when not build-only)
+    # - swift test --enable-code-coverage: Runs tests with coverage collection (Linux/macOS only; not supported on Windows)
     # - --cache-path .cache: Uses local cache directory for build artifacts (improves performance)
     # - --force-resolved-versions: Enforces strict dependency pinning (omitted only when skip-package-resolved=true)
     #
@@ -1410,12 +1470,18 @@ runs:
           swift build --cache-path .cache $RESOLVED_FLAG
         else
           swift build --build-tests --cache-path .cache $RESOLVED_FLAG
+          # Windows does not support --enable-code-coverage
+          if [[ "${{ steps.detect-os.outputs.os }}" == "windows" ]]; then
+            COVERAGE_FLAG=""
+          else
+            COVERAGE_FLAG="--enable-code-coverage"
+          fi
           # Run tests with optional output capture
           if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
             set -o pipefail
-            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG 2>&1 | tee "$OUTPUT_FILE"
+            swift test $COVERAGE_FLAG --cache-path .cache $RESOLVED_FLAG 2>&1 | tee "$OUTPUT_FILE"
           else
-            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
+            swift test $COVERAGE_FLAG --cache-path .cache $RESOLVED_FLAG
           fi
         fi
 
