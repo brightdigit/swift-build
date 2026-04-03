@@ -1456,6 +1456,9 @@ runs:
           # Target may be an array; take the first element
           if ($target -is [array]) { $target = $target[0] }
 
+          # Strip the NT extended-path prefix that Windows junctions report (e.g. \??\C:\...)
+          if ($target.StartsWith('\??\')) { $target = $target.Substring(4) }
+
           # Resolve relative targets against the item's parent directory
           if (-not [System.IO.Path]::IsPathRooted($target)) {
             $target = [System.IO.Path]::GetFullPath(
@@ -1469,7 +1472,12 @@ runs:
           }
 
           Write-Host "Converting reparse point: $($item.FullName) -> $target"
-          Remove-Item $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
+          try {
+            Remove-Item $item.FullName -Recurse -Force
+          } catch {
+            Write-Warning "Failed to remove reparse point $($item.FullName): $_"
+            continue
+          }
           if (Test-Path $target -PathType Container) {
             Copy-Item -Path $target -Destination $item.FullName -Recurse -Force
           } else {
