@@ -157,7 +157,7 @@ The action accepts these key inputs:
 The action provides these outputs:
 - `contains-code-coverage` - Whether this build contains code coverage data
   - Returns `'true'` for SwiftPM and Xcode builds with tests enabled
-  - Returns `'false'` for Wasm builds (not supported), Android builds (handled separately), and build-only mode
+  - Returns `'false'` for Wasm builds (not supported), Android builds (handled separately), Windows builds (not supported), and build-only mode
   - Use this to conditionally run coverage collection actions:
     ```yaml
     - name: Generate Coverage

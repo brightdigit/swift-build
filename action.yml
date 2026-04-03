@@ -311,7 +311,7 @@ inputs:
 outputs:
   # Indicates whether this build contains code coverage data
   # Returns 'true' for SPM and Xcode builds with tests enabled
-  # Returns 'false' for Wasm builds (not supported), Android builds (handled separately), and build-only mode
+  # Returns 'false' for Wasm builds (not supported), Android builds (handled separately), Windows builds (not supported), and build-only mode
   # Use this output to conditionally run coverage collection actions
   contains-code-coverage:
     description: 'Whether this build contains code coverage data'
@@ -553,6 +553,7 @@ runs:
     # Coverage is NOT supported for:
     # - Wasm builds (no libclang_rt.profile-wasm32.a available)
     # - Android builds (handled separately by swift-android-action)
+    # - Windows builds (--enable-code-coverage not supported on Swift for Windows)
     # - Build-only mode (no tests run)
     - name: Set Coverage Flag
       shell: bash
@@ -564,6 +565,9 @@ runs:
         elif [[ "${{ steps.detect-os.outputs.os }}" == "android" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
           echo "Code coverage: disabled (Android handled separately)"
+        elif [[ "${{ steps.detect-os.outputs.os }}" == "windows" ]]; then
+          echo "enabled=false" >> $GITHUB_OUTPUT
+          echo "Code coverage: disabled (Windows not supported)"
         elif [[ "${{ inputs.build-only }}" == "true" ]]; then
           echo "enabled=false" >> $GITHUB_OUTPUT
           echo "Code coverage: disabled (build-only mode)"
@@ -1427,7 +1431,7 @@ runs:
     # Command Breakdown:
     # - swift build --build-tests: Compiles both the package and its test targets (when not build-only)
     # - swift build: Compiles only the package (when build-only is enabled)
-    # - swift test --enable-code-coverage: Runs tests with coverage collection (when not build-only)
+    # - swift test --enable-code-coverage: Runs tests with coverage collection (Linux/macOS only; not supported on Windows)
     # - --cache-path .cache: Uses local cache directory for build artifacts (improves performance)
     # - --force-resolved-versions: Enforces strict dependency pinning (omitted only when skip-package-resolved=true)
     #
@@ -1466,12 +1470,18 @@ runs:
           swift build --cache-path .cache $RESOLVED_FLAG
         else
           swift build --build-tests --cache-path .cache $RESOLVED_FLAG
+          # Windows does not support --enable-code-coverage
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            COVERAGE_FLAG=""
+          else
+            COVERAGE_FLAG="--enable-code-coverage"
+          fi
           # Run tests with optional output capture
           if [[ "${{ inputs.save-test-output }}" == "true" ]]; then
             set -o pipefail
-            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG 2>&1 | tee "$OUTPUT_FILE"
+            swift test $COVERAGE_FLAG --cache-path .cache $RESOLVED_FLAG 2>&1 | tee "$OUTPUT_FILE"
           else
-            swift test --enable-code-coverage --cache-path .cache $RESOLVED_FLAG
+            swift test $COVERAGE_FLAG --cache-path .cache $RESOLVED_FLAG
           fi
         fi
 
