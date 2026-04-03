@@ -494,6 +494,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./
+        id: build
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage-Package
