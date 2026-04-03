@@ -328,7 +328,7 @@ outputs:
   # For Android, reflects the android-swift-version input (blank if not specified)
   swift-version:
     description: 'The Swift version used for the build'
-    value: ${{ steps.detect-swift-version-output.outputs.swift-version || steps.detect-swift-version-android.outputs.swift-version }}
+    value: ${{ steps.detect-swift-version-output.outputs.swift-version || steps.detect-swift-version-windows.outputs.swift-version || steps.detect-swift-version-android.outputs.swift-version }}
 
 runs:
   using: "composite"
@@ -694,7 +694,7 @@ runs:
     # Runs for all non-Android platforms: macOS, Ubuntu, Windows, Wasm
     # Uses the centralized parse-swift-version.sh script for consistent parsing
     - name: Detect Swift Version
-      if: steps.detect-os.outputs.os != 'android'
+      if: steps.detect-os.outputs.os != 'android' && steps.detect-os.outputs.os != 'windows'
       shell: bash
       id: detect-swift-version-output
       run: |
@@ -938,6 +938,18 @@ runs:
         swift-version: ${{ inputs.windows-swift-version }}
         swift-build: ${{ inputs.windows-swift-build }}
 
+    # Detect Swift version on Windows after the toolchain has been installed
+    - name: Detect Swift Version (Windows)
+      if: steps.detect-os.outputs.os == 'windows'
+      shell: bash
+      id: detect-swift-version-windows
+      run: |
+        SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
+        SWIFT_VERSION=$(echo "$SWIFT_VERSION_RAW" | "$GITHUB_ACTION_PATH/scripts/parse-swift-version.sh")
+        if [ $? -eq 0 ] && [ -n "$SWIFT_VERSION" ]; then
+          echo "swift-version=$SWIFT_VERSION" >> $GITHUB_OUTPUT
+          echo "Detected Swift version: $SWIFT_VERSION"
+        fi
 
     # Android NDK Setup
     # Manually configures the Android NDK when a custom version is specified.
