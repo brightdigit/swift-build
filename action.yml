@@ -1471,7 +1471,7 @@ runs:
         else
           swift build --build-tests --cache-path .cache $RESOLVED_FLAG
           # Windows does not support --enable-code-coverage
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
+          if [[ "${{ steps.detect-os.outputs.os }}" == "windows" ]]; then
             COVERAGE_FLAG=""
           else
             COVERAGE_FLAG="--enable-code-coverage"
