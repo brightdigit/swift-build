@@ -1419,6 +1419,66 @@ runs:
           fi
         fi
 
+    # Windows Cache Symlink Fix (Issue #90)
+    # NTFS symlinks/junctions in .build/checkouts/ are serialized as plain text stub files
+    # by tar on Windows. On cache restore, stubs are regular files — not real symlinks —
+    # breaking packages like swift-docc-plugin 1.4.6+ that use symlinks in their source trees.
+    #
+    # Fix: Before the actions/cache post-job save runs, convert all reparse points in
+    # .build/checkouts/ to real directory/file copies. The post-job save then captures
+    # real content, so future cache hits have valid directory structures instead of stubs.
+    - name: Fix symlinks in .build/checkouts for Windows cache compatibility
+      if: steps.detect-os.outputs.os == 'windows'
+      shell: pwsh
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        $checkoutsPath = ".build\checkouts"
+        if (-not (Test-Path $checkoutsPath)) {
+          Write-Host "No .build\checkouts directory found, skipping symlink fix"
+          exit 0
+        }
+
+        # Collect all reparse points (symlinks and junctions), deepest paths first
+        # so nested symlinks are handled before their parents
+        $reparsePoints = Get-ChildItem -Path $checkoutsPath -Recurse -Force -ErrorAction SilentlyContinue |
+          Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint } |
+          Sort-Object { $_.FullName.Length } -Descending
+
+        if (-not $reparsePoints) {
+          Write-Host "No reparse points found in $checkoutsPath, nothing to fix"
+          exit 0
+        }
+
+        foreach ($item in $reparsePoints) {
+          $target = $item.Target
+          if ($null -eq $target -or $target.Count -eq 0) { continue }
+
+          # Target may be an array; take the first element
+          if ($target -is [array]) { $target = $target[0] }
+
+          # Resolve relative targets against the item's parent directory
+          if (-not [System.IO.Path]::IsPathRooted($target)) {
+            $target = [System.IO.Path]::GetFullPath(
+              [System.IO.Path]::Combine($item.Parent.FullName, $target)
+            )
+          }
+
+          if (-not (Test-Path $target)) {
+            Write-Host "Warning: symlink target not found, skipping: $($item.FullName) -> $target"
+            continue
+          }
+
+          Write-Host "Converting reparse point: $($item.FullName) -> $target"
+          Remove-Item $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
+          if (Test-Path $target -PathType Container) {
+            Copy-Item -Path $target -Destination $item.FullName -Recurse -Force
+          } else {
+            Copy-Item -Path $target -Destination $item.FullName -Force
+          }
+        }
+
+        Write-Host "Symlink fix complete"
+
     # Wasm Build and Test Execution (WebAssembly Builds)
     # This step handles Wasm-based builds for Swift packages targeting WebAssembly.
     # Uses Swift Package Manager with the --swift-sdk flag to specify Wasm or Wasm-embedded target.
