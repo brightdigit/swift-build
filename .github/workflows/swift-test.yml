@@ -475,14 +475,9 @@ jobs:
       - name: Verify contains-code-coverage output
         shell: bash
         run: |
-          if [[ "${{ matrix.build-only }}" == "true" ]]; then
-            expected="false"
-          else
-            expected="true"
-          fi
           actual="${{ steps.build.outputs.contains-code-coverage }}"
-          if [[ "$actual" != "$expected" ]]; then
-            echo "ERROR: contains-code-coverage expected '$expected', got '$actual'"
+          if [[ "$actual" != "false" ]]; then
+            echo "ERROR: contains-code-coverage expected 'false' for Windows, got '$actual'"
             exit 1
           fi
           echo "contains-code-coverage=$actual ✓"
@@ -499,6 +494,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: ./
+        id: build
         with:
           working-directory: test/MultiTargetPackage
           scheme: MultiTargetPackage-Package
@@ -512,6 +508,15 @@ jobs:
         working-directory: test/MultiTargetPackage
         shell: bash
         run: ../../scripts/verify-build-only.sh windows .
+      - name: Verify contains-code-coverage output
+        shell: bash
+        run: |
+          actual="${{ steps.build.outputs.contains-code-coverage }}"
+          if [[ "$actual" != "false" ]]; then
+            echo "ERROR: contains-code-coverage expected 'false' for Windows, got '$actual'"
+            exit 1
+          fi
+          echo "contains-code-coverage=$actual ✓"
 
   test-mixed-framework-windows:
     name: Test Mixed-Framework Package (Windows - Swift ${{ matrix.swift-version }})
