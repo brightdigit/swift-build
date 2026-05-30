@@ -45,7 +45,7 @@
 
 | Parameter | Description | Default | Example | Valid Values | Used By |
 |-----------|-------------|---------|---------|--------------|---------|
-| `scheme` | The scheme to build and test | Required when `type` specified | `MyPackage-Package` | Any valid scheme name | **Xcode builds only** - Required when `type` is specified (iOS, watchOS, tvOS, visionOS, macOS simulator testing). Not needed for SwiftPM builds (Ubuntu/macOS) |
+| `scheme` | The scheme to build and test | Auto-calculated | `MyPackage-Package` | Any valid scheme name | **Xcode builds only** - Optional. When omitted on Apple-platform builds (iOS, watchOS, tvOS, visionOS, macOS) it is auto-derived from the Swift package: a single product uses the product name; multiple products use `<PackageName>-Package`. Provide explicitly to override. Not needed for SwiftPM builds (Ubuntu/macOS) |
 | `working-directory` | Directory containing the Swift package | `.` | `./MyPackage` | Any valid directory path | **All platforms** - SwiftPM (Ubuntu/macOS) and Xcode builds |
 | `type` | Build type | `null` | `ios` | `ios`, `watchos`, `visionos`, `tvos`, `macos`, `android` | **Platform selection** - Apple platforms use xcodebuild, `android` uses Swift Android SDK. When `null`, uses SwiftPM (swift build/test). **Note:** Android is auto-detected when any `android-*` parameter is set (explicit `type: android` not required) |
 | `xcode` | Xcode version path for Apple platforms | System default | `/Applications/Xcode_15.4.app` | Any Xcode.app path | **Xcode builds only** - iOS, watchOS, tvOS, visionOS, macOS simulator testing |
@@ -94,7 +94,7 @@
 
 - **Ubuntu builds**: Only `working-directory` is used (no `scheme` needed)
 - **macOS SwiftPM builds**: `scheme`, `working-directory` (no `type` specified)
-- **Apple platform builds**: Require `scheme`, `type`, and optionally `deviceName`/`osVersion`
+- **Apple platform builds**: Require `type`, optionally `scheme` (auto-calculated from the Swift package when omitted) and `deviceName`/`osVersion`
 - **Windows builds**: `working-directory`, `windows-swift-version`, `windows-swift-build` (no `scheme` needed)
 - **Android builds**: Auto-detected from any `android-*` parameter (e.g., `android-swift-version`, `android-api-level`). Explicit `type: android` optional but recommended for clarity
 - **Custom Xcode**: When `xcode` is specified, it overrides system default
@@ -2147,9 +2147,9 @@ Code coverage is not currently supported for Android builds. This is a known lim
 |------------|-------------------|----------|---------|
 | **SwiftPM Build** | `—` | `working-directory`, `scheme` (optional) | `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer` |
 | **Windows Build** | `windows-swift-version`, `windows-swift-build` | `working-directory` | `scheme`, `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer` |
-| **macOS Native** | `scheme`, `type: macos` | `xcode`, `working-directory`, `use-xcbeautify`, `xcbeautify-renderer` | `deviceName`, `osVersion` |
-| **iOS Simulator** | `scheme`, `type: ios`, `deviceName`, `osVersion` | `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer` | None |
-| **Other Simulators** | `scheme`, `type`, `deviceName`, `osVersion` | `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer` | None |
+| **macOS Native** | `type: macos` | `scheme` (auto-calculated), `xcode`, `working-directory`, `use-xcbeautify`, `xcbeautify-renderer` | `deviceName`, `osVersion` |
+| **iOS Simulator** | `type: ios`, `deviceName`, `osVersion` | `scheme` (auto-calculated), `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer` | None |
+| **Other Simulators** | `type`, `deviceName`, `osVersion` | `scheme` (auto-calculated), `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer` | None |
 
 **Q: How do I fix xcbeautify installation issues?**
 
