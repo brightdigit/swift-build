@@ -185,6 +185,17 @@ inputs:
     description: 'Additional files to copy to emulator for testing'
     required: false
 
+  # Android AVD emulator snapshot caching
+  # Controls whether skiptools/swift-android-action caches the AVD emulator snapshot (~1GB per API level)
+  # Only used when type is 'android' and android-run-tests is 'true'
+  # Set to 'false' to skip AVD caching and conserve GitHub Actions cache storage
+  # Maps to 'cache-avd' parameter in skiptools/swift-android-action
+  # Default: 'true' (preserves existing behavior; AVD snapshot is cached)
+  cache-avd:
+    description: 'Cache the Android AVD emulator snapshot (skiptools/swift-android-action). Set to false to save Actions storage. Default: true'
+    required: false
+    default: 'true'
+
   # Additional Swift compiler/linker flags for Wasm
   # Examples: '-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-mman -Xlinker --initial-memory=536870912'
   # Only used when type is 'wasm' or 'wasm-embedded'
@@ -1082,6 +1093,8 @@ runs:
         # Android emulator configuration (only used when tests are enabled)
         android-api-level: ${{ inputs.android-api-level || '28' }}
         android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout || '600' }}
+        # AVD snapshot caching (set cache-avd: false to save Actions storage)
+        cache-avd: ${{ inputs.cache-avd }}
 
         # Build control flags
         # Always build the package
