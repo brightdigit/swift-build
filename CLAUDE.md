@@ -99,7 +99,7 @@ Override auto-detection with the `wasm-testing-library` parameter:
 ### Inputs
 
 The action accepts these key inputs:
-- `scheme` (required) - The scheme to build and test
+- `scheme` (optional) - The scheme to build and test. On Apple-platform builds it is auto-calculated from the Swift package when omitted (single product → product name; multiple products → `<PackageName>-Package`).
 - `working-directory` - Directory containing the Swift package (default: '.')
 - `type` - Build type for Apple platforms (ios, watchos, visionos, tvos, macos)
 - `xcode` - Xcode version path for Apple platforms

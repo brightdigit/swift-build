@@ -116,7 +116,6 @@ jobs:
         id: build
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
@@ -233,7 +232,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage-Package
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
@@ -277,7 +275,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
-          scheme: MixedFrameworkPackage-Package
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           deviceName: ${{ matrix.deviceName }}
@@ -349,7 +346,6 @@ jobs:
         id: build
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           use-xcbeautify: "true"
           skip-package-resolved: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
@@ -398,7 +394,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage
           xcbeautify-renderer: "github-actions"
           skip-package-resolved: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
@@ -432,7 +427,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
-          scheme: MixedFrameworkPackage
           use-xcbeautify: "true"
           skip-package-resolved: "true"
           save-test-output: 'true'
@@ -461,7 +455,6 @@ jobs:
         id: build
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           windows-swift-version: swift-${{ matrix.swift-version }}-release
           windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
@@ -497,7 +490,6 @@ jobs:
         id: build
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage-Package
           windows-swift-version: swift-${{ matrix.swift-version }}-release
           windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
@@ -530,7 +522,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
-          scheme: MixedFrameworkPackage-Package
           windows-swift-version: swift-${{ matrix.swift-version }}-release
           windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
@@ -557,7 +548,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/SymlinkDependencyPackage
-          scheme: SymlinkDependencyPackage-Package
           windows-swift-version: swift-${{ matrix.swift-version }}-release
           windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
@@ -603,7 +593,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           use-xcbeautify: "true"
 
   test-dependency-package-resolved-v3-failure:
@@ -626,7 +615,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           use-xcbeautify: "true"
       - name: Verify test failed as expected
         if: always() && steps.strict-test.outcome == 'failure'
@@ -662,7 +650,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           use-xcbeautify: "true"
           skip-package-resolved: "true"
 
@@ -679,7 +666,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage-Package
           windows-swift-version: swift-${{ matrix.swift-version }}-release
           windows-swift-build: ${{ matrix.swift-version }}-RELEASE
           use-xcbeautify: "true"
@@ -693,7 +679,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           xcode: "/Applications/Xcode_16.4.app"
           use-xcbeautify: "true"
           skip-package-resolved: "false"
@@ -735,7 +720,6 @@ jobs:
         id: build
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           type: android
           android-swift-version: ${{ matrix.android-swift-version }}
           android-api-level: ${{ matrix.android-api-level }}
@@ -794,7 +778,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage-Package
           type: android
           android-swift-version: ${{ matrix.android-swift-version }}
           android-api-level: ${{ matrix.android-api-level }}
@@ -835,7 +818,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
-          scheme: MixedFrameworkPackage-Package
           type: android
           android-swift-version: ${{ matrix.android-swift-version }}
           android-api-level: ${{ matrix.android-api-level }}
@@ -893,7 +875,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           # NOTE: type is NOT set - should auto-detect Android
           android-swift-version: ${{ matrix.android-swift-version }}
           android-api-level: ${{ matrix.android-api-level }}
@@ -920,7 +901,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           type: macos
           # These Android params should be IGNORED since type is explicitly set to macos
           android-api-level: "31"
@@ -960,7 +940,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           type: android
           android-swift-version: ${{ matrix.android-swift-version }}
           android-api-level: ${{ matrix.android-api-level }}
@@ -980,7 +959,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           skip-package-resolved: "false"
 
       # Second build should hit cache
@@ -988,7 +966,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           skip-package-resolved: "false"
 
   test-cache-behavior-floating:
@@ -1008,7 +985,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           skip-package-resolved: "true"
 
       # Second build should hit cache with 'no-resolved' key
@@ -1016,7 +992,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/DependencyPackage
-          scheme: DependencyPackage
           skip-package-resolved: "true"
 
   test-single-target-wasm:
@@ -1152,7 +1127,6 @@ jobs:
         id: build
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           skip-package-resolved: "true"
@@ -1307,7 +1281,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MultiTargetPackage
-          scheme: MultiTargetPackage-Package
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           skip-package-resolved: "true"
@@ -1366,7 +1339,6 @@ jobs:
       - uses: ./
         with:
           working-directory: test/MixedFrameworkPackage
-          scheme: MixedFrameworkPackage-Package
           type: ${{ matrix.type }}
           xcode: ${{ matrix.xcode }}
           skip-package-resolved: "true"
