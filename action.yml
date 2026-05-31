@@ -774,8 +774,6 @@ runs:
       shell: bash
       id: calc-scheme
       working-directory: ${{ inputs.working-directory }}
-      env:
-        WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: |
         SCHEME=$("$GITHUB_ACTION_PATH/scripts/calculate-scheme.sh")
         echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
