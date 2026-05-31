@@ -99,7 +99,7 @@ Override auto-detection with the `wasm-testing-library` parameter:
 ### Inputs
 
 The action accepts these key inputs:
-- `scheme` (required) - The scheme to build and test
+- `scheme` (optional) - The scheme to build and test. On Apple-platform builds it is auto-calculated from the Swift package when omitted (single product → product name; multiple products → `<PackageName>-Package`).
 - `working-directory` - Directory containing the Swift package (default: '.')
 - `type` - Build type for Apple platforms (ios, watchos, visionos, tvos, macos)
 - `xcode` - Xcode version path for Apple platforms
@@ -112,6 +112,7 @@ The action accepts these key inputs:
   - `android-run-tests` - Run tests on emulator (default: true; use false for ARM macOS)
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
+  - `cache-avd` - Cache the Android AVD emulator snapshot (default: 'true'; set to 'false' to save Actions cache storage)
 - **Wasm-specific parameters**:
   - `wasm-swift-flags` - Additional Swift compiler/linker flags for Wasm builds (required for most projects)
     - Example: `-Xcc -D_WASI_EMULATED_SIGNAL -Xcc -D_WASI_EMULATED_MMAN -Xlinker -lwasi-emulated-signal -Xlinker -lwasi-emulated-mman -Xlinker -lwasi-emulated-getpid -Xlinker --initial-memory=536870912 -Xlinker --max-memory=536870912`
@@ -176,8 +177,8 @@ The action supports:
 
 ## Latest Platform Versions
 
-**Current Stable Release: Xcode 26.4**
-- **Xcode Version:** 26.4
+**Current Stable Release: Xcode 26.5**
+- **Xcode Version:** 26.5
 
 **Recent Stable Releases:**
 - **Xcode 26.2** - Swift 6.2.3 (December 12, 2025)

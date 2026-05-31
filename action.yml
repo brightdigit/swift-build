@@ -46,12 +46,14 @@ inputs:
     required: false
     default: '.'
 
-  # The scheme name to build and test (REQUIRED)
-  # Must match a scheme defined in your Package.swift or .xcodeproj
+  # The scheme name to build and test (optional)
+  # When omitted on Apple-platform builds, the scheme is auto-calculated from the Swift package:
+  #   a single product -> the product name; multiple products -> '<PackageName>-Package'
+  # Provide explicitly to override. Must match a scheme defined in your Package.swift or .xcodeproj
   # Examples: 'MyPackage', 'MyLibrary', 'MyApp-iOS'
   scheme:
-    description: 'The scheme to build and test'
-    required: true
+    description: 'The scheme to build and test (auto-calculated from the Swift package when omitted on Apple platforms)'
+    required: false
 
   # Platform type for builds and testing
   # Apple platforms: 'ios', 'watchOS', 'visionOS', 'tvOS', 'macOS'
@@ -184,6 +186,17 @@ inputs:
   android-copy-files:
     description: 'Additional files to copy to emulator for testing'
     required: false
+
+  # Android AVD emulator snapshot caching
+  # Controls whether skiptools/swift-android-action caches the AVD emulator snapshot (~1GB per API level)
+  # Only used when type is 'android' and android-run-tests is 'true'
+  # Set to 'false' to skip AVD caching and conserve GitHub Actions cache storage
+  # Maps to 'cache-avd' parameter in skiptools/swift-android-action
+  # Default: 'true' (preserves existing behavior; AVD snapshot is cached)
+  cache-avd:
+    description: 'Cache the Android AVD emulator snapshot (skiptools/swift-android-action). Set to false to save Actions storage. Default: true'
+    required: false
+    default: 'true'
 
   # Additional Swift compiler/linker flags for Wasm
   # Examples: '-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-mman -Xlinker --initial-memory=536870912'
@@ -762,6 +775,21 @@ runs:
             ;;
         esac
 
+    # Calculate Xcode Scheme
+    # When the 'scheme' input is omitted, derive it for Apple-platform (xcodebuild) builds from the
+    # Swift package. Convention (matches BrightDigit workflows): a single product uses the product
+    # name; multiple products use the SwiftPM aggregate '<PackageName>-Package'. xcodebuild -list is
+    # only a fallback if the manifest cannot be dumped. See scripts/calculate-scheme.sh.
+    - name: Calculate Scheme
+      if: steps.detect-os.outputs.os == 'macos' && inputs.type && inputs.type != 'android' && inputs.type != 'wasm' && inputs.type != 'wasm-embedded' && inputs.scheme == ''
+      shell: bash
+      id: calc-scheme
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        SCHEME=$("$GITHUB_ACTION_PATH/scripts/calculate-scheme.sh")
+        echo "scheme=$SCHEME" >> $GITHUB_OUTPUT
+        echo "Calculated scheme: $SCHEME"
+
     # Wasm Swift Version Detection
     # This step detects the installed Swift version and constructs the Wasm SDK name.
     # Only executes for Wasm builds (when type is 'wasm' or 'wasm-embedded').
@@ -1082,6 +1110,8 @@ runs:
         # Android emulator configuration (only used when tests are enabled)
         android-api-level: ${{ inputs.android-api-level || '28' }}
         android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout || '600' }}
+        # AVD snapshot caching (set cache-avd: false to save Actions storage)
+        cache-avd: ${{ inputs.cache-avd }}
 
         # Build control flags
         # Always build the package
@@ -1448,6 +1478,38 @@ runs:
     # - Build artifacts cached via .build directory (60-80% time reduction)
     # - Force-resolved-versions prevents dependency resolution inconsistencies
     # - Cache-path flag enables local build artifact reuse
+
+    # Refresh floating dependencies (skip-package-resolved mode)
+    # When skip-package-resolved=true with a floating (branch) dependency, a restored build cache
+    # contains a frozen workspace-state.json + checkouts and would never advance the branch tip
+    # (--force-resolved-versions is intentionally omitted in skip mode). Remove the stale resolution
+    # state so the upcoming build re-resolves floating deps to their current tip, while still reusing
+    # the compiled-artifact cache. This only runs in skip mode; the normal pinned path is untouched.
+    # Runs after all cache-restore steps and before every platform's build/test step.
+    - name: Refresh floating dependencies (skip mode)
+      if: inputs.skip-package-resolved == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "skip-package-resolved=true: clearing stale resolution state so floating deps re-resolve"
+
+        # SPM (.build) resolution state
+        rm -f .build/workspace-state.json 2>/dev/null || true
+
+        # Xcode DerivedData SourcePackages resolution state (Apple-platform builds)
+        if [[ -n "${DERIVED_DATA_PATH:-}" ]]; then
+          find "$DERIVED_DATA_PATH" -name 'workspace-state.json' -delete 2>/dev/null || true
+        fi
+
+        # Remove any restored Package.resolved so SPM/xcodebuild resolve from scratch
+        rm -f Package.resolved 2>/dev/null || true
+
+        # Re-resolve dependencies to advance floating branch deps to their current tip.
+        # Best-effort: skipped cleanly if there are no dependencies or the resolver is unavailable.
+        if command -v swift >/dev/null 2>&1; then
+          swift package update 2>/dev/null || swift package resolve 2>/dev/null || true
+        fi
+
     - name: Build${{ inputs.build-only == 'true' && '' || ' and Test' }}
       if: (steps.detect-os.outputs.os == 'macos' && !inputs.type) || steps.detect-os.outputs.os == 'ubuntu' || steps.detect-os.outputs.os == 'windows'
       shell: bash
@@ -2156,18 +2218,21 @@ runs:
           DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
         fi
 
+        # Quote scheme so values with spaces (e.g. "My Package-Package") survive the eval below.
+        SCHEME_VALUE="${{ inputs.scheme || steps.calc-scheme.outputs.scheme }}"
+
         # Build xcodebuild command based on build-only mode
         if [ "${{ inputs.build-only }}" = "true" ]; then
           # Build-only mode: compile without running tests
           XCODEBUILD_CMD="xcodebuild build \
-            -scheme ${{ inputs.scheme }} \
+            -scheme \"$SCHEME_VALUE\" \
             -sdk ${{ env.SDK }} \
             -destination \"$DESTINATION\" \
             -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
         else
           # Normal mode: build and run tests with coverage
           XCODEBUILD_CMD="xcodebuild test \
-            -scheme ${{ inputs.scheme }} \
+            -scheme \"$SCHEME_VALUE\" \
             -sdk ${{ env.SDK }} \
             -destination \"$DESTINATION\" \
             -enableCodeCoverage YES \
