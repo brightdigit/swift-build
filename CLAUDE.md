@@ -112,6 +112,7 @@ The action accepts these key inputs:
   - `android-run-tests` - Run tests on emulator (default: true; use false for ARM macOS)
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
+  - `cache-avd` - Cache the Android AVD emulator snapshot (default: 'true'; set to 'false' to save Actions cache storage)
 - **Wasm-specific parameters**:
   - `wasm-swift-flags` - Additional Swift compiler/linker flags for Wasm builds (required for most projects)
     - Example: `-Xcc -D_WASI_EMULATED_SIGNAL -Xcc -D_WASI_EMULATED_MMAN -Xlinker -lwasi-emulated-signal -Xlinker -lwasi-emulated-mman -Xlinker -lwasi-emulated-getpid -Xlinker --initial-memory=536870912 -Xlinker --max-memory=536870912`

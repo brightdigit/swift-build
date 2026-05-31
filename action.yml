@@ -2218,18 +2218,21 @@ runs:
           DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
         fi
 
+        # Quote scheme so values with spaces (e.g. "My Package-Package") survive the eval below.
+        SCHEME_VALUE="${{ inputs.scheme || steps.calc-scheme.outputs.scheme }}"
+
         # Build xcodebuild command based on build-only mode
         if [ "${{ inputs.build-only }}" = "true" ]; then
           # Build-only mode: compile without running tests
           XCODEBUILD_CMD="xcodebuild build \
-            -scheme ${{ inputs.scheme || steps.calc-scheme.outputs.scheme }} \
+            -scheme \"$SCHEME_VALUE\" \
             -sdk ${{ env.SDK }} \
             -destination \"$DESTINATION\" \
             -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
         else
           # Normal mode: build and run tests with coverage
           XCODEBUILD_CMD="xcodebuild test \
-            -scheme ${{ inputs.scheme || steps.calc-scheme.outputs.scheme }} \
+            -scheme \"$SCHEME_VALUE\" \
             -sdk ${{ env.SDK }} \
             -destination \"$DESTINATION\" \
             -enableCodeCoverage YES \
