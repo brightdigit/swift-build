@@ -177,8 +177,8 @@ The action supports:
 
 ## Latest Platform Versions
 
-**Current Stable Release: Xcode 26.4**
-- **Xcode Version:** 26.4
+**Current Stable Release: Xcode 26.5**
+- **Xcode Version:** 26.5
 
 **Recent Stable Releases:**
 - **Xcode 26.2** - Swift 6.2.3 (December 12, 2025)
