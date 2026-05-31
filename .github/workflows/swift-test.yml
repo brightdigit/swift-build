@@ -920,7 +920,6 @@ jobs:
         uses: ./
         with:
           working-directory: test/SingleTargetPackage
-          scheme: SingleTargetPackage
           type: macos
           # These Android params should be IGNORED since type is explicitly set to macos
           android-api-level: "31"
