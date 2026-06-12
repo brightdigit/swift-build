@@ -1257,23 +1257,29 @@ runs:
         deriveddata-directory: ${{ env.DERIVED_DATA_PATH }}
 
     # Ubuntu specific steps
+    # SWIFT_VERSION feeds the SPM cache key. For nightly toolchains the script appends
+    # the exact compiler commit (e.g. 6.4-dev-348f9c2e6608448) so a snapshot bump
+    # invalidates the cache instead of restoring .build/ artifacts compiled by an
+    # older snapshot (ABI drift between snapshots causes miscompiles; see issue #109).
     - name: Get Swift and OS versions
       if: steps.detect-os.outputs.os == 'ubuntu'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        SWIFT_VERSION=$(swift --version | head -n 1 | cut -d ' ' -f 3)
+        SWIFT_VERSION=$(swift --version | "$GITHUB_ACTION_PATH/scripts/swift-version-cache-key.sh")
         echo "SWIFT_VERSION=$SWIFT_VERSION" >> $GITHUB_ENV
         OS_VERSION=$(. /etc/os-release && echo $VERSION_CODENAME)
         echo "OS_VERSION=$OS_VERSION" >> $GITHUB_ENV
 
     # Windows specific steps
+    # SWIFT_VERSION feeds the SPM cache key; nightly toolchains get the exact compiler
+    # commit appended (see the Ubuntu step above and issue #109).
     - name: Get Swift version for Windows
       if: steps.detect-os.outputs.os == 'windows'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        SWIFT_VERSION=$(swift --version | head -n 1 | cut -d ' ' -f 3)
+        SWIFT_VERSION=$(swift --version | "$GITHUB_ACTION_PATH/scripts/swift-version-cache-key.sh")
         echo "SWIFT_VERSION=$SWIFT_VERSION" >> $GITHUB_ENV
         # Get Windows version and build number for cache key using simple registry lookup
         # This provides better cache isolation based on Windows version and build
@@ -1347,7 +1353,8 @@ runs:
     # Cache Key Strategy:
     # - Pattern: spm-{UbuntuVersion}-{SwiftVersion}-{PackageHash}-{ResolvedHash}-{BuildOnly}
     # - OS version isolation (focal/jammy/noble) ensures ABI compatibility
-    # - Swift version isolation prevents toolchain conflicts
+    # - Swift version isolation prevents toolchain conflicts; nightly toolchains include
+    #   the compiler commit (e.g. 6.4-dev-348f9c2e6608448) so snapshot bumps invalidate the cache
     # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
     # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - BuildOnly: Separates build-only from test builds to prevent test binary contamination
@@ -1376,7 +1383,8 @@ runs:
     # Cache Key Strategy:
     # - Pattern: spm-windows-{WindowsProductNameSlug}-{BuildNumber}-{SwiftVersion}-{PackageHash}-{ResolvedHash}-{BuildOnly}
     # - Windows version and build isolation ensures toolchain compatibility
-    # - Swift version isolation prevents conflicts between different Windows Swift builds
+    # - Swift version isolation prevents conflicts between different Windows Swift builds;
+    #   nightly toolchains include the compiler commit so snapshot bumps invalidate the cache
     # - PackageHash: Unique identifier per Swift package (prevents cache collisions between packages)
     # - ResolvedHash: Either Package.resolved hash or 'no-resolved' (see detect-resolved step)
     # - BuildOnly: Separates build-only from test builds to prevent test binary contamination
