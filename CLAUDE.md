@@ -113,6 +113,7 @@ The action accepts these key inputs:
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
   - `cache-avd` - Cache the Android AVD emulator snapshot (default: 'true'; set to 'false' to save Actions cache storage)
+  - `android-sdk-url` / `android-sdk-id` - Custom Android Swift SDK artifactbundle URL + identifier, passed through to skiptools/swift-android-action's `custom-sdk-url`/`custom-sdk-id`. Use to target a nightly/snapshot Android SDK (e.g. a swift.org `swift-6.4.x-branch` bundle) the `android-swift-version` path can't resolve. Set both together.
 - **Wasm-specific parameters**:
   - `wasm-swift-flags` - Additional Swift compiler/linker flags for Wasm builds (required for most projects)
     - Example: `-Xcc -D_WASI_EMULATED_SIGNAL -Xcc -D_WASI_EMULATED_MMAN -Xlinker -lwasi-emulated-signal -Xlinker -lwasi-emulated-mman -Xlinker -lwasi-emulated-getpid -Xlinker --initial-memory=536870912 -Xlinker --max-memory=536870912`
@@ -147,6 +148,7 @@ The action accepts these key inputs:
   - `wasm-swift-test-flags` - Additional flags passed to test runner (WasmKit/Wasmtime)
     - Examples: `'--parallel'`, `'--filter TestSuiteName'`
     - Applied after `--testing-library` flag
+  - `wasm-sdk-url` / `wasm-sdk-checksum` - Custom Wasm SDK artifactbundle URL + SHA256 checksum. When `wasm-sdk-url` is set it overrides the derived `download.swift.org` `-RELEASE` URL, installs the bundle directly (with `--checksum` when provided), and derives the `--swift-sdk` selector from the bundle filename. This is the path for nightly/snapshot toolchains, which publish `*-DEVELOPMENT-SNAPSHOT-*_wasm.artifactbundle` (no `-RELEASE` bundle exists).
 
 **Security Considerations:**
 - **`wasm-swift-flags` and `wasm-swift-test-flags` Input Sanitization**: These parameters are parsed into bash arrays to prevent command injection vulnerabilities. Values are split on whitespace to support multiple space-separated flags (e.g., `--parallel --verbose`). While GitHub Actions input parameters are typically sourced from trusted workflow YAML files, array-based parsing provides defense-in-depth protection against injection attacks.
