@@ -112,8 +112,7 @@ The action accepts these key inputs:
   - `android-run-tests` - Run tests on emulator (default: true; use false for ARM macOS)
   - `android-swift-build-flags` / `android-swift-test-flags` - Additional build/test flags
   - `android-emulator-boot-timeout` - Emulator timeout in seconds (default: '600')
-  - `cache-avd` - Cache the Android AVD emulator snapshot (default: 'true'; set to 'false' to save Actions cache storage)
-  - `android-sdk-url` / `android-sdk-id` - Custom Android Swift SDK artifactbundle URL + identifier, passed through to skiptools/swift-android-action's `custom-sdk-url`/`custom-sdk-id`. Use to target a nightly/snapshot Android SDK (e.g. a swift.org `swift-6.4.x-branch` bundle) the `android-swift-version` path can't resolve. Set both together.
+  - `android-sdk-url` / `android-sdk-id` / `android-sdk-target` - Custom Android Swift SDK artifactbundle URL + identifier + build triple, passed through to skiptools/swift-android-action's `custom-sdk-url`/`custom-sdk-id`/`installed-sdk`. Use to target a nightly/snapshot Android SDK (e.g. a swift.org `swift-6.4.x-branch` bundle) the `android-swift-version` path can't resolve. Set url+id together; `android-sdk-target` defaults to `aarch64-unknown-linux-android28` when a custom url is set (swift-android-action requires a non-empty `installed-sdk` triple alongside a custom SDK).
 - **Wasm-specific parameters**:
   - `wasm-swift-flags` - Additional Swift compiler/linker flags for Wasm builds (required for most projects)
     - Example: `-Xcc -D_WASI_EMULATED_SIGNAL -Xcc -D_WASI_EMULATED_MMAN -Xlinker -lwasi-emulated-signal -Xlinker -lwasi-emulated-mman -Xlinker -lwasi-emulated-getpid -Xlinker --initial-memory=536870912 -Xlinker --max-memory=536870912`

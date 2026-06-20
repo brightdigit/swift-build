@@ -187,17 +187,6 @@ inputs:
     description: 'Additional files to copy to emulator for testing'
     required: false
 
-  # Android AVD emulator snapshot caching
-  # Controls whether skiptools/swift-android-action caches the AVD emulator snapshot (~1GB per API level)
-  # Only used when type is 'android' and android-run-tests is 'true'
-  # Set to 'false' to skip AVD caching and conserve GitHub Actions cache storage
-  # Maps to 'cache-avd' parameter in skiptools/swift-android-action
-  # Default: 'true' (preserves existing behavior; AVD snapshot is cached)
-  cache-avd:
-    description: 'Cache the Android AVD emulator snapshot (skiptools/swift-android-action). Set to false to save Actions storage. Default: true'
-    required: false
-    default: 'true'
-
   # Custom Android Swift SDK artifactbundle (e.g. a swift.org nightly/snapshot bundle)
   # Only used when type is 'android'. Passed through to skiptools/swift-android-action's
   # custom-sdk-url input, which requires custom-sdk-id alongside it. Use this to target a
@@ -213,6 +202,16 @@ inputs:
   # bundle registers under). Maps to skiptools/swift-android-action's custom-sdk-id.
   android-sdk-id:
     description: 'Optional: Custom Android SDK identifier matching android-sdk-url. Passed to skiptools/swift-android-action custom-sdk-id.'
+    required: false
+    default: ''
+
+  # Swift SDK build triple for the custom Android SDK (the `--swift-sdk <triple>` target).
+  # Maps to skiptools/swift-android-action's `installed-sdk`, which that action REQUIRES
+  # (non-empty) whenever custom-sdk-url/custom-sdk-id are set — it exits 1 otherwise.
+  # Defaults to a build-only aarch64 triple; override to match the bundle's registered triple
+  # (e.g. a different API suffix). Only used when type is 'android'.
+  android-sdk-target:
+    description: 'Optional: Swift SDK build triple for the custom Android SDK (maps to skiptools/swift-android-action installed-sdk). Required when android-sdk-url is set. Default: aarch64-unknown-linux-android28.'
     required: false
     default: ''
 
@@ -1189,8 +1188,6 @@ runs:
         # Android emulator configuration (only used when tests are enabled)
         android-api-level: ${{ inputs.android-api-level || '28' }}
         android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout || '600' }}
-        # AVD snapshot caching (set cache-avd: false to save Actions storage)
-        cache-avd: ${{ inputs.cache-avd }}
 
         # Build control flags
         # Always build the package
@@ -1208,11 +1205,14 @@ runs:
         copy-files: ${{ inputs.android-copy-files }}
 
         # Custom Android Swift SDK bundle (e.g. a swift.org nightly/snapshot bundle).
-        # Both must be set together; blank values fall back to the default version-derived
-        # SDK that swift-android-action resolves from swift-version. This is the path for
-        # nightly toolchains whose Android SDK android-swift-version can't otherwise reach.
+        # url+id+target must be set together; blank url falls back to the default
+        # version-derived SDK that swift-android-action resolves from swift-version. This is
+        # the path for nightly toolchains whose Android SDK android-swift-version can't reach.
+        # installed-sdk is the `--swift-sdk <triple>` target; swift-android-action exits 1 if
+        # it's empty while custom-sdk-url is set, so default it when a custom URL is in play.
         custom-sdk-url: ${{ inputs.android-sdk-url }}
         custom-sdk-id: ${{ inputs.android-sdk-id }}
+        installed-sdk: ${{ (inputs.android-sdk-target != '' && inputs.android-sdk-target) || (inputs.android-sdk-url != '' && 'aarch64-unknown-linux-android28') || '' }}
 
     # xcbeautify Installation
     # Installs xcbeautify tool for prettified xcodebuild output when enabled.
