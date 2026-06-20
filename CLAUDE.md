@@ -155,6 +155,8 @@ The action accepts these key inputs:
 
   **Limitations**: Flags requiring space-containing values are not supported (e.g., `--filter "Test Suite"` will be incorrectly split). Use alternative formats like `--filter=TestSuite` or comma-separated values where possible.
 
+- **Custom SDK URLs (`wasm-sdk-url` / `android-sdk-url`)**: These inputs download and install an SDK bundle from whatever host they point at. Only use URLs from a trusted source (e.g. `download.swift.org`). For Wasm, prefer pairing `wasm-sdk-url` with `wasm-sdk-checksum` so `swift sdk install --checksum` verifies the bundle and detects tampering or corruption.
+
 ### Outputs
 
 The action provides these outputs:
@@ -176,6 +178,8 @@ The action supports:
 - **Android**: Swift 6.2+ with emulator testing (Ubuntu/Intel macOS) or build-only (ARM macOS)
 - **WebAssembly (Wasm)**: Swift 6.2+ with Wasmtime runtime (auto-cached binaries)
 - **Cross-platform caching**: Different strategies for macOS vs Ubuntu builds, with optimized Wasmtime binary caching
+
+**Note on custom SDK inputs:** The caller-supplied SDK inputs (`wasm-sdk-url` / `wasm-sdk-checksum` / `android-sdk-url` / `android-sdk-id`) are intentionally **not** exercised by the CI matrix. They target nightly/snapshot bundles whose URLs rotate and disappear, so pinning one in the matrix would make CI fail as the snapshot ages out. These paths were validated manually against a known nightly bundle; re-validate manually with a current snapshot URL when changing this logic.
 
 ## Latest Platform Versions
 

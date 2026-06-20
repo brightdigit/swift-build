@@ -856,10 +856,11 @@ runs:
         # nightly toolchains don't satisfy the 6.2.3+/6.3+ parser anyway).
         WASM_SDK_URL="${{ inputs.wasm-sdk-url }}"
         if [[ -n "$WASM_SDK_URL" ]]; then
-          BASE="$(basename "$WASM_SDK_URL")"
+          # Strip any query string/fragment (e.g. signed CDN URLs) before taking the basename,
+          # then strip only the two artifactbundle suffixes `swift sdk install` accepts.
+          BASE="$(basename "${WASM_SDK_URL%%[?#]*}")"
           SDK_NAME="${BASE%.artifactbundle.tar.gz}"
           SDK_NAME="${SDK_NAME%.artifactbundle.zip}"
-          SDK_NAME="${SDK_NAME%.tar.gz}"
           echo "swift-version=custom" >> $GITHUB_OUTPUT
           echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
           echo "Custom Wasm SDK URL provided; using --swift-sdk selector: $SDK_NAME"
@@ -946,14 +947,14 @@ runs:
           else
             echo "Downloading from: $CUSTOM_SDK_URL"
             if command -v curl >/dev/null 2>&1; then
-              curl -L "$CUSTOM_SDK_URL" -o /tmp/wasm-sdk.tar.gz
+              curl -L "$CUSTOM_SDK_URL" -o /tmp/wasm-custom-sdk.tar.gz
             elif command -v wget >/dev/null 2>&1; then
-              wget -O /tmp/wasm-sdk.tar.gz "$CUSTOM_SDK_URL"
+              wget -O /tmp/wasm-custom-sdk.tar.gz "$CUSTOM_SDK_URL"
             else
               echo "ERROR: Neither curl nor wget available to download Wasm SDK"
               exit 1
             fi
-            swift sdk install /tmp/wasm-sdk.tar.gz
+            swift sdk install /tmp/wasm-custom-sdk.tar.gz
           fi
         else
           # The SDK download URL pattern from Swift.org
