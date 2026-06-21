@@ -2151,7 +2151,9 @@ runs:
 
             # Find and validate test binaries
             echo "Searching for Wasm test binaries..."
-            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
+            # Swift 6.4's swiftbuild layout emits `<Name>Tests-test-runner.wasm`
+            # (not `<Name>Tests.wasm`); match it too. See nightly-6.4 issue #92.
+            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" -o -name "*-test-runner.wasm" \) 2>/dev/null)
 
             if [[ -z "$TEST_BINARIES" ]]; then
               # Defensive fallback - .xctest bundles shouldn't exist in Wasm builds
@@ -2224,7 +2226,9 @@ runs:
 
             # Find and validate test binaries
             echo "Searching for Wasm test binaries..."
-            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
+            # Swift 6.4's swiftbuild layout emits `<Name>Tests-test-runner.wasm`
+            # (not `<Name>Tests.wasm`); match it too. See nightly-6.4 issue #92.
+            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" -o -name "*-test-runner.wasm" \) 2>/dev/null)
 
             if [[ -z "$TEST_BINARIES" ]]; then
               # Defensive fallback - .xctest bundles shouldn't exist in Wasm builds
