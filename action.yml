@@ -187,16 +187,33 @@ inputs:
     description: 'Additional files to copy to emulator for testing'
     required: false
 
-  # Android AVD emulator snapshot caching
-  # Controls whether skiptools/swift-android-action caches the AVD emulator snapshot (~1GB per API level)
-  # Only used when type is 'android' and android-run-tests is 'true'
-  # Set to 'false' to skip AVD caching and conserve GitHub Actions cache storage
-  # Maps to 'cache-avd' parameter in skiptools/swift-android-action
-  # Default: 'true' (preserves existing behavior; AVD snapshot is cached)
-  cache-avd:
-    description: 'Cache the Android AVD emulator snapshot (skiptools/swift-android-action). Set to false to save Actions storage. Default: true'
+  # Custom Android Swift SDK artifactbundle (e.g. a swift.org nightly/snapshot bundle)
+  # Only used when type is 'android'. Passed through to skiptools/swift-android-action's
+  # custom-sdk-url input, which requires custom-sdk-id alongside it. Use this to target a
+  # nightly toolchain whose Android SDK the default android-swift-version path can't resolve,
+  # e.g. https://download.swift.org/swift-6.4.x-branch/android-sdk/.../<snapshot>_android.artifactbundle.tar.gz
+  # When set, also set android-sdk-id, and set android-swift-version to the matching snapshot toolchain.
+  android-sdk-url:
+    description: 'Optional: Custom Android Swift SDK artifactbundle URL (e.g. a swift.org nightly bundle). Passed to skiptools/swift-android-action custom-sdk-url. Requires android-sdk-id.'
     required: false
-    default: 'true'
+    default: ''
+
+  # Identifier for the custom Android SDK named by android-sdk-url (the `swift sdk` id the
+  # bundle registers under). Maps to skiptools/swift-android-action's custom-sdk-id.
+  android-sdk-id:
+    description: 'Optional: Custom Android SDK identifier matching android-sdk-url. Passed to skiptools/swift-android-action custom-sdk-id.'
+    required: false
+    default: ''
+
+  # Swift SDK build triple for the custom Android SDK (the `--swift-sdk <triple>` target).
+  # Maps to skiptools/swift-android-action's `installed-sdk`, which that action REQUIRES
+  # (non-empty) whenever custom-sdk-url/custom-sdk-id are set — it exits 1 otherwise.
+  # Defaults to a build-only aarch64 triple; override to match the bundle's registered triple
+  # (e.g. a different API suffix). Only used when type is 'android'.
+  android-sdk-target:
+    description: 'Optional: Swift SDK build triple for the custom Android SDK (maps to skiptools/swift-android-action installed-sdk). Required when android-sdk-url is set. Default: aarch64-unknown-linux-android28.'
+    required: false
+    default: ''
 
   # Additional Swift compiler/linker flags for Wasm
   # Examples: '-Xcc -D_WASI_EMULATED_SIGNAL -Xlinker -lwasi-emulated-mman -Xlinker --initial-memory=536870912'
@@ -237,6 +254,25 @@ inputs:
   # Security: Only use trusted values (YAML-defined). Never pass untrusted user input.
   wasm-swift-test-flags:
     description: 'Additional flags passed to Wasm test runner (WasmKit/Wasmtime). Example: --parallel'
+    required: false
+    default: ''
+
+  # Custom Wasm SDK artifactbundle URL (e.g. a swift.org nightly/snapshot bundle)
+  # Only used when type is 'wasm' or 'wasm-embedded'. When set, overrides the derived
+  # download.swift.org `-RELEASE` URL — the action installs this bundle directly and
+  # derives the `--swift-sdk` selector from the bundle filename. Use this for nightly
+  # toolchains, whose SDKs are published as `*-DEVELOPMENT-SNAPSHOT-*_wasm.artifactbundle`
+  # (no matching `-RELEASE` bundle exists), e.g.
+  # https://download.swift.org/swift-6.4.x-branch/wasm-sdk/.../<snapshot>_wasm.artifactbundle.tar.gz
+  wasm-sdk-url:
+    description: 'Optional: Custom Wasm SDK artifactbundle URL (e.g. a nightly/snapshot bundle). Overrides the derived download.swift.org -RELEASE URL.'
+    required: false
+    default: ''
+
+  # SHA256 checksum for the custom Wasm SDK bundle (passed to `swift sdk install --checksum`).
+  # Recommended whenever wasm-sdk-url is set so the install is verified non-interactively.
+  wasm-sdk-checksum:
+    description: 'Optional: SHA256 checksum for wasm-sdk-url, passed to `swift sdk install --checksum`.'
     required: false
     default: ''
 
@@ -812,6 +848,24 @@ runs:
         #   "Swift version 6.2.3 (swift-6.2.3-RELEASE)"
         #   "swift-driver version: 1.127.14.1 Swift version 6.2 (swift-6.2.3-RELEASE)"
         #   "Swift version 6.3 (swift-6.3-RELEASE)"
+        # Custom Wasm SDK URL (e.g. a nightly/snapshot bundle): skip version derivation.
+        # The `--swift-sdk` selector is the bundle id, which for swift.org bundles is the
+        # filename stem — matching the installed-SDK id `swift sdk list` reports, exactly as
+        # the default `-RELEASE` path relies on. No `swift --version` parse is needed (and
+        # nightly toolchains don't satisfy the 6.2.3+/6.3+ parser anyway).
+        WASM_SDK_URL="${{ inputs.wasm-sdk-url }}"
+        if [[ -n "$WASM_SDK_URL" ]]; then
+          # Strip any query string/fragment (e.g. signed CDN URLs) before taking the basename,
+          # then strip only the two artifactbundle suffixes `swift sdk install` accepts.
+          BASE="$(basename "${WASM_SDK_URL%%[?#]*}")"
+          SDK_NAME="${BASE%.artifactbundle.tar.gz}"
+          SDK_NAME="${SDK_NAME%.artifactbundle.zip}"
+          echo "swift-version=custom" >> $GITHUB_OUTPUT
+          echo "wasm-sdk=$SDK_NAME" >> $GITHUB_OUTPUT
+          echo "Custom Wasm SDK URL provided; using --swift-sdk selector: $SDK_NAME"
+          exit 0
+        fi
+
         SWIFT_VERSION_RAW=$(swift --version 2>&1 | head -n 1)
         echo "Raw version output: $SWIFT_VERSION_RAW"
 
@@ -877,28 +931,52 @@ runs:
       run: |
         SDK_NAME="${{ steps.detect-swift-version.outputs.wasm-sdk }}"
         SWIFT_VERSION="${{ steps.detect-swift-version.outputs.swift-version }}"
+        CUSTOM_SDK_URL="${{ inputs.wasm-sdk-url }}"
+        CUSTOM_SDK_CHECKSUM="${{ inputs.wasm-sdk-checksum }}"
 
         echo "Installing Wasm SDK: $SDK_NAME"
 
-        # The SDK download URL pattern from Swift.org
-        # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
-        # TODO: Add checksum validation when Swift.org publishes checksums for Wasm SDKs (tracked in issue #82)
-        SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
-
-        echo "Downloading from: $SDK_URL"
-
-        # Download SDK (use wget if curl not available)
-        if command -v curl >/dev/null 2>&1; then
-          curl -L "$SDK_URL" -o /tmp/wasm-sdk.tar.gz
-        elif command -v wget >/dev/null 2>&1; then
-          wget -O /tmp/wasm-sdk.tar.gz "$SDK_URL"
+        if [[ -n "$CUSTOM_SDK_URL" ]]; then
+          # Caller supplied a bundle URL (e.g. a nightly/snapshot SDK). Install it directly.
+          # When a checksum is provided, install straight from the URL so `swift sdk install`
+          # verifies it; otherwise download first (curl/wget) and install from the local file.
+          if [[ -n "$CUSTOM_SDK_CHECKSUM" ]]; then
+            echo "Installing from URL with checksum: $CUSTOM_SDK_URL"
+            swift sdk install "$CUSTOM_SDK_URL" --checksum "$CUSTOM_SDK_CHECKSUM"
+          else
+            echo "Downloading from: $CUSTOM_SDK_URL"
+            if command -v curl >/dev/null 2>&1; then
+              curl -L "$CUSTOM_SDK_URL" -o /tmp/wasm-custom-sdk.tar.gz
+            elif command -v wget >/dev/null 2>&1; then
+              wget -O /tmp/wasm-custom-sdk.tar.gz "$CUSTOM_SDK_URL"
+            else
+              echo "ERROR: Neither curl nor wget available to download Wasm SDK"
+              exit 1
+            fi
+            swift sdk install /tmp/wasm-custom-sdk.tar.gz
+          fi
         else
-          echo "ERROR: Neither curl nor wget available to download Wasm SDK"
-          exit 1
-        fi
+          # The SDK download URL pattern from Swift.org
+          # Format: https://download.swift.org/swift-{version}-release/wasm-sdk/swift-{version}-RELEASE/swift-{version}-RELEASE_wasm.artifactbundle.tar.gz
+          # No checksum: Swift.org doesn't publish checksums for -RELEASE Wasm SDKs (issue #82);
+          # pass wasm-sdk-url + wasm-sdk-checksum to install a verified (e.g. nightly) bundle instead.
+          SDK_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/wasm-sdk/swift-${SWIFT_VERSION}-RELEASE/${SDK_NAME}.artifactbundle.tar.gz"
 
-        # Install SDK from local file (doesn't require checksum)
-        swift sdk install /tmp/wasm-sdk.tar.gz
+          echo "Downloading from: $SDK_URL"
+
+          # Download SDK (use wget if curl not available)
+          if command -v curl >/dev/null 2>&1; then
+            curl -L "$SDK_URL" -o /tmp/wasm-sdk.tar.gz
+          elif command -v wget >/dev/null 2>&1; then
+            wget -O /tmp/wasm-sdk.tar.gz "$SDK_URL"
+          else
+            echo "ERROR: Neither curl nor wget available to download Wasm SDK"
+            exit 1
+          fi
+
+          # Install SDK from local file (doesn't require checksum)
+          swift sdk install /tmp/wasm-sdk.tar.gz
+        fi
 
         # Verify installation
         echo "Installed SDKs:"
@@ -1110,8 +1188,6 @@ runs:
         # Android emulator configuration (only used when tests are enabled)
         android-api-level: ${{ inputs.android-api-level || '28' }}
         android-emulator-boot-timeout: ${{ inputs.android-emulator-boot-timeout || '600' }}
-        # AVD snapshot caching (set cache-avd: false to save Actions storage)
-        cache-avd: ${{ inputs.cache-avd }}
 
         # Build control flags
         # Always build the package
@@ -1127,6 +1203,16 @@ runs:
 
         # Additional files to copy to emulator for testing
         copy-files: ${{ inputs.android-copy-files }}
+
+        # Custom Android Swift SDK bundle (e.g. a swift.org nightly/snapshot bundle).
+        # url+id+target must be set together; blank url falls back to the default
+        # version-derived SDK that swift-android-action resolves from swift-version. This is
+        # the path for nightly toolchains whose Android SDK android-swift-version can't reach.
+        # installed-sdk is the `--swift-sdk <triple>` target; swift-android-action exits 1 if
+        # it's empty while custom-sdk-url is set, so default it when a custom URL is in play.
+        custom-sdk-url: ${{ inputs.android-sdk-url }}
+        custom-sdk-id: ${{ inputs.android-sdk-id }}
+        installed-sdk: ${{ (inputs.android-sdk-target != '' && inputs.android-sdk-target) || (inputs.android-sdk-url != '' && 'aarch64-unknown-linux-android28') || '' }}
 
     # xcbeautify Installation
     # Installs xcbeautify tool for prettified xcodebuild output when enabled.
@@ -2073,7 +2159,9 @@ runs:
 
             # Find and validate test binaries
             echo "Searching for Wasm test binaries..."
-            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
+            # Swift 6.4's swiftbuild layout emits `<Name>Tests-test-runner.wasm`
+            # (not `<Name>Tests.wasm`); match it too. See nightly-6.4 issue #92.
+            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" -o -name "*-test-runner.wasm" \) 2>/dev/null)
 
             if [[ -z "$TEST_BINARIES" ]]; then
               # Defensive fallback - .xctest bundles shouldn't exist in Wasm builds
@@ -2146,7 +2234,9 @@ runs:
 
             # Find and validate test binaries
             echo "Searching for Wasm test binaries..."
-            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" \) 2>/dev/null)
+            # Swift 6.4's swiftbuild layout emits `<Name>Tests-test-runner.wasm`
+            # (not `<Name>Tests.wasm`); match it too. See nightly-6.4 issue #92.
+            TEST_BINARIES=$(find .build -type f \( -name "*Tests.wasm" -o -name "*PackageTests.wasm" -o -name "*-test-runner.wasm" \) 2>/dev/null)
 
             if [[ -z "$TEST_BINARIES" ]]; then
               # Defensive fallback - .xctest bundles shouldn't exist in Wasm builds
