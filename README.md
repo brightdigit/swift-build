@@ -1,6 +1,6 @@
 # Swift-Build 
 
-[![CI](https://github.com/brightdigit/swift-build/workflows/CI/badge.svg)](https://github.com/brightdigit/swift-build/actions)
+[![Swift Package Tests](https://github.com/brightdigit/swift-build/actions/workflows/swift-test.yml/badge.svg)](https://github.com/brightdigit/swift-build/actions/workflows/swift-test.yml)
 [![GitHub release](https://img.shields.io/github/release/brightdigit/swift-build.svg)](https://github.com/brightdigit/swift-build/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
