@@ -1,9 +1,19 @@
 name: Update Version Tags
 
+# Fires on published GitHub Releases (not tag push) so [skip ci] on the tagged
+# commit cannot suppress floating major/minor tag updates.
+# workflow_dispatch recovers missed releases; omit tag to use the latest stable.
+
 on:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'   # full semver only; + is extended glob (one-or-more), not regex
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Full semver tag to propagate (e.g. v1.5.8). Leave empty for latest stable release.'
+        required: false
+        type: string
+        default: ''
 
 concurrency:
   group: update-version-tags
@@ -11,22 +21,50 @@ concurrency:
 
 jobs:
   update-tags:
+    # Prereleases must not move v1 / v1.5; dispatch and stable releases are fine.
+    if: github.event_name != 'release' || !github.event.release.prerelease
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Update major and minor version tags
+      - name: Resolve tag
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          TAG="${{ github.ref_name }}"
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            TAG="$RELEASE_TAG"
+          elif [[ -n "$INPUT_TAG" ]]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG=$(gh release list --repo "$GITHUB_REPOSITORY" \
+              --exclude-drafts --exclude-pre-releases --limit 1 \
+              --json tagName --jq '.[0].tagName')
+            if [[ -z "$TAG" || "$TAG" == "null" ]]; then
+              echo "No stable release found to propagate" >&2
+              exit 1
+            fi
+          fi
 
           if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Unexpected tag format: $TAG"
+            echo "Unexpected tag format: $TAG (expected vMAJOR.MINOR.PATCH)" >&2
             exit 1
           fi
 
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using tag: $TAG"
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.resolve.outputs.tag }}
+
+      - name: Update major and minor version tags
+        run: |
+          TAG="${{ steps.resolve.outputs.tag }}"
           MAJOR=$(echo "$TAG" | cut -d. -f1)      # e.g. v1
           MINOR=$(echo "$TAG" | cut -d. -f1,2)    # e.g. v1.5
 
