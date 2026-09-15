@@ -73,6 +73,7 @@
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
+| `xcargs` | Extra arguments appended to the xcodebuild invocation | `''` | `-scmProvider system` | Any valid xcodebuild flags | **Apple platforms only** - Appended to `xcodebuild build` / `xcodebuild test`. Use `-scmProvider system` for private SSH SPM dependencies (Xcode's built-in libgit2 ignores `ssh-agent` / `GIT_SSH_COMMAND`) |
 
 > **Security note (custom SDK URLs):** `wasm-sdk-url` and `android-sdk-url` download and install an SDK bundle from whatever host you point them at, so only use URLs from a trusted source (e.g. `download.swift.org`). For Wasm, prefer setting `wasm-sdk-checksum` so `swift sdk install --checksum` detects tampering or corruption.
 
@@ -1322,6 +1323,19 @@ jobs:
     xcbeautify-renderer: github-actions
 ```
 
+### Private SSH SPM Dependencies
+```yaml
+# Xcode's built-in libgit2 ignores ssh-agent and GIT_SSH_COMMAND.
+# Pass -scmProvider system so xcodebuild resolves packages with system git.
+- uses: brightdigit/swift-build@v1
+  with:
+    scheme: MyApp
+    type: ios
+    deviceName: iPhone 15 Pro
+    osVersion: '17.5'
+    xcargs: -scmProvider system
+```
+
 ### macOS Native Testing
 ```yaml
 - uses: brightdigit/swift-build@v1
@@ -2152,11 +2166,11 @@ Code coverage is not currently supported for Android builds. This is a known lim
 
 | Build Type | Required Parameters | Optional | Invalid |
 |------------|-------------------|----------|---------|
-| **SwiftPM Build** | `—` | `working-directory`, `scheme` (optional) | `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer` |
-| **Windows Build** | `windows-swift-version`, `windows-swift-build` | `working-directory` | `scheme`, `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer` |
-| **macOS Native** | `type: macos` | `scheme` (auto-calculated), `xcode`, `working-directory`, `use-xcbeautify`, `xcbeautify-renderer` | `deviceName`, `osVersion` |
-| **iOS Simulator** | `type: ios`, `deviceName`, `osVersion` | `scheme` (auto-calculated), `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer` | None |
-| **Other Simulators** | `type`, `deviceName`, `osVersion` | `scheme` (auto-calculated), `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer` | None |
+| **SwiftPM Build** | `—` | `working-directory`, `scheme` (optional) | `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer`, `xcargs` |
+| **Windows Build** | `windows-swift-version`, `windows-swift-build` | `working-directory` | `scheme`, `type`, `deviceName`, `osVersion`, `use-xcbeautify`, `xcbeautify-renderer`, `xcargs` |
+| **macOS Native** | `type: macos` | `scheme` (auto-calculated), `xcode`, `working-directory`, `use-xcbeautify`, `xcbeautify-renderer`, `xcargs` | `deviceName`, `osVersion` |
+| **iOS Simulator** | `type: ios`, `deviceName`, `osVersion` | `scheme` (auto-calculated), `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer`, `xcargs` | None |
+| **Other Simulators** | `type`, `deviceName`, `osVersion` | `scheme` (auto-calculated), `xcode`, `download-platform`, `use-xcbeautify`, `xcbeautify-renderer`, `xcargs` | None |
 
 **Q: How do I fix xcbeautify installation issues?**
 
@@ -3645,14 +3659,14 @@ type: androidOS  # Invalid platform type
 
 ### Input Parameter Sanitization
 
-The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. This design is intentional and safe for standard GitHub Actions usage because:
+The `wasm-swift-flags` and `xcargs` parameters are directly interpolated into shell commands without sanitization. This design is intentional and safe for standard GitHub Actions usage because:
 
 1. **Trusted Source**: GitHub Actions input parameters come from workflow YAML files, which require repository write access to modify
 2. **Controlled Environment**: If an attacker can modify workflow files, they already have full control of the CI environment
 3. **Performance**: No validation overhead for the common trusted case
 
 **If you're building reusable workflows** that accept external inputs (e.g., `workflow_call` with inputs from untrusted sources):
-- ⚠️ **Never** pass untrusted user input directly to `wasm-swift-flags`
+- ⚠️ **Never** pass untrusted user input directly to `wasm-swift-flags` or `xcargs`
 - Validate and sanitize external inputs before using them
 - Consider allowlisting known-safe flag patterns
 
@@ -3695,6 +3709,25 @@ jobs:
   with:
     scheme: MyPackage-Package  # Note the -Package suffix
 ```
+
+#### Issue: Server SSH Fingerprint Failed to Verify
+**Error:** `xcodebuild: error: Could not resolve package dependencies: Server SSH Fingerprint Failed to Verify`
+
+**Cause:** Xcode's built-in libgit2 SCM provider ignores `ssh-agent` and `GIT_SSH_COMMAND`, so private SSH SPM dependencies cannot authenticate or verify host keys.
+
+**Solution:** Pass `-scmProvider system` via `xcargs` so `xcodebuild` uses system git (which honours SSH agent / `GIT_SSH_COMMAND`):
+
+```yaml
+- uses: brightdigit/swift-build@v1
+  with:
+    scheme: MyApp
+    type: ios
+    deviceName: iPhone 15 Pro
+    osVersion: '17.5'
+    xcargs: -scmProvider system
+```
+
+Note: `defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM -bool NO` does **not** fix this on recent Xcode versions.
 
 #### Issue: Simulator Device Not Available
 **Error:** `Unable to find destination matching iPhone 17`

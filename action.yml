@@ -276,6 +276,18 @@ inputs:
     required: false
     default: ''
 
+  # Extra arguments appended to the Apple-platform xcodebuild invocation
+  # Examples: '-scmProvider system', '-quiet', '-showBuildTimingSummary'
+  # Only applies to Apple platform builds (when type parameter is specified)
+  # Appended to both 'xcodebuild build' and 'xcodebuild test' commands
+  # Useful for private SSH SPM dependencies: Xcode's built-in libgit2 ignores
+  # ssh-agent and GIT_SSH_COMMAND; -scmProvider system switches to system git
+  # Default: '' (no extra arguments)
+  xcargs:
+    description: 'Extra arguments appended to the xcodebuild invocation (Apple platforms only; e.g. -scmProvider system)'
+    required: false
+    default: ''
+
   # Enable xcbeautify for prettified xcodebuild output
   # When enabled, installs and uses xcbeautify to format xcodebuild output
   # Provides human-friendly, colored output and better CI integration
@@ -2320,13 +2332,16 @@ runs:
         SCHEME_VALUE="${{ inputs.scheme || steps.calc-scheme.outputs.scheme }}"
 
         # Build xcodebuild command based on build-only mode
+        # ${{ inputs.xcargs }} is appended so callers can pass flags like
+        # -scmProvider system (needed for private SSH SPM dependencies).
         if [ "${{ inputs.build-only }}" = "true" ]; then
           # Build-only mode: compile without running tests
           XCODEBUILD_CMD="xcodebuild build \
             -scheme \"$SCHEME_VALUE\" \
             -sdk ${{ env.SDK }} \
             -destination \"$DESTINATION\" \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
+            -derivedDataPath ${{ env.DERIVED_DATA_PATH }} \
+            ${{ inputs.xcargs }}"
         else
           # Normal mode: build and run tests with coverage
           XCODEBUILD_CMD="xcodebuild test \
@@ -2334,7 +2349,8 @@ runs:
             -sdk ${{ env.SDK }} \
             -destination \"$DESTINATION\" \
             -enableCodeCoverage YES \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }}"
+            -derivedDataPath ${{ env.DERIVED_DATA_PATH }} \
+            ${{ inputs.xcargs }}"
         fi
 
         # Configure output saving if enabled
