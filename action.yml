@@ -278,13 +278,14 @@ inputs:
 
   # Extra arguments appended to the Apple-platform xcodebuild invocation
   # Examples: '-scmProvider system', '-quiet', '-showBuildTimingSummary'
+  # Space-separated flags only (no quoted values containing spaces) — parsed via
+  # read -a and expanded as an argv array (same pattern as wasm-swift-test-flags)
   # Only applies to Apple platform builds (when type parameter is specified)
-  # Appended to both 'xcodebuild build' and 'xcodebuild test' commands
   # Useful for private SSH SPM dependencies: Xcode's built-in libgit2 ignores
   # ssh-agent and GIT_SSH_COMMAND; -scmProvider system switches to system git
   # Default: '' (no extra arguments)
   xcargs:
-    description: 'Extra arguments appended to the xcodebuild invocation (Apple platforms only; e.g. -scmProvider system)'
+    description: 'Extra space-separated arguments appended to the xcodebuild invocation (Apple platforms only; e.g. -scmProvider system)'
     required: false
     default: ''
 
@@ -2316,41 +2317,52 @@ runs:
       if: steps.detect-os.outputs.os == 'macos' && inputs.type
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+      env:
+        # Pass via env (not script interpolation) to avoid quote-breakout in the run script.
+        # Parsed with read -a and expanded as an array — same pattern as wasm-swift-test-flags.
+        XCARGS: ${{ inputs.xcargs }}
+        SCHEME_VALUE: ${{ inputs.scheme || steps.calc-scheme.outputs.scheme }}
+        DEVICE_NAME: ${{ inputs.deviceName }}
+        OS_VERSION: ${{ inputs.osVersion }}
+        XCBEAUTIFY_RENDERER: ${{ inputs.xcbeautify-renderer }}
       run: |
         # Fix for iOS simulator connection issue (https://github.com/actions/runner-images/issues/12862)
         # Establish simulator connection before running xcodebuild
         xcrun simctl list > /dev/null
 
+        # Space-separated xcargs (e.g. -scmProvider system); no quoted values with spaces.
+        XCARGS_ARRAY=()
+        if [[ -n "$XCARGS" ]]; then
+          read -r -a XCARGS_ARRAY <<< "$XCARGS"
+        fi
+
         # Build destination string based on platform type
         if [ "${{ inputs.type }}" = "macos" ]; then
           DESTINATION="platform=macOS"
         else
-          DESTINATION="platform=${{ env.PLATFORM }},name=${{ inputs.deviceName }},OS=${{ inputs.osVersion }}"
+          DESTINATION="platform=${PLATFORM},name=${DEVICE_NAME},OS=${OS_VERSION}"
         fi
 
-        # Quote scheme so values with spaces (e.g. "My Package-Package") survive the eval below.
-        SCHEME_VALUE="${{ inputs.scheme || steps.calc-scheme.outputs.scheme }}"
-
-        # Build xcodebuild command based on build-only mode
-        # ${{ inputs.xcargs }} is appended so callers can pass flags like
-        # -scmProvider system (needed for private SSH SPM dependencies).
+        # Build xcodebuild argv array (no eval — scheme/destination stay single elements).
         if [ "${{ inputs.build-only }}" = "true" ]; then
-          # Build-only mode: compile without running tests
-          XCODEBUILD_CMD="xcodebuild build \
-            -scheme \"$SCHEME_VALUE\" \
-            -sdk ${{ env.SDK }} \
-            -destination \"$DESTINATION\" \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }} \
-            ${{ inputs.xcargs }}"
+          XCODEBUILD_ARGS=(
+            xcodebuild build
+            -scheme "$SCHEME_VALUE"
+            -sdk "$SDK"
+            -destination "$DESTINATION"
+            -derivedDataPath "$DERIVED_DATA_PATH"
+            "${XCARGS_ARRAY[@]}"
+          )
         else
-          # Normal mode: build and run tests with coverage
-          XCODEBUILD_CMD="xcodebuild test \
-            -scheme \"$SCHEME_VALUE\" \
-            -sdk ${{ env.SDK }} \
-            -destination \"$DESTINATION\" \
-            -enableCodeCoverage YES \
-            -derivedDataPath ${{ env.DERIVED_DATA_PATH }} \
-            ${{ inputs.xcargs }}"
+          XCODEBUILD_ARGS=(
+            xcodebuild test
+            -scheme "$SCHEME_VALUE"
+            -sdk "$SDK"
+            -destination "$DESTINATION"
+            -enableCodeCoverage YES
+            -derivedDataPath "$DERIVED_DATA_PATH"
+            "${XCARGS_ARRAY[@]}"
+          )
         fi
 
         # Configure output saving if enabled
@@ -2360,39 +2372,32 @@ runs:
 
         # Execute with or without xcbeautify
         if [ "${{ inputs.use-xcbeautify }}" = "true" ]; then
-          # Set up unbuffered I/O for better xcbeautify output
           export NSUnbufferedIO=YES
 
-          # Build xcbeautify command
-          if [ -n "${{ inputs.xcbeautify-renderer }}" ] && [ "${{ inputs.xcbeautify-renderer }}" != "default" ]; then
-            XCBEAUTIFY_CMD="xcbeautify --renderer ${{ inputs.xcbeautify-renderer }}"
+          if [ -n "$XCBEAUTIFY_RENDERER" ] && [ "$XCBEAUTIFY_RENDERER" != "default" ]; then
+            XCBEAUTIFY_ARGS=(xcbeautify --renderer "$XCBEAUTIFY_RENDERER")
           else
-            XCBEAUTIFY_CMD="xcbeautify"
+            XCBEAUTIFY_ARGS=(xcbeautify)
           fi
 
-          # Execute with xcbeautify and proper pipe failure handling
-          # Use set -o pipefail to ensure xcodebuild failures are not masked by xcbeautify success
+          # pipefail so xcodebuild failures are not masked by xcbeautify/tee success
           set -o pipefail
           if [[ -n "$OUTPUT_FILE" ]]; then
-            # Save output and pipe through xcbeautify
-            eval "$XCODEBUILD_CMD 2>&1 | tee \"$OUTPUT_FILE\" | $XCBEAUTIFY_CMD"
+            "${XCODEBUILD_ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE" | "${XCBEAUTIFY_ARGS[@]}"
           else
-            # Just pipe through xcbeautify
-            eval "$XCODEBUILD_CMD 2>&1 | $XCBEAUTIFY_CMD"
+            "${XCODEBUILD_ARGS[@]}" 2>&1 | "${XCBEAUTIFY_ARGS[@]}"
           fi
-          # Capture exit code to ensure build failures are properly reported
           BUILD_EXIT_CODE=$?
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "Build failed with exit code: $BUILD_EXIT_CODE" >&2
             exit $BUILD_EXIT_CODE
           fi
         else
-          # Execute without xcbeautify
           if [[ -n "$OUTPUT_FILE" ]]; then
             set -o pipefail
-            eval "$XCODEBUILD_CMD 2>&1 | tee \"$OUTPUT_FILE\""
+            "${XCODEBUILD_ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE"
           else
-            eval "$XCODEBUILD_CMD"
+            "${XCODEBUILD_ARGS[@]}"
           fi
         fi
 

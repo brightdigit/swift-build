@@ -73,7 +73,7 @@
 | `skip-package-resolved` | Skip Package.resolved dependency pinning (allows floating dependency versions) | `false` | `true` | `true`, `false` | **All platforms** - When `true`, ignores Package.resolved and resolves dependencies dynamically. When `false` (default), enforces exact versions from Package.resolved (strict mode). Required when Package.resolved format is incompatible with Swift version (e.g., v3 format with Swift 5.9/5.10) |
 | `use-xcbeautify` | Enable xcbeautify for prettified xcodebuild output | `false` | `true` | `true`, `false` | **Apple platforms only** - macOS with `type` parameter specified |
 | `xcbeautify-renderer` | xcbeautify renderer for CI integration | `default` | `github-actions` | `default`, `github-actions`, `teamcity`, `azure-devops-pipelines` | **Apple platforms only** - Used when `use-xcbeautify` is `true` |
-| `xcargs` | Extra arguments appended to the xcodebuild invocation | `''` | `-scmProvider system` | Any valid xcodebuild flags | **Apple platforms only** - Appended to `xcodebuild build` / `xcodebuild test`. Use `-scmProvider system` for private SSH SPM dependencies (Xcode's built-in libgit2 ignores `ssh-agent` / `GIT_SSH_COMMAND`) |
+| `xcargs` | Extra space-separated arguments appended to the xcodebuild invocation | `''` | `-scmProvider system` | Space-separated xcodebuild flags (no quoted values with spaces) | **Apple platforms only** - Appended to `xcodebuild build` / `xcodebuild test` via env + argv array. Use `-scmProvider system` for private SSH SPM dependencies (Xcode's built-in libgit2 ignores `ssh-agent` / `GIT_SSH_COMMAND`). Scheme auto-calculation does not use `xcargs` — pass `scheme` explicitly if the `xcodebuild -list` fallback also needs `-scmProvider system` |
 
 > **Security note (custom SDK URLs):** `wasm-sdk-url` and `android-sdk-url` download and install an SDK bundle from whatever host you point them at, so only use URLs from a trusted source (e.g. `download.swift.org`). For Wasm, prefer setting `wasm-sdk-checksum` so `swift sdk install --checksum` detects tampering or corruption.
 
@@ -1327,6 +1327,9 @@ jobs:
 ```yaml
 # Xcode's built-in libgit2 ignores ssh-agent and GIT_SSH_COMMAND.
 # Pass -scmProvider system so xcodebuild resolves packages with system git.
+# Note: scheme auto-calculation (calculate-scheme.sh / xcodebuild -list fallback)
+# does not receive xcargs — pass scheme explicitly if that fallback also needs
+# -scmProvider system.
 - uses: brightdigit/swift-build@v1
   with:
     scheme: MyApp
@@ -3659,7 +3662,7 @@ type: androidOS  # Invalid platform type
 
 ### Input Parameter Sanitization
 
-The `wasm-swift-flags` and `xcargs` parameters are directly interpolated into shell commands without sanitization. This design is intentional and safe for standard GitHub Actions usage because:
+The `wasm-swift-flags` parameter is directly interpolated into shell commands without sanitization. The `xcargs` parameter is passed via a step `env:` binding and expanded as a bash argv array (`read -a` → `"${XCARGS_ARRAY[@]}"`), which avoids quote-breakout and `eval` — but values are still space-split only (no quoted arguments containing spaces). Both remain safe for standard GitHub Actions usage because:
 
 1. **Trusted Source**: GitHub Actions input parameters come from workflow YAML files, which require repository write access to modify
 2. **Controlled Environment**: If an attacker can modify workflow files, they already have full control of the CI environment
@@ -3727,7 +3730,7 @@ jobs:
     xcargs: -scmProvider system
 ```
 
-Note: `defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM -bool NO` does **not** fix this on recent Xcode versions.
+Note: `defaults write com.apple.dt.Xcode IDEPackageSupportUseBuiltinSCM -bool NO` does **not** fix this on recent Xcode versions. Scheme auto-calculation does not use `xcargs`; pass `scheme` explicitly if the `xcodebuild -list` fallback also needs `-scmProvider system`.
 
 #### Issue: Simulator Device Not Available
 **Error:** `Unable to find destination matching iPhone 17`

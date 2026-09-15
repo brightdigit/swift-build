@@ -36,6 +36,7 @@ jobs:
             runs-on: macos-15
             xcode: "/Applications/Xcode_16.4.app"
             use-xcbeautify: "true"
+            xcargs: "-quiet"
 
           # macOS Build-Only Matrix
           - type: macos
@@ -125,6 +126,7 @@ jobs:
           xcbeautify-renderer: ${{ matrix['xcbeautify-renderer'] }}
           skip-package-resolved: "true"
           build-only: ${{ matrix['build-only'] || 'false' }}
+          xcargs: ${{ matrix.xcargs }}
       - name: Verify tests were not run (build-only mode)
         if: matrix.build-only == 'true'
         working-directory: test/SingleTargetPackage
